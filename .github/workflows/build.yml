@@ -73,10 +73,22 @@ jobs:
           mkdir -p artifacts
           exec > >(tee -a artifacts/WORLD_COMPILE_LOG.txt) 2>&1
           echo "=== world bundle self-sufficiency ==="
-          if [ -f android/assets/world/manifest.json ]; then
-            echo "bundle already present: $(du -sh android/assets/world | cut -f1)"
-            exit 0
+          # A committed bundle is only reused when it was produced by the current compiler; otherwise
+          # the country would be built by older code than the one under review.
+          COMPILER_HASH=$(cat tools/build_world.py tools/fetch_sources.py tools/requirements.txt | sha256sum | cut -d" " -f1)
+          echo "compiler_hash=$COMPILER_HASH"
+          if [ -f android/assets/world/manifest.json ] && [ -f android/assets/world/COMPILER_SHA256 ]; then
+            COMMITTED_HASH=$(cat android/assets/world/COMPILER_SHA256 | tr -d "[:space:]")
+            echo "committed_hash=$COMMITTED_HASH"
+            if [ "$COMMITTED_HASH" = "$COMPILER_HASH" ]; then
+              echo "bundle is current: $(du -sh android/assets/world | cut -f1)"
+              exit 0
+            fi
+            echo "committed bundle is stale (compiler changed); rebuilding"
+          elif [ -f android/assets/world/manifest.json ]; then
+            echo "no compiler fingerprint on the committed bundle; rebuilding"
           fi
+          rm -rf android/assets/world/*
           python3 -m pip install --quiet --upgrade pip
           python3 -m pip install --quiet -r tools/requirements.txt
           echo "--- static self-test of the compiler ---"

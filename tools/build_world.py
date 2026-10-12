@@ -1076,6 +1076,11 @@ def main() -> int:
     log(f"  strings: {len(strings)} entries")
 
     # Manifest -----------------------------------------------------------------------------------
+    compiler_hash = compiler_fingerprint()
+    (WORLD / "COMPILER_SHA256").write_text(compiler_hash + "\n")
+    (GEODATA / "COMPILER_SHA256").write_text(compiler_hash + "\n")
+    log(f"  compiler fingerprint: {compiler_hash[:16]}")
+
     world_epoch = int(os.environ.get("QATAR_WORLD_EPOCH", "20261012"))
     files = ["terrain_l0.bin.gz", "terrain_l1.bin.gz", "material_l1.bin.gz", "roads.bin.gz",
              "buildings.bin.gz", "coast.bin.gz", "strings.bin.gz"]
@@ -1149,6 +1154,22 @@ def main() -> int:
 
 
 # -------------------------------------------------------------------------------------- helpers
+def compiler_fingerprint() -> str:
+    """SHA-256 over the compiler sources and its pinned dependencies.
+
+    Committed world bundles carry this fingerprint, so CI can tell "the bundle on this branch was
+    produced by the current compiler" from "the compiler changed and the bundle is stale" and rebuild
+    exactly when it must -- instead of shipping a country compiled by older code.
+    """
+    digest = hashlib.sha256()
+    here = Path(__file__).parent
+    for name in ("build_world.py", "fetch_sources.py", "requirements.txt"):
+        path = here / name
+        digest.update(name.encode("utf-8"))
+        digest.update(path.read_bytes() if path.exists() else b"<missing>")
+    return digest.hexdigest()
+
+
 def _inside_any(polys: list, lon: float, lat: float) -> bool:
     if not polys:
         return False
