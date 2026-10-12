@@ -510,9 +510,10 @@ def pack_roads(roads: list[dict], strings: StringTable) -> tuple[bytes, dict]:
             continue
         cls = road["class"]
         lanes, width, speed = ROAD_CLASS_DEF.get(cls, (1, 4.0, 30))
-        lanes = road.get("lanes", lanes)
-        width = road.get("width", width)
-        speed = road.get("speed", speed)
+        # Explicit None (untagged) must fall back to the class default, not crash the compiler.
+        lanes = road.get("lanes") or lanes
+        width = road.get("width") or width
+        speed = road.get("speed") or speed
         flags = 0
         if road.get("bridge"):
             flags |= 1
@@ -807,7 +808,8 @@ def main() -> int:
         checkpoint_report.append({"group": group, "id": cid, "status": "FOUND",
                                   "east": round(e, 2), "north": round(n, 2), "name": label_en})
     missing = [c for c in checkpoint_report if c["status"] == "MISSING"]
-    log(f"  checkpoints: {len(checkpoints)} found, {len(missing)} missing")
+    log(f"  checkpoints: {len(checkpoints)} found, {len(missing)} missing"
+        + (f" -> {', '.join(c['group'] + '/' + c['id'] for c in missing)}" if missing else ""))
 
     # Municipality hubs (spawn points) ---------------------------------------------------------
     hubs = []
