@@ -391,6 +391,8 @@ bundle already present: 12M
 === world bundle self-sufficiency ===
 bundle already present: 12M
 === world bundle self-sufficiency ===
+bundle already present: 12M
+=== world bundle self-sufficiency ===
 compiler_hash=2536fa6f9f27b6844fbd1cf5aa2b0255afe7bd834c77587e6b153d1804df78a7
 committed_hash=d091bffc0fde3b60f41ba31e6cfda16aaa8181d9925f50be2cca14e793094ee8
 committed bundle is stale (compiler changed); rebuilding
