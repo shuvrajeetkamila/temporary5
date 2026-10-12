@@ -17,7 +17,7 @@ GeoMathTest > inverse projection matches PROJ and round-trips the whole country 
 PhysicsWorldTest > static boxes stop bodies: no tunnelling at highway speed PASSED
 
 PhysicsWorldTest > a dropped crate settles on the ground and eventually sleeps FAILED
-    org.opentest4j.AssertionFailedError: crate sleeps once quiet (v=0.006578362426578746, preStepV=0.007608063276677528, w=0.13157127971033736, airTime=0.0, sleepTime=0.0) ==> expected: <true> but was: <false>
+    org.opentest4j.AssertionFailedError: crate sleeps once quiet (v=0.005762127616828195, preStepV=0.008285645759034987, w=0.0068310835725039045, airTime=0.0, sleepTime=0.0) ==> expected: <true> but was: <false>
         at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
         at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
         at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
@@ -26,7 +26,7 @@ PhysicsWorldTest > a dropped crate settles on the ground and eventually sleeps F
         at app//ai.arena.qatar.physics.PhysicsWorldTest.crateSettles(PhysicsWorldTest.java:67)
 
 PhysicsWorldTest > sleeping bodies stay put until disturbed FAILED
-    org.opentest4j.AssertionFailedError: a body placed at rest must sleep (v=0.004292403864728258, preStepV=0.008242863929978804, w=0.08584399205962928, airTime=0.0) ==> expected: <true> but was: <false>
+    org.opentest4j.AssertionFailedError: a body placed at rest must sleep (v=0.004732932032984057, preStepV=0.004638225260565952, w=0.005681986018123417, airTime=0.0) ==> expected: <true> but was: <false>
         at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
         at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
         at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
@@ -38,30 +38,19 @@ PhysicsWorldTest > determinism: identical inputs produce identical states PASSED
 
 --
 
-ArabicReshaperTest > Latin words and Western digits stay readable inside Arabic text PASSED
-
-ChunkManagerTest > chunksBecomeActiveAndUploadsStayInBudget() FAILED
-    org.opentest4j.AssertionFailedError: immediate surroundings are at least medium detail ==> expected: <true> but was: <false>
-        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
-        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
-        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
-        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
-        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
-        at app//ai.arena.qatar.world.ChunkManagerTest.chunksBecomeActiveAndUploadsStayInBudget(ChunkManagerTest.java:70)
-
 ChunkManagerTest > movingFarEvictsWhatIsLeftBehind() PASSED
 
 ChunkManagerTest > terrainSamplingMatchesTheCompiledGrid() FAILED
-    org.opentest4j.AssertionFailedError: the test lattice marks its eastern half as water ==> expected: <15> but was: <6>
+    org.opentest4j.AssertionFailedError: expected: <0.0> but was: <4.5>
         at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
         at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
         at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
-        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)
-        at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:563)
-        at app//ai.arena.qatar.world.ChunkManagerTest.terrainSamplingMatchesTheCompiledGrid(ChunkManagerTest.java:153)
+        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:86)
+        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:81)
+        at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1014)
+        at app//ai.arena.qatar.world.ChunkManagerTest.terrainSamplingMatchesTheCompiledGrid(ChunkManagerTest.java:150)
 
 ChunkManagerTest > collisionTerrainIsResidentAroundTheFocusInEveryMode() PASSED
-
 --
 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
@@ -81,5 +70,5 @@ Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 15s
+BUILD FAILED in 22s
 3 actionable tasks: 3 executed
