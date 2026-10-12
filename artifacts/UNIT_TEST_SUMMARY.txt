@@ -1,1 +1,1 @@
-tests=27 skipped=0 failures=4 errors=0
+tests=27 skipped=0 failures=2 errors=0
