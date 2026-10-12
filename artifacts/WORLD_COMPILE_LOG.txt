@@ -384,3 +384,5 @@ drwxr-xr-x 5 runner runner    4096 Oct 12 14:18 ..
 12M	android/assets/world/
 === world bundle self-sufficiency ===
 bundle already present: 12M
+=== world bundle self-sufficiency ===
+bundle already present: 12M

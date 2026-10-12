@@ -1,41 +1,103 @@
-> Task :core:processResources NO-SOURCE
-> Task :core:classes
+> Task :core:processTestResources NO-SOURCE
+> Task :core:testClasses
 
-> Task :core:compileTestJava FAILED
-/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/world/ChunkManagerTest.java:146: error: cannot find symbol
-        assertEquals(SurfaceMaterial.ID_SHALLOW_WATER, sampler.materialId(localX, localZ),
-                     ^
-  symbol:   variable SurfaceMaterial
-  location: class ChunkManagerTest
-/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/world/ChunkManagerTest.java:148: error: cannot find symbol
-        assertEquals(SurfaceMaterial.ID_COMPACT_SAND, sampler.materialId(COLS * CELL - 500, 1500),
-                     ^
-  symbol:   variable SurfaceMaterial
-  location: class ChunkManagerTest
-2 errors
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791815217214.json
+> Task :core:test FAILED
 
-FAILURE: Build failed with an exception.
+GeoMathTest > projected distances and bearings match known national geometry PASSED
 
-* What went wrong:
+GeoMathTest > grid convergence is small but non-zero and signed correctly PASSED
+
+GeoMathTest > invalid input is rejected instead of producing NaN geography PASSED
+
+GeoMathTest > forward projection matches PROJ at Qatar checkpoints PASSED
+
+GeoMathTest > inverse projection matches PROJ and round-trips the whole country PASSED
 --
-	at org.gradle.composite.internal.DefaultBuildController$BuildOpRunnable.run(DefaultBuildController.java:198)
+
+PhysicsWorldTest > static boxes stop bodies: no tunnelling at highway speed PASSED
+
+PhysicsWorldTest > a dropped crate settles on the ground and eventually sleeps FAILED
+    org.opentest4j.AssertionFailedError: crate sleeps once quiet ==> expected: <true> but was: <false>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+        at app//ai.arena.qatar.physics.PhysicsWorldTest.crateSettles(PhysicsWorldTest.java:67)
+
+PhysicsWorldTest > sleeping bodies stay put until disturbed FAILED
+    org.opentest4j.AssertionFailedError: expected: <true> but was: <false>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:31)
+        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:183)
+        at app//ai.arena.qatar.physics.PhysicsWorldTest.sleepingBodiesRemainStill(PhysicsWorldTest.java:142)
+
+PhysicsWorldTest > determinism: identical inputs produce identical states PASSED
+--
+
+ArabicReshaperTest > Latin words and Western digits stay readable inside Arabic text PASSED
+
+ChunkManagerTest > chunksBecomeActiveAndUploadsStayInBudget() FAILED
+    org.opentest4j.AssertionFailedError: immediate surroundings are high detail ==> expected: <true> but was: <false>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+        at app//ai.arena.qatar.world.ChunkManagerTest.chunksBecomeActiveAndUploadsStayInBudget(ChunkManagerTest.java:70)
+
+ChunkManagerTest > movingFarEvictsWhatIsLeftBehind() PASSED
+
+ChunkManagerTest > terrainSamplingMatchesTheCompiledGrid() FAILED
+    org.opentest4j.AssertionFailedError: west half of the test lattice is water ==> expected: <15> but was: <6>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)
+        at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:563)
+        at app//ai.arena.qatar.world.ChunkManagerTest.terrainSamplingMatchesTheCompiledGrid(ChunkManagerTest.java:148)
+
+ChunkManagerTest > collisionTerrainIsResidentAroundTheFocusInEveryMode() FAILED
+    org.opentest4j.AssertionFailedError: ON_FOOT: collision terrain must exist under the focus ==> expected: <true> but was: <false>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+        at app//ai.arena.qatar.world.ChunkManagerTest.collisionTerrainIsResidentAroundTheFocusInEveryMode(ChunkManagerTest.java:45)
+
+ChunkManagerTest > rebaseNeverChangesChunkIdentity() FAILED
+    org.opentest4j.AssertionFailedError: local/global conversion round-trips after a rebase ==> expected: <431000.0> but was: <471000.0>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:86)
+        at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1024)
+        at app//ai.arena.qatar.world.ChunkManagerTest.rebaseNeverChangesChunkIdentity(ChunkManagerTest.java:135)
+
+ChunkManagerTest > fasterProfilesLoadMoreThanSlowerOnes() PASSED
+
+--
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
-Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Compilation failed; see the compiler error output for details.
-	at org.gradle.api.internal.tasks.compile.JdkJavaCompiler.execute(JdkJavaCompiler.java:61)
-	at org.gradle.api.internal.tasks.compile.JdkJavaCompiler.execute(JdkJavaCompiler.java:41)
-	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.delegateAndHandleErrors(NormalizingJavaCompiler.java:98)
-	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.execute(NormalizingJavaCompiler.java:52)
-	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.execute(NormalizingJavaCompiler.java:38)
-	at org.gradle.api.internal.tasks.compile.AnnotationProcessorDiscoveringCompiler.execute(AnnotationProcessorDiscoveringCompiler.java:52)
-	at org.gradle.api.internal.tasks.compile.AnnotationProcessorDiscoveringCompiler.execute(AnnotationProcessorDiscoveringCompiler.java:38)
-	at org.gradle.api.internal.tasks.compile.ModuleApplicationNameWritingCompiler.execute(ModuleApplicationNameWritingCompiler.java:46)
-	at org.gradle.api.internal.tasks.compile.ModuleApplicationNameWritingCompiler.execute(ModuleApplicationNameWritingCompiler.java:36)
-	at org.gradle.jvm.toolchain.internal.DefaultToolchainJavaCompiler.execute(DefaultToolchainJavaCompiler.java:57)
+Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There were failing tests. See the report at: file:///home/runner/work/temporary5/temporary5/core/build/reports/tests/test/index.html
+	at org.gradle.api.tasks.testing.AbstractTestTask.handleTestFailures(AbstractTestTask.java:691)
+	at org.gradle.api.tasks.testing.AbstractTestTask.handleCollectedResults(AbstractTestTask.java:533)
+	at org.gradle.api.tasks.testing.AbstractTestTask.executeTests(AbstractTestTask.java:528)
+	at org.gradle.api.tasks.testing.Test.executeTests(Test.java:715)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at org.gradle.internal.reflect.JavaMethod.invoke(JavaMethod.java:125)
+	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.doExecute(StandardTaskAction.java:58)
+	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.execute(StandardTaskAction.java:51)
 --
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 19s
-2 actionable tasks: 2 executed
+BUILD FAILED in 20s
+3 actionable tasks: 3 executed
