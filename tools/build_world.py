@@ -787,9 +787,13 @@ def main() -> int:
     # network closed against the national border ring, and each candidate face is classified by the
     # elevation authority: faces whose samples carry real SRTM data are land, void faces are sea.
     seed_lines = [r["coords"] for r in data.roads]
-    seed_polys = [_closed_way_polygon(b["coords"]) for b in data.buildings[:40000]]
-    seed_polys = [p for p in seed_polys if p is not None and p.area > 50.0]
-    land_mask, land_diag = derive_land_mask(data.coastlines, seed_lines, seed_polys,
+    seed_points = []
+    for footprint in data.buildings[:40000]:
+        coords = footprint["coords"]
+        if len(coords) >= 3:
+            seed_points.append((sum(c[0] for c in coords) / len(coords),
+                                sum(c[1] for c in coords) / len(coords)))
+    land_mask, land_diag = derive_land_mask(data.coastlines, seed_lines, seed_points,
                                            xs_l1, ys_l1, args.cell_l1)
     land_area_km2 = float(land_mask.sum()) * args.cell_l1 * args.cell_l1 / 1e6
     from scipy import ndimage as _ndimage
@@ -1155,20 +1159,22 @@ def sanitise_ring(ring, tolerance_m: float = 2.0):
 
 
 def derive_land_mask(coastlines: list[list[tuple[float, float]]], seed_lines: list[list[tuple[float, float]]],
-                     seed_polys: list, xs: np.ndarray, ys: np.ndarray, cell_m: float) -> tuple[np.ndarray, dict]:
-    """Derive the land mask from open data, without inventing geometry.
+                     seed_points: list[tuple[float, float]], xs: np.ndarray, ys: np.ndarray,
+                     cell_m: float) -> tuple[np.ndarray, dict]:
+    """Derive the land mask from open data, without inventing any geometry.
 
-    Method (standard open-data land/sea derivation):
-      1. the mapped `natural=coastline` network is rasterised as a barrier;
-      2. OSM features that only exist on land (roads, buildings, onshore land use) seed a flood fill;
-      3. the fill stops at the coastline, so it can only cover land -- and because it is seeded from
-         real features it never invents land where no data exists;
-      4. if the fill leaks (area implausibly large) the barrier is thickened and the fill retried;
-      5. components enclosed by coastline that hold no land evidence but are big enough are islands;
-         the component that touches the grid border is the sea.
+    Method (the standard open-data land/sea derivation):
+      1. the mapped `natural=coastline` network is buffered into a thin ribbon and rasterised as a
+         barrier (rasterio only burns areal geometry, so the lines are buffered by ~1 cell);
+      2. OSM features that can only exist on land -- road vertices and building footprints -- scatter
+         seeds into the lattice with plain numpy (fast and exact);
+      3. a connected-component fill from those seeds, blocked by the ribbon, can only reach land;
+      4. if the fill leaks (implausible area) the barrier is thickened and the fill retried;
+      5. components enclosed by the coastline that hold no land evidence but are big enough become
+         islands; the component touching the grid border is the open sea.
 
-    The self-check in step 4 is what makes this trustworthy: a broken coastline shows up as a
-    plausibility failure instead of silently turning the Gulf into desert.
+    Step 4 is the important one: a broken coastline shows up as a plausibility failure instead of
+    silently turning the Gulf into desert.
     """
     import rasterio.features
     from rasterio.transform import Affine
@@ -1177,23 +1183,40 @@ def derive_land_mask(coastlines: list[list[tuple[float, float]]], seed_lines: li
     rows, cols = ys.size, xs.size
     origin_e = float(xs[0]) - cell_m / 2.0
     origin_n = float(ys[0]) - cell_m / 2.0
+    # rasterio is north-up, so the affine transform anchors at the northern edge and rows descend.
     transform = Affine.translation(origin_e, origin_n + rows * cell_m) * Affine.scale(cell_m, -cell_m)
 
-    coast_geoms = [(_project(w), 1) for w in coastlines if len(w) >= 2]
-    seed_line_geoms = [(_project(w), 1) for w in seed_lines if len(w) >= 2]
-    seed_poly_geoms = [(poly, 1) for poly in seed_polys if not poly.is_empty]
+    projected_coast = [_project(w) for w in coastlines if len(w) >= 2]
+    barrier_geom = None
+    if projected_coast:
+        merged = shapely.ops.unary_union([LineString(p) for p in projected_coast])
+        barrier_geom = merged.buffer(cell_m * 0.75, quad_segs=1, cap_style=2, join_style=2)
+    base_barrier = np.zeros((rows, cols), dtype=bool)
+    if barrier_geom is not None and not barrier_geom.is_empty:
+        base_barrier = rasterio.features.rasterize([(barrier_geom, 1)], out_shape=(rows, cols),
+                                                   transform=transform, fill=0, all_touched=True,
+                                                   dtype="uint8").astype(bool)
 
-    base_barrier = rasterio.features.rasterize(coast_geoms, out_shape=(rows, cols), transform=transform,
-                                               fill=0, all_touched=True, dtype="uint8").astype(bool)
-    seeds = rasterio.features.rasterize(seed_line_geoms, out_shape=(rows, cols), transform=transform,
-                                        fill=0, all_touched=True, dtype="uint8").astype(bool)
-    if seed_poly_geoms:
-        seeds |= rasterio.features.rasterize(seed_poly_geoms, out_shape=(rows, cols), transform=transform,
-                                             fill=0, all_touched=False, dtype="uint8").astype(bool)
+    # Seeds from real land features, scattered directly into the lattice.
+    seeds = np.zeros((rows, cols), dtype=bool)
+    line_points = []
+    for way in seed_lines:
+        line_points.extend(way)
+    if seed_points:
+        line_points.extend(seed_points)
+    if line_points:
+        arr = np.asarray(line_points, dtype="float64")
+        lon = arr[:, 0]
+        lat = arr[:, 1]
+        east, north = FWD.transform(lon, lat)
+        col_idx = np.floor((east - origin_e) / cell_m).astype(np.int64)
+        row_idx = np.floor((origin_n + rows * cell_m - north) / cell_m).astype(np.int64)
+        valid = (col_idx >= 0) & (col_idx < cols) & (row_idx >= 0) & (row_idx < rows)
+        seeds[row_idx[valid], col_idx[valid]] = True
 
     diagnostics = {"barrierCells": int(base_barrier.sum()), "seedCells": int(seeds.sum())}
     land = None
-    for thickening in range(0, 6):
+    for thickening in range(0, 7):
         barrier = base_barrier
         for _ in range(thickening):
             barrier = ndimage.binary_dilation(barrier, iterations=1)
@@ -1213,10 +1236,8 @@ def derive_land_mask(coastlines: list[list[tuple[float, float]]], seed_lines: li
     if land is None:
         raise SystemExit(f"FATAL: land derivation did not converge: {diagnostics}")
 
-    # Islands: enclosed components with no land evidence, big enough to be real islands, that do not
-    # belong to the sea component (the one touching the grid border).
     barrier = base_barrier
-    for _ in range(diagnostics["thickening"]):
+    for _ in range(diagnostics.get("thickening", 0)):
         barrier = ndimage.binary_dilation(barrier, iterations=1)
     free = ~barrier
     labels, count = ndimage.label(free)
@@ -1227,7 +1248,7 @@ def derive_land_mask(coastlines: list[list[tuple[float, float]]], seed_lines: li
     for label in range(1, count + 1):
         if label in sea_labels:
             continue
-        size_km2 = int((labels == label).sum()) * cell_m * cell_m / 1e6
+        size_km2 = float((labels == label).sum()) * cell_m * cell_m / 1e6
         if size_km2 >= 0.02 and not land[labels == label].any():
             island_ids.append((label, size_km2))
     diagnostics["islandComponents"] = len(island_ids)
@@ -1235,77 +1256,6 @@ def derive_land_mask(coastlines: list[list[tuple[float, float]]], seed_lines: li
     for label, _size in island_ids:
         land_with_islands |= (labels == label)
     return land_with_islands, diagnostics
-
-
-def classify_land_faces(faces, water_areas: list[dict], mainland_hint: Point) -> tuple[list, dict]:
-    """Split polygonised coastline faces into land and water.
-
-    The administrative boundary of Qatar includes territorial water, and SRTM reports flat zeros over
-    the Gulf, so neither is a land/sea discriminator on its own. The classification is therefore
-    topological and factual:
-
-    1. a face containing onshore reference points is land; one containing offshore points is sea;
-    2. any remaining face that holds a mapped inland water polygon is water;
-    3. everything else is land (islands and small coastal faces).
-
-    Returns (land_faces, diagnostics).
-    """
-    land_pts = [Point(*FWD.transform(lon, lat)) for lon, lat in LAND_REFERENCE_POINTS]
-    sea_pts = [Point(*FWD.transform(lon, lat)) for lon, lat in SEA_REFERENCE_POINTS]
-    water_pts = []
-    for w in water_areas:
-        poly = _closed_way_polygon(w["coords"])
-        if poly is not None and poly.area > 10000.0:
-            water_pts.append(poly.representative_point())
-
-    land: list = []
-    sea: list = []
-    diagnostics = {"landByReference": 0, "seaByReference": 0, "waterByFeature": 0, "islandFaces": 0}
-    for face in faces:
-        if face.area < 20000.0 or not face.is_valid:
-            continue
-        land_hits = sum(1 for p in land_pts if face.contains(p))
-        sea_hits = sum(1 for p in sea_pts if face.contains(p))
-        if land_hits > sea_hits and land_hits > 0:
-            land.append(face)
-            diagnostics["landByReference"] += 1
-            continue
-        if sea_hits > 0:
-            sea.append(face)
-            diagnostics["seaByReference"] += 1
-            continue
-        if any(face.contains(p) for p in water_pts):
-            sea.append(face)
-            diagnostics["waterByFeature"] += 1
-            continue
-        land.append(face)
-        diagnostics["islandFaces"] += 1
-    return land, diagnostics
-
-
-def project_geometry(geom):
-    """WGS84 geometry -> EPSG:32639 metres (the single documented projection step)."""
-    from shapely.ops import transform as shapely_transform
-    return shapely_transform(lambda x, y, z=None: FWD.transform(x, y), geom)
-
-
-def _project(coords_wgs) -> list[tuple[float, float]]:
-    xs, ys = FWD.transform([c[0] for c in coords_wgs], [c[1] for c in coords_wgs])
-    return list(zip(xs, ys))
-
-
-def _closed_way_polygon(coords_wgs) -> Polygon | None:
-    if len(coords_wgs) < 4:
-        return None
-    if coords_wgs[0] != coords_wgs[-1]:
-        return None
-    pts = _project(coords_wgs)
-    poly = Polygon(pts)
-    if not poly.is_valid:
-        poly = poly.buffer(0)
-    if poly.is_empty or poly.geom_type != "Polygon":
-        return None
-    return poly
 
 
 def _seal_network(parts: list, ring) -> list:
