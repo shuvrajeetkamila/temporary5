@@ -70,6 +70,8 @@ jobs:
         if: always()
         run: |
           set +e
+          mkdir -p artifacts
+          exec > >(tee -a artifacts/WORLD_COMPILE_LOG.txt) 2>&1
           echo "=== world bundle self-sufficiency ==="
           if [ -f android/assets/world/manifest.json ]; then
             echo "bundle already present: $(du -sh android/assets/world | cut -f1)"
