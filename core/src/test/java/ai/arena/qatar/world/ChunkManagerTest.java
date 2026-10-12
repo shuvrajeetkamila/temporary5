@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
+import ai.arena.qatar.physics.SurfaceMaterial;
+
 /**
  * Streaming contract: chunks have stable global identities, budgets are respected, collision terrain
  * is always resident around the focus, and a rebase never strands a chunk.

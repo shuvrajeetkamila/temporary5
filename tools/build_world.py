@@ -1098,7 +1098,10 @@ def main() -> int:
             "landComponents": int(comp_count),
             "islandFaces": len(island_faces),
             "islandCount": len(island_manifest),
-            "mainlandKm2": round(float(sizes.max()) * args.cell_l1 ** 2 / 1e6, 2) if len(sizes) else 0.0,
+            # sizes are already in km2: the largest component is the mainland.
+            "mainlandKm2": round(float(sizes.max()), 2) if len(sizes) else 0.0,
+            "largestIslandKm2": round(max([float(s) for s in sizes if float(s) < float(sizes.max())],
+                                          default=0.0), 3),
             "materialHistogram": {str(int(k)): int(v) for k, v in zip(*np.unique(material, return_counts=True))},
             "roadsByClass": {str(k): int(v) for k, v in road_counts.items()},
         },
@@ -1231,8 +1234,6 @@ def derive_land_mask(coastlines: list[list[tuple[float, float]]], seed_lines: li
         longest_stitch = max((st.length for st in stitches), default=0.0)
         diagnostics_extra["longestStitchM"] = round(longest_stitch, 1)
         if longest_stitch > 5000.0:
-            # A long stitch means the shoreline ends somewhere in the interior rather than at the
-            # border, so the fill may still find a way out; report it instead of failing silently.
             print(f"  WARNING: a shoreline end was stitched over {longest_stitch / 1000:.1f} km; "
                   f"land/sea classification may be unreliable", flush=True)
         barrier_lines = list(parts) + list(stitches)
@@ -1327,35 +1328,53 @@ def derive_land_mask(coastlines: list[list[tuple[float, float]]], seed_lines: li
     return land_with_islands[::-1, :].copy(), diagnostics
 
 
-def _seal_network(parts: list, ring) -> list:
-    """Connect dangling coastline endpoints to the boundary ring so the graph closes.
+def _seal_network(parts: list, ring, radius_m: float = 5000.0) -> list:
+    """Close every dangling end of the shoreline network.
 
-    OSM coastlines are open lines: they end at land borders. Without sealing, polygonize cannot
-    separate the land face from the territorial-water face and the whole administrative polygon comes
-    back as a single face. Sealing only ever adds a straight stitch segment to the nearest ring point;
-    no geometry is invented.
+    OSM coastlines are open lines: they stop at the land border, and they are frequently broken by
+    mapping gaps (ports, reclaimed land, artificial islands). An open end is a hole in the barrier and
+    lets the land/sea fill leak, so each end is stitched to whichever is nearer:
+
+      * the border ring, or
+      * another part of the shoreline network (which closes internal mapping gaps).
+
+    Stitches are straight segments between real OSM endpoints: the barrier is made watertight, no land
+    is invented and nothing is moved.
     """
     from collections import Counter
 
-    if ring is None:
+    if not parts:
         return []
     ends: Counter = Counter()
-    for part in parts:
+    owners: dict[tuple[float, float], int] = {}
+    for index, part in enumerate(parts):
         coords = list(part.coords)
         if len(coords) < 2:
             continue
-        ends[(round(coords[0][0], 6), round(coords[0][1], 6))] += 1
-        ends[(round(coords[-1][0], 6), round(coords[-1][1], 6))] += 1
+        for key in ((round(coords[0][0], 6), round(coords[0][1], 6)),
+                    (round(coords[-1][0], 6), round(coords[-1][1], 6))):
+            ends[key] += 1
+            owners.setdefault(key, index)
+
     stitches = []
     for (x, y), count in ends.items():
         if count != 1:
             continue
         point = Point(x, y)
-        distance = ring.distance(point)
-        if 0.0 < distance < 20000.0:
-            target = ring.interpolate(ring.project(point))
-            if target.distance(point) > 1e-6:
-                stitches.append(LineString([(x, y), (target.x, target.y)]))
+        best = None
+        own = owners.get((x, y))
+        others = [p for i, p in enumerate(parts) if i != own]
+        if others:
+            network = shapely.union_all(others)
+            distance = network.distance(point)
+            if 0.0 < distance <= radius_m:
+                best = network.interpolate(network.project(point))
+        if ring is not None:
+            distance = ring.distance(point)
+            if 0.0 < distance <= radius_m and (best is None or distance < point.distance(best)):
+                best = ring.interpolate(ring.project(point))
+        if best is not None and best.distance(point) > 1e-6:
+            stitches.append(LineString([(x, y), (best.x, best.y)]))
     return stitches
 
 

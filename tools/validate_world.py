@@ -117,6 +117,16 @@ def main() -> int:
         ok, detail = coverage_ok(mask, cols, rows, cell)
         check(ok, f"land coverage is continuous and plausibly sized ({detail})")
 
+    # No component other than the mainland may be large: a big "island" is really leaked sea.
+    from scipy import ndimage as _nd
+    _labels, _count = _nd.label(mask.astype(bool))
+    if _count:
+        _sizes = sorted(_nd.sum(mask, _labels, index=range(1, _count + 1)) * cell * cell / 1e6,
+                        reverse=True)
+        second = float(_sizes[1]) if len(_sizes) > 1 else 0.0
+        check(second <= 400.0, f"no leaked sea component masquerades as an island "
+                               f"(largest secondary component {second:,.1f} km2)")
+
     # ---- municipalities ------------------------------------------------------------------------
     munis = manifest.get("municipalities", [])
     check(len(munis) >= MIN_MUNICIPALITIES, f"municipalities present: {len(munis)} (>= {MIN_MUNICIPALITIES})")
@@ -184,7 +194,9 @@ def coverage_ok(mask: np.ndarray, cols: int, rows: int, cell: float) -> tuple[bo
     islands = int((sizes * cell * cell / 1e6 >= 0.02).sum())
     detail = (f"total {total_km2:,.0f} km2, largest component {largest:,.0f} km2, "
               f"{islands} components >= 2 ha")
-    ok = (largest >= 8000.0) and (6000.0 <= total_km2 <= 20000.0) and islands >= 5
+    # A leaky land/sea classification turns the Gulf into desert: the country's own land is about
+    # 11,600 km2, so a total far above that means the fill escaped through a hole in the coastline.
+    ok = (9000.0 <= largest <= 13000.0) and (9000.0 <= total_km2 <= 15000.0) and islands >= 5
     return ok, detail
 
 
