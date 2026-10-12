@@ -412,6 +412,13 @@ def load_dem() -> tuple[np.ndarray, int]:
     return mosaic, lat_max
 
 
+def sample_dem_valid(mosaic: np.ndarray, lat_max: int, lat: np.ndarray, lon: np.ndarray) -> np.ndarray:
+    """True where the SRTM mosaic holds real elevation data (void cells mark open water)."""
+    row = np.clip(np.floor((lat_max - lat) * 3600.0).astype(np.int64), 0, mosaic.shape[0] - 1)
+    col = np.clip(np.floor((lon - 50.0) * 3600.0).astype(np.int64), 0, mosaic.shape[1] - 1)
+    return mosaic[row, col] > -1000
+
+
 def sample_dem(mosaic: np.ndarray, lat_max: int, lat: np.ndarray, lon: np.ndarray) -> np.ndarray:
     """Bilinear sampling of the mosaic at WGS84 coordinates."""
     row = (lat_max - lat) * 3600.0
@@ -570,6 +577,8 @@ def pack_coast(rings: list[tuple[int, list[tuple[float, float]]]], grid: dict) -
         body += struct.pack("<IH", island_id, min(65535, len(ring)))
         prev_e = prev_n = None
         for (e, nn) in ring:
+            if not (np.isfinite(e) and np.isfinite(nn)):
+                continue
             ie = int(round(e * 100))
             inn = int(round(nn * 100))
             if prev_e is None:
@@ -652,22 +661,16 @@ def main() -> int:
             "geometry": poly,
             "source": "osm-way-place-island",
         })
-    # Coastline-derived land rings inside the national AOI become island candidates too.
+    # Coastline-derived land faces (mainland + islands), classified later against elevation.
     boundary_line = None
     if national.geom_type == "Polygon":
         boundary_line = LineString(national.exterior.coords)
     else:
         boundary_line = shapely.ops.unary_union(
             [LineString(poly.exterior.coords) for poly in national.geoms])
-    coast_land = _land_polygons_from_coastline(data.coastlines, boundary_line)
-    islands_from_coast = []
-    for poly in coast_land:
-        if poly.area < 20000.0:
-            continue
-        if not national.buffer(500.0).contains(poly.representative_point()):
-            continue
-        islands_from_coast.append(poly)
-    log(f"  islands: {len(islands)} tagged + {len(islands_from_coast)} coastline-derived rings")
+    coast_land_faces = _land_polygons_from_coastline(data.coastlines, boundary_line)
+    log(f"  coastline faces: {len(coast_land_faces)} candidate land/water polygons; "
+        f"{len(islands)} tagged island polygons")
 
     # Grid ------------------------------------------------------------------------------------
     grid = build_grid(national)
@@ -676,12 +679,6 @@ def main() -> int:
 
     # Rasterised masks (land / water / land use) ----------------------------------------------
     xs_l1, ys_l1, cols_l1, rows_l1 = grid_axes(grid, args.cell_l1)
-    land_mask = _rasterize(national, xs_l1, ys_l1, args.cell_l1)
-    coast_rings = [orient(p.exterior, 1.0) if p.geom_type == "Polygon" else p for p in [national]]
-    islands_geom = [p for p in islands_from_coast]
-    for poly in islands_geom:
-        land_mask |= _rasterize(poly, xs_l1, ys_l1, args.cell_l1)
-    log(f"  land mask: {land_mask.sum():,} of {land_mask.size:,} cells ({100 * land_mask.mean():.1f}%)")
 
     dem_mosaic, dem_lat_max = load_dem()
     # UTM grid -> WGS84 -> bilinear DEM sample
@@ -690,6 +687,23 @@ def main() -> int:
     lat_l1 = np.asarray(lat_l1).reshape(xx.shape)
     lon_l1 = np.asarray(lon_l1).reshape(xx.shape)
     heights_l1 = sample_dem(dem_mosaic, dem_lat_max, lat_l1, lon_l1)
+    elevation_valid = sample_dem_valid(dem_mosaic, dem_lat_max, lat_l1, lon_l1)
+
+    # Land classification. The OSM administrative boundary of Qatar includes territorial water, so it
+    # cannot be used as the land mask directly. The land polygons below come from the coastline
+    # network closed against the national border ring, and each candidate face is classified by the
+    # elevation authority: faces whose samples carry real SRTM data are land, void faces are sea.
+    land_faces = classify_land_faces(coast_land_faces, elevation_valid, xs_l1, ys_l1, args.cell_l1)
+    if not land_faces:
+        raise SystemExit("FATAL: no land polygons could be classified from the coastline network")
+    mainland = max(land_faces, key=lambda p: p.area)
+    island_faces = [p for p in land_faces if p is not mainland and p.area >= 20000.0]
+    land_union = shapely.ops.unary_union(land_faces)
+    land_mask = _rasterize(land_union, xs_l1, ys_l1, args.cell_l1)
+    log(f"  land faces: {len(land_faces)} (mainland {mainland.area / 1e6:,.1f} km2, "
+        f"{len(island_faces)} islands >= 2 ha)")
+    log(f"  land mask: {land_mask.sum():,} of {land_mask.size:,} cells ({100 * land_mask.mean():.1f}%)")
+
     heights_l1 = np.where(land_mask, np.maximum(heights_l1, 0.0), 0.0)
     log(f"  terrain L1 ({args.cell_l1:.0f} m): min {heights_l1.min():.1f} max {heights_l1.max():.1f} m")
 
@@ -882,14 +896,15 @@ def main() -> int:
         exterior = poly.exterior if poly.geom_type == "Polygon" else None
         if exterior is not None:
             rings.append((island_id_map[isl["id"]], _project(list(exterior.coords))))
-    for i, poly in enumerate(islands_from_coast):
-        rings.append((1000 + i, _project(list(poly.exterior.coords))))
-    # Mainland coastline ring (drawn as land boundary, id 0)
-    if national.geom_type == "Polygon":
-        rings.append((0, _project(list(national.exterior.coords))))
-    else:
-        for poly in national.geoms:
-            rings.append((0, _project(list(poly.exterior.coords))))
+    for i, poly in enumerate(island_faces):
+        cleaned = sanitise_ring(poly.exterior)
+        if cleaned is None:
+            continue
+        rings.append((1000 + i, _project(list(cleaned.exterior.coords))))
+    mainland_ring = sanitise_ring(mainland.exterior)
+    if mainland_ring is None:
+        raise SystemExit("FATAL: mainland coastline ring collapsed during simplification")
+    rings.append((0, _project(list(mainland_ring.exterior.coords))))
     write_gz(WORLD / "coast.bin.gz", pack_coast(rings, grid))
     log(f"  coast rings packed: {len(rings)}")
     write_gz(WORLD / "strings.bin.gz", strings.to_bytes())
@@ -931,7 +946,7 @@ def main() -> int:
              "areaM2": round(p.area, 1),
              "east": round(p.representative_point().x, 2),
              "north": round(p.representative_point().y, 2)}
-            for i, p in enumerate(islands_from_coast)
+            for i, p in enumerate(island_faces)
         ],
         "municipalities": hubs,
         "checkpoints": checkpoints,
@@ -954,7 +969,7 @@ def main() -> int:
     if munis:
         _write_geojson_multi(GEODATA / "QATAR_MUNICIPALITIES.geojson", munis)
     (GEODATA / "QATAR_ISLANDS_MANIFEST.json").write_text(
-        json.dumps({"count": len(islands) + len(islands_from_coast),
+        json.dumps({"count": len(islands) + len(island_faces),
                     "islands": manifest["islands"]}, indent=1, ensure_ascii=False) + "\n",
         encoding="utf-8")
 
@@ -963,7 +978,7 @@ def main() -> int:
         sums.append(f"{checksums[name]}  android/assets/world/{name}")
     (GEODATA / "SHA256SUMS").write_text("\n".join(sums) + "\n", encoding="utf-8")
 
-    _write_boundary_report(national, munis, islands, islands_from_coast, checkpoint_report,
+    _write_boundary_report(national, munis, islands, island_faces, checkpoint_report,
                            data.stats, args, grid)
 
     log("[3] done")
@@ -973,6 +988,53 @@ def main() -> int:
 
 
 # -------------------------------------------------------------------------------------- helpers
+def sanitise_ring(ring, tolerance_m: float = 2.0):
+    """Simplify and clean a coast ring so the bundle stays small and contains no invalid numbers."""
+    geom = Polygon(ring.coords) if not isinstance(ring, Polygon) else ring
+    if not geom.is_valid:
+        geom = geom.buffer(0)
+    if geom.is_empty:
+        return None
+    if tolerance_m > 0:
+        geom = geom.simplify(tolerance_m, preserve_topology=True)
+    if geom.is_empty or geom.geom_type != "Polygon":
+        return None
+    coords = [(float(x), float(y)) for x, y in geom.exterior.coords
+              if np.isfinite(x) and np.isfinite(y)]
+    if len(coords) < 4:
+        return None
+    return Polygon(coords)
+
+
+def classify_land_faces(faces, elevation_valid: np.ndarray, xs: np.ndarray, ys: np.ndarray,
+                        cell_m: float) -> list:
+    """Keep the faces that are really land, using the elevation authority as the tie breaker."""
+    import rasterio.features
+    from rasterio.transform import Affine
+
+    rows, cols = elevation_valid.shape
+    origin_e = float(xs[0]) - cell_m / 2.0
+    origin_n = float(ys[0]) - cell_m / 2.0
+    transform = Affine.translation(origin_e, origin_n + rows * cell_m) * Affine.scale(cell_m, -cell_m)
+    land = []
+    for face in faces:
+        if face.area < 20000.0 or not face.is_valid:
+            continue
+        try:
+            mask = rasterio.features.rasterize([(face, 1)], out_shape=(rows, cols), transform=transform,
+                                               fill=0, all_touched=False, dtype="uint8")
+        except Exception:  # noqa: BLE001 - a bad face must not abort the compile
+            continue
+        selected = mask.astype(bool)
+        total = int(selected.sum())
+        if total == 0:
+            continue
+        valid = int(elevation_valid[selected].sum())
+        if valid / total > 0.5:
+            land.append(face)
+    return land
+
+
 def project_geometry(geom):
     """WGS84 geometry -> EPSG:32639 metres (the single documented projection step)."""
     from shapely.ops import transform as shapely_transform
