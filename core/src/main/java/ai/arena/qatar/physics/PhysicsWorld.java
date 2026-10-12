@@ -441,6 +441,21 @@ public final class PhysicsWorld {
             RigidBody b = bodies.get(i);
             b.clearAccumulators();
             b.storePreviousTransform();
+            if (b.sleeping) {
+                // A sleeping body is at rest by definition, and the contact detector ignores it, so it
+                // generates no contacts and would otherwise look "airborne" to this very function and
+                // erode its own rest clock until it woke itself up again. Keep it frozen with a full
+                // rest clock; it leaves this state only through a real disturbance (RigidBody.wake,
+                // applyForce, applyDisturbingImpulse) or when its supporting terrain is streamed out.
+                b.linearVelocity.set(0, 0, 0);
+                b.angularVelocity.set(0, 0, 0);
+                b.airTime = 0.0;
+                b.sleepTime = SLEEP_DELAY_S;
+                if (!terrain.isCollisionLoaded(b.position.x, b.position.z)) {
+                    b.wake();
+                }
+                continue;
+            }
             if (!b.allowSleep) {
                 continue;
             }
