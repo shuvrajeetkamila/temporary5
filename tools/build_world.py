@@ -264,18 +264,33 @@ def extract_osm(osm_path: Path) -> OsmData:
         if poly is not None and not poly.is_empty:
             data.municipality_relations.append({"id": rel["id"], "tags": rel["tags"], "geometry": poly})
 
-    # National boundary: relation first, then a closed way, then land polygons as a last resort.
+    # National boundary: the country relation is identified by ISO code / name so that a larger
+    # regional extract (e.g. the GCC states file) still yields exactly the State of Qatar.
+    def is_qatar(tags: dict) -> bool:
+        iso = (tags.get("ISO3166-1") or tags.get("ISO3166-1:alpha2") or "").upper()
+        if iso == "QA":
+            return True
+        names = {tags.get("name", ""), tags.get("name:en", ""), tags.get("official_name", "")}
+        return bool(names & {"Qatar", "State of Qatar", "دولة قطر", "قطر"})
+
     national = None
-    for rel in relation_members:
-        if rel["admin_level"] != "2":
-            continue
+    candidates = [rel for rel in relation_members if rel["admin_level"] == "2"]
+    candidates.sort(key=lambda rel: 0 if is_qatar(rel["tags"]) else 1)
+    for rel in candidates:
         rings = _assemble_rings([(way_tags_for_relations.get(ref, []), role)
                                  for ref, role, _t in rel["members"]])
         poly = _rings_to_polygon(rings)
-        if poly is not None and not poly.is_empty:
-            national = poly
-            log(f"  national boundary assembled from relation {rel['id']}")
-            break
+        if poly is None or poly.is_empty:
+            continue
+        if not is_qatar(rel["tags"]):
+            # Only accept a non-Qatar-tagged relation when the extract contains nothing else.
+            if len(candidates) > 1:
+                continue
+            log(f"  WARNING: using admin_level=2 relation {rel['id']} without a Qatar tag")
+        national = poly
+        log(f"  national boundary assembled from relation {rel['id']} "
+            f"({rel['tags'].get('name:en') or rel['tags'].get('name')})")
+        break
     if national is None and data.boundary_ways:
         line = shapely.ops.linemerge([LineString(w) for w in data.boundary_ways if len(w) > 3])
         polys = list(shapely.ops.polygonize(line))
@@ -587,9 +602,11 @@ def main() -> int:
     log(f"  national AOI: {national.geom_type}, area {national.area / 1e6:.1f} km2")
     log(f"  stats: {json.dumps(data.stats)}")
 
-    # Municipalities (admin_level 4 preferred, 6 as fallback) --------------------------------
+    # Municipalities (admin_level 4 preferred, 6 as fallback), clipped to the national AOI -------
     munis = []
     for rel in data.municipality_relations:
+        if not national.buffer(1000.0).contains(rel["geometry"].representative_point()):
+            continue  # neighbouring country in a regional extract
         name = rel["tags"].get("name") or rel["tags"].get("name:en") or f"admin-{rel['id']}"
         munis.append({
             "id": rel["tags"].get("ISO3166-2") or f"OSM-{rel['id']}",

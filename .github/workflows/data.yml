@@ -44,7 +44,9 @@ jobs:
 
       - name: Probe source hosts
         run: |
-          for url in "https://download.geofabrik.de/asia/qatar-latest.osm.pbf" \
+          for url in "https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf" \
+                     "https://download.bbbike.org/osm/bbbike/Qatar/Qatar.osm.pbf" \
+                     "https://download.geofabrik.de/asia/gcc-states-latest.osm.pbf" \
                      "https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E051.hgt.gz"; do
             code=$(curl -s -o /dev/null -w "%{http_code} size=%{size_download} redirect=%{redirect_url}" --max-time 30 -r 0-511 "$url" || echo CURLFAIL)
             echo "probe: $url -> $code" | tee -a run.log

@@ -29,7 +29,13 @@ REPO = Path(__file__).resolve().parent.parent
 RAW = REPO / "data" / "raw"
 GEODATA = REPO / "data" / "geodata"
 
-OSM_URL = "https://download.geofabrik.de/asia/qatar-latest.osm.pbf"
+# Candidate extracts, tried in order. All are ODbL 1.0 OpenStreetMap extracts; the first one that
+# verifies wins and is recorded in the provenance file.
+OSM_CANDIDATES = [
+    ("openstreetmap.fr", "https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf"),
+    ("bbbike", "https://download.bbbike.org/osm/bbbike/Qatar/Qatar.osm.pbf"),
+    ("geofabrik-gcc-states", "https://download.geofabrik.de/asia/gcc-states-latest.osm.pbf"),
+]
 SRTM_URL = "https://s3.amazonaws.com/elevation-tiles-prod/skadi/{ns}{lat:02d}/{ns}{lat:02d}E{lon:03d}.hgt.gz"
 
 # Qatar bounding box (WGS84) with a small margin.
@@ -43,6 +49,18 @@ def sha256_of(path: Path) -> str:
         for chunk in iter(lambda: fh.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def probe(url: str) -> str:
+    """Range-request probe used for diagnostics before a full download."""
+    req = urllib.request.Request(url, headers={"User-Agent": "qatar-peninsula-world-builder/1.0",
+                                               "Range": "bytes=0-511"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = resp.read(64)
+            return f"http={resp.status} bytes={len(data)} magic={data[:8].hex()}"
+    except Exception as exc:  # noqa: BLE001
+        return f"FAILED ({exc})"
 
 
 def download(url: str, dest: Path, expect_magic: bytes | None = None, retries: int = 3) -> dict:
@@ -106,11 +124,27 @@ def main() -> int:
     }
 
     print("[1/2] OpenStreetMap Qatar extract")
-    osm = download(OSM_URL, RAW / "qatar-latest.osm.pbf", expect_magic=b"\x00\x00\x00\x0d")  # OSMHeader blob header
+    osm = None
+    osm_url = None
+    osm_provider = None
+    for provider, url in OSM_CANDIDATES:
+        print(f"  trying {provider}: {url}")
+        print(f"  probe   {probe(url)}")
+        try:
+            osm = download(url, RAW / "qatar-latest.osm.pbf", expect_magic=b"\x00\x00\x00\x0d")
+            osm_url = url
+            osm_provider = provider
+            break
+        except Exception as exc:  # noqa: BLE001 - try the next mirror
+            print(f"  unusable ({exc}); trying next candidate")
+    if osm is None:
+        raise RuntimeError("no OpenStreetMap Qatar extract could be downloaded from any candidate mirror")
+
     record["sources"].append({
         "id": "osm-qatar-extract",
-        "name": "OpenStreetMap Qatar extract (Geofabrik)",
-        "url": OSM_URL,
+        "name": f"OpenStreetMap Qatar extract ({osm_provider})",
+        "provider": osm_provider,
+        "url": osm_url,
         "retrieved_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "license": "ODbL 1.0 (Open Data Commons Open Database License)",
         "attribution": "(c) OpenStreetMap contributors",
