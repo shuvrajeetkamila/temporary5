@@ -784,13 +784,29 @@ def main() -> int:
     # cannot be used as the land mask directly. The land polygons below come from the coastline
     # network closed against the national border ring, and each candidate face is classified by the
     # elevation authority: faces whose samples carry real SRTM data are land, void faces are sea.
-    seed_lines = [r["coords"] for r in data.roads]
+    # Land evidence: road vertices and building footprints. Anything that falls inside a mapped
+    # water polygon (piers, offshore platforms, bridges) is dropped: it is not land evidence.
+    water_polys = [p for p in (_closed_way_polygon(w["coords"], min_area_m2=10000.0)
+                               for w in data.water_areas) if p is not None]
+    seed_lines = []
+    dropped = 0
+    for road in data.roads:
+        coords = [c for c in road["coords"] if not _inside_any(water_polys, c[0], c[1])]
+        if len(coords) >= 2:
+            seed_lines.append(coords)
     seed_points = []
     for footprint in data.buildings[:40000]:
         coords = footprint["coords"]
-        if len(coords) >= 3:
-            seed_points.append((sum(c[0] for c in coords) / len(coords),
-                                sum(c[1] for c in coords) / len(coords)))
+        if len(coords) < 3:
+            continue
+        lon = sum(c[0] for c in coords) / len(coords)
+        lat = sum(c[1] for c in coords) / len(coords)
+        if _inside_any(water_polys, lon, lat):
+            dropped += 1
+            continue
+        seed_points.append((lon, lat))
+    log(f"  land seeds: roads {len(seed_lines)}/{len(data.roads)}, buildings {len(seed_points)} "
+        f"(dropped {dropped} inside mapped water)")
     border_ring = None
     if national.geom_type == "Polygon":
         border_ring = LineString(national.exterior.coords)
@@ -1133,6 +1149,14 @@ def main() -> int:
 
 
 # -------------------------------------------------------------------------------------- helpers
+def _inside_any(polys: list, lon: float, lat: float) -> bool:
+    if not polys:
+        return False
+    east, north = FWD.transform(lon, lat)
+    point = Point(east, north)
+    return any(poly.contains(point) for poly in polys)
+
+
 def _project(coords_wgs) -> list[tuple[float, float]]:
     """WGS84 lon/lat sequence -> EPSG:32639 east/north vertices."""
     lons = np.asarray([c[0] for c in coords_wgs], dtype="float64")
@@ -1285,8 +1309,25 @@ def derive_land_mask(coastlines: list[list[tuple[float, float]]], seed_lines: li
         labels, count = ndimage.label(free)
         if count == 0:
             continue
+        # A component counts as land only when its land evidence is dense enough to be real. A stray
+        # couple of seeds in a huge component means the fill leaked (or a pier was mapped offshore),
+        # so the component is rejected and reported instead of silently becoming dry land.
         seed_labels = np.unique(labels[seeds & free])
         seed_labels = seed_labels[seed_labels > 0]
+        accepted = []
+        rejected = []
+        for label in seed_labels:
+            component_area = float((labels == label).sum()) * cell_m * cell_m / 1e6
+            seed_count = int((labels[seeds] == label).sum())
+            density = seed_count / max(component_area, 1e-6)
+            if (component_area <= 300.0 and seed_count >= 1) or density >= 0.1:
+                accepted.append(label)
+            else:
+                rejected.append((label, round(component_area, 1), seed_count))
+        seed_labels = np.array(accepted, dtype=labels.dtype)
+        if rejected:
+            rejected.sort(key=lambda item: -item[1])
+            diagnostics_extra[f"rejectedSeededComponents_{thickening}"] = rejected[:5]
         candidate = np.isin(labels, seed_labels)
         if clip_mask is not None:
             # Only the country's own land counts: a road that crosses the border must not drag the
