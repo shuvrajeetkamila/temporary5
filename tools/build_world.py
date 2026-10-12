@@ -806,6 +806,39 @@ def main() -> int:
         mainland_mask = labels_all == biggest
     log(f"  land mask: {land_mask.sum():,} of {land_mask.size:,} cells ({100 * land_mask.mean():.1f}%)")
 
+    # Island records: every land component other than the mainland, with its true centroid. Islands
+    # come from the same derivation as the land mask, so the manifest can never claim an island the
+    # terrain does not contain (and the packaged-coverage test can prove it).
+    island_manifest = []
+    if comp_count > 0:
+        mainland_id = max(range(1, comp_count + 1), key=lambda i: float(sizes[i - 1]))
+        for cid in range(1, comp_count + 1):
+            if cid == mainland_id:
+                continue
+            area_km2_c = float(sizes[cid - 1])
+            if area_km2_c < 0.02:
+                continue
+            ys_c, xs_c = np.nonzero(labels_all == cid)
+            east_c = float(xs_l1[int(round(float(xs_c.mean())))]) if xs_c.size else 0.0
+            north_c = float(ys_l1[int(round(float(ys_c.mean())))]) if ys_c.size else 0.0
+            island_manifest.append({
+                "id": f"island-{cid}", "name": "", "nameAr": "",
+                "areaM2": round(area_km2_c * 1e6, 1),
+                "east": round(east_c, 2), "north": round(north_c, 2),
+            })
+        island_manifest.sort(key=lambda i: -i["areaM2"])
+    for i, isl in enumerate(islands):
+        if isl.get("geometry") is None:
+            continue
+        rep = isl["geometry"].representative_point()
+        island_manifest.insert(i, {
+            "id": isl["id"], "name": isl["name"], "nameAr": isl["name_ar"],
+            "areaM2": round(isl["area_m2"], 1),
+            "east": round(rep.x, 2), "north": round(rep.y, 2),
+        })
+    log(f"  island records: {len(island_manifest)} (largest "
+        f"{island_manifest[0]['areaM2'] / 1e4:,.1f} ha)" if island_manifest else "  island records: 0")
+
     heights_l1 = np.where(land_mask, np.maximum(heights_l1, 0.0), 0.0)
     log(f"  terrain L1 ({args.cell_l1:.0f} m): min {heights_l1.min():.1f} max {heights_l1.max():.1f} m")
 
