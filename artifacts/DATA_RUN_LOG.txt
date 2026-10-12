@@ -1,0 +1,29 @@
+Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages (26.2.1)
+Installing collected packages: urllib3, pyparsing, numpy, idna, click, charset_normalizer, certifi, attrs, shapely, scipy, requests, pyproj, cligj, click-plugins, affine, rasterio, osmium
+
+Successfully installed affine-3.0.1 attrs-26.1.0 certifi-2026.7.22 charset_normalizer-3.5.2 click-8.5.0 click-plugins-1.1.1.2 cligj-0.7.2 idna-3.20 numpy-2.4.6 osmium-4.2.0 pyparsing-3.3.3 pyproj-3.7.2 rasterio-1.4.4 requests-2.34.2 scipy-1.17.1 shapely-2.2.0 urllib3-2.8.0
+probe: https://download.geofabrik.de/asia/qatar-latest.osm.pbf -> 404 size=196 redirect=
+probe: https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E051.hgt.gz -> 206 size=512 redirect=
+[1/2] OpenStreetMap Qatar extract
+  fetch   https://download.geofabrik.de/asia/qatar-latest.osm.pbf
+  retry 1/3: HTTP Error 404: Not Found
+  fetch   https://download.geofabrik.de/asia/qatar-latest.osm.pbf
+  retry 2/3: HTTP Error 404: Not Found
+  fetch   https://download.geofabrik.de/asia/qatar-latest.osm.pbf
+  retry 3/3: HTTP Error 404: Not Found
+Traceback (most recent call last):
+  File "/home/runner/work/temporary5/temporary5/tools/fetch_sources.py", line 146, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/runner/work/temporary5/temporary5/tools/fetch_sources.py", line 109, in main
+    osm = download(OSM_URL, RAW / "qatar-latest.osm.pbf", expect_magic=b"\x00\x00\x00\x0d")  # OSMHeader blob header
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/temporary5/temporary5/tools/fetch_sources.py", line 68, in download
+    raise RuntimeError(f"failed to download {url}")
+RuntimeError: failed to download https://download.geofabrik.de/asia/qatar-latest.osm.pbf
+fetch_exit=1
+FATAL: /home/runner/work/temporary5/temporary5/data/raw/qatar-latest.osm.pbf missing - run tools/fetch_sources.py first
+compile_exit=1
+FAIL: world manifest missing - the APK would not contain a country
+ls: cannot access 'android/assets/world/': No such file or directory
+du: cannot access 'android/assets/world/': No such file or directory
