@@ -762,15 +762,7 @@ def main() -> int:
             "geometry": poly,
             "source": "osm-way-place-island",
         })
-    # Coastline-derived land faces (mainland + islands), classified later against elevation.
-    boundary_line = None
-    if national.geom_type == "Polygon":
-        boundary_line = LineString(national.exterior.coords)
-    else:
-        boundary_line = shapely.ops.unary_union(
-            [LineString(poly.exterior.coords) for poly in national.geoms])
-    coast_land_faces = _land_polygons_from_coastline(data.coastlines, boundary_line)
-    log(f"  coastline faces: {len(coast_land_faces)} candidate land/water polygons; "
+    log(f"  coastline ways for the land derivation: {len(data.coastlines)}; "
         f"{len(islands)} tagged island polygons")
 
     # Grid ------------------------------------------------------------------------------------
@@ -794,21 +786,24 @@ def main() -> int:
     # cannot be used as the land mask directly. The land polygons below come from the coastline
     # network closed against the national border ring, and each candidate face is classified by the
     # elevation authority: faces whose samples carry real SRTM data are land, void faces are sea.
-    land_faces, face_diag = classify_land_faces(coast_land_faces, data.water_areas,
-                                                Point(*FWD.transform(51.5310, 25.2854)))
-    if not land_faces:
-        raise SystemExit("FATAL: no land polygons could be classified from the coastline network")
-    mainland = max(land_faces, key=lambda p: p.area)
-    island_faces = [p for p in land_faces if p is not mainland and p.area >= 20000.0]
-    land_union = shapely.ops.unary_union(land_faces)
-    land_mask = _rasterize(land_union, xs_l1, ys_l1, args.cell_l1)
-    land_area_km2 = land_union.area / 1e6
-    log(f"  land faces: {len(land_faces)} (mainland {mainland.area / 1e6:,.1f} km2, "
-        f"{len(island_faces)} islands >= 2 ha) classification={face_diag}")
-    log(f"  land area total: {land_area_km2:,.0f} km2 (Qatar land is ~11,600 km2)")
-    if not 6000.0 <= land_area_km2 <= 20000.0:
-        raise SystemExit(f"FATAL: classified land area {land_area_km2:,.0f} km2 is implausible; "
-                         f"the coastline/land classification is wrong")
+    seed_lines = [r["coords"] for r in data.roads]
+    seed_polys = [_closed_way_polygon(b["coords"]) for b in data.buildings[:40000]]
+    seed_polys = [p for p in seed_polys if p is not None and p.area > 50.0]
+    land_mask, land_diag = derive_land_mask(data.coastlines, seed_lines, seed_polys,
+                                           xs_l1, ys_l1, args.cell_l1)
+    land_area_km2 = float(land_mask.sum()) * args.cell_l1 * args.cell_l1 / 1e6
+    from scipy import ndimage as _ndimage
+    labels_all, comp_count = _ndimage.label(land_mask)
+    sizes = _ndimage.sum(land_mask, labels_all, index=range(1, comp_count + 1)) * (args.cell_l1 ** 2) / 1e6
+    island_faces = [i for i, sz in enumerate(sizes, start=1) if sz >= 0.02]
+    island_km2 = sorted((float(s) for s in sizes if s >= 0.02), reverse=True)[1:]
+    log(f"  land derivation: {land_diag}")
+    log(f"  land area total: {land_area_km2:,.0f} km2 across {comp_count} components "
+        f"({len(island_km2)} islands >= 2 ha, largest island {island_km2[0] if island_km2 else 0:.2f} km2)")
+    mainland_mask = land_mask.copy()
+    if island_faces:
+        biggest = max(range(1, comp_count + 1), key=lambda i: float(sizes[i - 1]))
+        mainland_mask = labels_all == biggest
     log(f"  land mask: {land_mask.sum():,} of {land_mask.size:,} cells ({100 * land_mask.mean():.1f}%)")
 
     heights_l1 = np.where(land_mask, np.maximum(heights_l1, 0.0), 0.0)
@@ -917,11 +912,10 @@ def main() -> int:
         if hit is None:
             # Geometry-backed fallback: a real island polygon from the coastline network. This is not
             # invented geography -- it is the data itself standing in for a missing name tag.
-            if group == "ISLANDS_AND_WATER" and island_faces:
-                biggest = max(island_faces, key=lambda p: p.area)
-                point = biggest.representative_point()
-                hit = {"lon": 0.0, "lat": 0.0, "east": point.x, "north": point.y,
-                       "name": f"coastline island polygon ({biggest.area / 1e4:,.0f} ha)",
+            if group == "ISLANDS_AND_WATER" and island_manifest:
+                biggest = island_manifest[0]
+                hit = {"lon": 0.0, "lat": 0.0, "east": biggest["east"], "north": biggest["north"],
+                       "name": f"coastline island ({biggest['areaM2'] / 1e4:,.0f} ha)",
                        "name_en": "unnamed island", "name_ar": "", "source": "osm-coastline-island"}
             else:
                 checkpoint_report.append({"group": group, "id": cid, "status": "MISSING"})
@@ -1006,26 +1000,25 @@ def main() -> int:
     write_gz(WORLD / "buildings.bin.gz", pack_buildings(building_records, strings))
     log(f"  buildings packed: {len(building_records)}")
 
-    island_id_map = {}
-    for i, isl in enumerate(islands):
-        island_id_map[isl["id"]] = i + 1
+    # Shoreline bundle: the mapped natural=coastline geometry itself, simplified to 2 m. Storing the
+    # real shoreline (instead of a derived ring) keeps the coast honest and high quality, and the
+    # land mask above is what the runtime uses for collision and material blending.
     rings = []
-    for isl in islands:
-        poly = isl["geometry"]
-        exterior = poly.exterior if poly.geom_type == "Polygon" else None
-        if exterior is not None:
-            rings.append((island_id_map[isl["id"]], _project(list(exterior.coords))))
-    for i, poly in enumerate(island_faces):
-        cleaned = sanitise_ring(poly.exterior)
-        if cleaned is None:
+    skipped_short = 0
+    for way in data.coastlines:
+        projected = _project(way)
+        if len(projected) < 4:
+            skipped_short += 1
             continue
-        rings.append((1000 + i, _project(list(cleaned.exterior.coords))))
-    mainland_ring = sanitise_ring(mainland.exterior)
-    if mainland_ring is None:
-        raise SystemExit("FATAL: mainland coastline ring collapsed during simplification")
-    rings.append((0, _project(list(mainland_ring.exterior.coords))))
+        line = LineString(projected).simplify(2.0, preserve_topology=False)
+        coords = [(float(x), float(y)) for x, y in line.coords if np.isfinite(x) and np.isfinite(y)]
+        if len(coords) < 4:
+            skipped_short += 1
+            continue
+        rings.append((0, coords))
+    log(f"  shoreline polylines packed: {len(rings)} (skipped {skipped_short} degenerate)")
     write_gz(WORLD / "coast.bin.gz", pack_coast(rings, grid))
-    log(f"  coast rings packed: {len(rings)}")
+    log(f"  coast bundle written ({len(rings)} polylines)")
     write_gz(WORLD / "strings.bin.gz", strings.to_bytes())
     log(f"  strings: {len(strings)} entries")
 
@@ -1100,7 +1093,7 @@ def main() -> int:
         sums.append(f"{checksums[name]}  android/assets/world/{name}")
     (GEODATA / "SHA256SUMS").write_text("\n".join(sums) + "\n", encoding="utf-8")
 
-    _write_boundary_report(national, munis, islands, island_faces, checkpoint_report,
+    _write_boundary_report(national, munis, islands, island_manifest, checkpoint_report,
                            data.stats, args, grid)
 
     log("[3] done")
@@ -1126,6 +1119,89 @@ def sanitise_ring(ring, tolerance_m: float = 2.0):
     if len(coords) < 4:
         return None
     return Polygon(coords)
+
+
+def derive_land_mask(coastlines: list[list[tuple[float, float]]], seed_lines: list[list[tuple[float, float]]],
+                     seed_polys: list, xs: np.ndarray, ys: np.ndarray, cell_m: float) -> tuple[np.ndarray, dict]:
+    """Derive the land mask from open data, without inventing geometry.
+
+    Method (standard open-data land/sea derivation):
+      1. the mapped `natural=coastline` network is rasterised as a barrier;
+      2. OSM features that only exist on land (roads, buildings, onshore land use) seed a flood fill;
+      3. the fill stops at the coastline, so it can only cover land -- and because it is seeded from
+         real features it never invents land where no data exists;
+      4. if the fill leaks (area implausibly large) the barrier is thickened and the fill retried;
+      5. components enclosed by coastline that hold no land evidence but are big enough are islands;
+         the component that touches the grid border is the sea.
+
+    The self-check in step 4 is what makes this trustworthy: a broken coastline shows up as a
+    plausibility failure instead of silently turning the Gulf into desert.
+    """
+    import rasterio.features
+    from rasterio.transform import Affine
+    from scipy import ndimage
+
+    rows, cols = ys.size, xs.size
+    origin_e = float(xs[0]) - cell_m / 2.0
+    origin_n = float(ys[0]) - cell_m / 2.0
+    transform = Affine.translation(origin_e, origin_n + rows * cell_m) * Affine.scale(cell_m, -cell_m)
+
+    coast_geoms = [(_project(w), 1) for w in coastlines if len(w) >= 2]
+    seed_line_geoms = [(_project(w), 1) for w in seed_lines if len(w) >= 2]
+    seed_poly_geoms = [(poly, 1) for poly in seed_polys if not poly.is_empty]
+
+    base_barrier = rasterio.features.rasterize(coast_geoms, out_shape=(rows, cols), transform=transform,
+                                               fill=0, all_touched=True, dtype="uint8").astype(bool)
+    seeds = rasterio.features.rasterize(seed_line_geoms, out_shape=(rows, cols), transform=transform,
+                                        fill=0, all_touched=True, dtype="uint8").astype(bool)
+    if seed_poly_geoms:
+        seeds |= rasterio.features.rasterize(seed_poly_geoms, out_shape=(rows, cols), transform=transform,
+                                             fill=0, all_touched=False, dtype="uint8").astype(bool)
+
+    diagnostics = {"barrierCells": int(base_barrier.sum()), "seedCells": int(seeds.sum())}
+    land = None
+    for thickening in range(0, 6):
+        barrier = base_barrier
+        for _ in range(thickening):
+            barrier = ndimage.binary_dilation(barrier, iterations=1)
+        free = ~barrier
+        labels, count = ndimage.label(free)
+        if count == 0:
+            continue
+        seed_labels = np.unique(labels[seeds & free])
+        seed_labels = seed_labels[seed_labels > 0]
+        candidate = np.isin(labels, seed_labels)
+        area_km2 = candidate.sum() * cell_m * cell_m / 1e6
+        diagnostics[f"area_{thickening}"] = round(area_km2, 1)
+        if 6000.0 <= area_km2 <= 20000.0:
+            land = candidate
+            diagnostics["thickening"] = thickening
+            break
+    if land is None:
+        raise SystemExit(f"FATAL: land derivation did not converge: {diagnostics}")
+
+    # Islands: enclosed components with no land evidence, big enough to be real islands, that do not
+    # belong to the sea component (the one touching the grid border).
+    barrier = base_barrier
+    for _ in range(diagnostics["thickening"]):
+        barrier = ndimage.binary_dilation(barrier, iterations=1)
+    free = ~barrier
+    labels, count = ndimage.label(free)
+    sea_labels = set(np.unique(np.concatenate([
+        labels[0, :], labels[-1, :], labels[:, 0], labels[:, -1]])))
+    sea_labels.discard(0)
+    island_ids = []
+    for label in range(1, count + 1):
+        if label in sea_labels:
+            continue
+        size_km2 = int((labels == label).sum()) * cell_m * cell_m / 1e6
+        if size_km2 >= 0.02 and not land[labels == label].any():
+            island_ids.append((label, size_km2))
+    diagnostics["islandComponents"] = len(island_ids)
+    land_with_islands = land.copy()
+    for label, _size in island_ids:
+        land_with_islands |= (labels == label)
+    return land_with_islands, diagnostics
 
 
 def classify_land_faces(faces, water_areas: list[dict], mainland_hint: Point) -> tuple[list, dict]:
@@ -1509,9 +1585,10 @@ def _write_boundary_report(national, munis, islands, coast_islands, checkpoint_r
 
     lines.append("\n## Islands\n")
     lines.append(f"- Tagged `place=island*` polygons: {len(islands)}")
-    lines.append(f"- Land rings derived from the `natural=coastline` network: {len(coast_islands)}")
-    for isl in islands[:40]:
-        lines.append(f"  - {isl['name_en'] or isl['name'] or isl['id']} ({isl['area_m2'] / 1e4:,.1f} ha)")
+    lines.append(f"- Island land components derived from the coastline network: {len(coast_islands)}")
+    for isl in coast_islands[:40]:
+        label = isl.get("name") or isl.get("id")
+        lines.append(f"  - {label} ({isl.get('areaM2', 0) / 1e4:,.1f} ha)")
     if len(islands) > 40:
         lines.append(f"  - ... and {len(islands) - 40} more (see QATAR_ISLANDS_MANIFEST.json)")
 
