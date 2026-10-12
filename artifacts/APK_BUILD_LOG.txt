@@ -1,0 +1,13 @@
+> Task :android:preBuild UP-TO-DATE
+> Task :android:preDebugBuild UP-TO-DATE
+> Task :android:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :android:javaPreCompileDebug
+> Task :android:generateDebugResValues
+> Task :android:checkDebugAarMetadata
+> Task :android:mapDebugSourceSetPaths
+> Task :android:generateDebugResources
+> Task :core:compileJava FAILED
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/QatarGame.java:138: error: cannot find symbol
+> Task :android:mergeDebugResources
+Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Compilation failed; see the compiler error output for details.
+BUILD FAILED in 10s

@@ -1,0 +1,9 @@
+commit=d99ffee506729ed0f33162bc951c122e0746b0eb
+run_id=38251120982
+run_url=https://github.com/shuvrajeetkamila/temporary5/actions/runs/38251120982
+branch=arena/4eb37624-temporary5
+started_utc=2026-10-12T12:46:33Z
+stage=unit-tests
+gradle_exit=1
+stage=assemble
+assemble_exit=1

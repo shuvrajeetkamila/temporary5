@@ -1,0 +1,4 @@
+> Task :core:compileJava FAILED
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/QatarGame.java:138: error: cannot find symbol
+Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Compilation failed; see the compiler error output for details.
+BUILD FAILED in 14s
