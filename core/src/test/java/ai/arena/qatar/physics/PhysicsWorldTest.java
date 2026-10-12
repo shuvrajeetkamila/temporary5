@@ -64,7 +64,10 @@ final class PhysicsWorldTest {
         }
         assertTrue(body.position.y < 0.4, "crate rests near the surface, y=" + body.position.y);
         assertTrue(body.position.y > -0.2, "crate does not sink through the terrain, y=" + body.position.y);
-        assertTrue(body.sleeping, "crate sleeps once quiet");
+        assertTrue(body.sleeping, "crate sleeps once quiet (v=" + body.linearVelocity.length()
+                + ", preStepV=" + body.preStepLinearVelocity.length()
+                + ", w=" + body.angularVelocity.length() + ", airTime=" + body.airTime
+                + ", sleepTime=" + body.sleepTime + ")");
         assertTrue(world.validate(), "no NaN in the world after settling");
     }
 
@@ -139,7 +142,9 @@ final class PhysicsWorldTest {
         for (int i = 0; i < 240; i++) {
             world.step(FixedStepClock.FIXED_DT);
         }
-        assertTrue(body.sleeping);
+        assertTrue(body.sleeping, "a body placed at rest must sleep (v="
+                + body.linearVelocity.length() + ", preStepV=" + body.preStepLinearVelocity.length()
+                + ", w=" + body.angularVelocity.length() + ", airTime=" + body.airTime + ")");
         Vec3 resting = new Vec3(body.position);
         for (int i = 0; i < 120; i++) {
             world.step(FixedStepClock.FIXED_DT);

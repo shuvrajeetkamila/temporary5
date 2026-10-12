@@ -38,6 +38,14 @@ public final class RigidBody {
     public double angularDamping = 0.05;
     public double linearSleepThreshold = 0.05;
     public double angularSleepThreshold = 0.12;
+    /**
+     * Velocity at the start of the current step, before gravity was added. Sleep detection uses this
+     * value: a body resting on the ground cancels gravity in the contact solver every step, so its
+     * pre-gravity velocity is ~0 even though its post-integration velocity briefly equals one gravity
+     * increment. Testing the latter would keep every resting body awake forever.
+     */
+    public final Vec3 preStepLinearVelocity = new Vec3();
+    public final Vec3 preStepAngularVelocity = new Vec3();
     public double sleepTime = 0.0;
     public boolean sleeping = false;
     public boolean allowSleep = true;

@@ -193,6 +193,8 @@ public final class PhysicsWorld {
                 b.clearAccumulators();
                 continue;
             }
+            b.preStepLinearVelocity.set(b.linearVelocity);
+            b.preStepAngularVelocity.set(b.angularVelocity);
             // v += (F/m + g) * h     with linear damping applied as a bounded exponential decay.
             double ax = b.accumulatedForce.x * b.inverseMass;
             double ay = b.accumulatedForce.y * b.inverseMass - gravity;
@@ -401,8 +403,8 @@ public final class PhysicsWorld {
             if (!b.allowSleep) {
                 continue;
             }
-            boolean quiet = b.linearVelocity.length() < b.linearSleepThreshold
-                    && b.angularVelocity.length() < b.angularSleepThreshold
+            boolean quiet = b.preStepLinearVelocity.length() < b.linearSleepThreshold
+                    && b.preStepAngularVelocity.length() < b.angularSleepThreshold
                     && b.airTime == 0.0;
             if (quiet) {
                 b.sleepTime += h;
