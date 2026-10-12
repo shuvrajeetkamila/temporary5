@@ -90,8 +90,12 @@ LAND_REFERENCE_POINTS = [
     (51.0300, 25.9800), (50.8400, 25.5500), (51.4400, 25.3100), (51.5300, 24.8500),
 ]
 SEA_REFERENCE_POINTS = [
-    (52.0000, 25.5000), (51.9000, 25.0000), (50.6000, 25.5000), (51.8000, 24.6000),
-    (51.3000, 26.4000), (51.0000, 24.9000), (51.7000, 25.9000), (51.9500, 24.7000),
+    (51.7000, 25.2000),   # Gulf, ~10 km east of Al Wakrah
+    (51.6500, 25.4000),   # Doha Bay, offshore
+    (51.4000, 26.2500),   # Gulf, ~10 km north of the northern tip
+    (50.7000, 25.5000),   # Gulf, ~8 km west of the Dukhan coast
+    (51.6500, 24.7000),   # Gulf, south-east of Mesaieed
+    (51.9000, 25.5000),   # further out, harmless if outside the boundary polygon
 ]
 
 # Mandatory national checkpoint groups (specification section 2/11). Each entry is matched against
@@ -1114,6 +1118,38 @@ def _closed_way_polygon(coords_wgs) -> Polygon | None:
     return poly
 
 
+def _seal_network(parts: list, ring) -> list:
+    """Connect dangling coastline endpoints to the boundary ring so the graph closes.
+
+    OSM coastlines are open lines: they end at land borders. Without sealing, polygonize cannot
+    separate the land face from the territorial-water face and the whole administrative polygon comes
+    back as a single face. Sealing only ever adds a straight stitch segment to the nearest ring point;
+    no geometry is invented.
+    """
+    from collections import Counter
+
+    if ring is None:
+        return []
+    ends: Counter = Counter()
+    for part in parts:
+        coords = list(part.coords)
+        if len(coords) < 2:
+            continue
+        ends[(round(coords[0][0], 6), round(coords[0][1], 6))] += 1
+        ends[(round(coords[-1][0], 6), round(coords[-1][1], 6))] += 1
+    stitches = []
+    for (x, y), count in ends.items():
+        if count != 1:
+            continue
+        point = Point(x, y)
+        distance = ring.distance(point)
+        if 0.0 < distance < 20000.0:
+            target = ring.interpolate(ring.project(point))
+            if target.distance(point) > 1e-6:
+                stitches.append(LineString([(x, y), (target.x, target.y)]))
+    return stitches
+
+
 def _land_polygons_from_coastline(coastlines: list[list[tuple[float, float]]],
                                   closing_line: LineString | None = None) -> list[Polygon]:
     """Polygonise the coastline network. OSM coastlines are open lines (they end at land borders and
@@ -1127,8 +1163,10 @@ def _land_polygons_from_coastline(coastlines: list[list[tuple[float, float]]],
     merged = shapely.ops.linemerge(shapely.union_all(lines))
     parts = [merged] if merged.geom_type == "LineString" else list(getattr(merged, "geoms", []))
     if closing_line is not None:
+        stitches = _seal_network(parts, closing_line)
+        if stitches:
+            parts = parts + stitches
         parts.append(closing_line)
-    polys = list(shapely.ops.polygonize(parts))
     out = []
     for poly in polys:
         if not poly.is_valid:
