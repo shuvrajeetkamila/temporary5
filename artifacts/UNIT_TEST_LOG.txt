@@ -48,22 +48,7 @@ PhysicsWorldTest > sleeping bodies stay put until disturbed FAILED
 
 PhysicsWorldTest > determinism: identical inputs produce identical states PASSED
 --
-
-ArabicReshaperTest > non-joining letters keep their isolated/final forms PASSED
-
-ArabicReshaperTest > visual length never exceeds the logical length (ligatures only shorten) FAILED
-    org.opentest4j.AssertionFailedError: expected: <2> but was: <1>
-        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
-        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
-        at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
-        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)
-        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:145)
-        at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:531)
-        at app//ai.arena.qatar.text.ArabicReshaperTest.visualLength(ArabicReshaperTest.java:97)
-
-ArabicReshaperTest > Qatar shapes into contextual forms and renders right-to-left PASSED
---
-	at org.gradle.composite.internal.DefaultBuildController$BuildOpRunnable.run(DefaultBuildController.java:198)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There were failing tests. See the report at: file:///home/runner/work/temporary5/temporary5/core/build/reports/tests/test/index.html
@@ -81,5 +66,5 @@ Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 15s
+BUILD FAILED in 16s
 3 actionable tasks: 3 executed
