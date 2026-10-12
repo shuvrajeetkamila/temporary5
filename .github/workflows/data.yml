@@ -3,8 +3,11 @@ name: Build world data
 # Fetches the verified open sources (OpenStreetMap Qatar extract + SRTM elevation), compiles the
 # runtime world bundle for the whole country, and commits the compiled result plus provenance.
 #
-# Raw acquisitions (PBF, HGT) stay out of Git; only the compiled bundles, reports, checksums and
-# the source provenance record are committed, per the repository data policy.
+# Raw acquisitions (PBF, HGT) stay out of Git; only the compiled bundles, reports, checksums and the
+# source provenance record are committed, per the repository data policy.
+#
+# Every step tees into run.log, which is committed as artifacts/DATA_RUN_LOG.txt: CI logs are not
+# retrievable from the development sandbox, so the run carries its own diagnostics.
 
 on:
   workflow_dispatch:
@@ -21,9 +24,9 @@ jobs:
   compile-world:
     name: Fetch sources and compile the country bundle
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -33,42 +36,50 @@ jobs:
 
       - name: Install compiler dependencies
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r tools/requirements.txt
+          set -o pipefail
+          python -m pip install --upgrade pip 2>&1 | tail -2 | tee -a run.log
+          python -m pip install -r tools/requirements.txt 2>&1 | tail -5 | tee -a run.log
 
       - name: Fetch and verify sources
-        run: python3 tools/fetch_sources.py
-
-      - name: Compile world bundle (national AOI, municipalities, islands, terrain, roads, buildings)
         run: |
-          set +e
-          python3 tools/build_world.py --stage all 2>&1 | tee world.log
-          STATUS=${PIPESTATUS[0]}
-          set -e
-          mkdir -p artifacts
-          tail -200 world.log > artifacts/WORLD_COMPILE_LOG.txt
-          if [ "$STATUS" -eq 0 ]; then echo "status=PASSED" > artifacts/DATA_STATUS.txt;
-          else echo "status=FAILED" > artifacts/DATA_STATUS.txt; fi
-          exit 0
+          set -o pipefail
+          python3 tools/fetch_sources.py 2>&1 | tee -a run.log
+          echo "fetch done" >> run.log
+
+      - name: Compile world bundle
+        run: |
+          set -o pipefail
+          python3 tools/build_world.py --stage all 2>&1 | tee -a run.log
 
       - name: Validate compiled country coverage
-        if: hashFiles('android/assets/world/manifest.json') != ''
         run: |
-          set +e
-          python3 tools/validate_world.py 2>&1 | tee validate.log
-          STATUS=${PIPESTATUS[0]}
-          set -e
-          mkdir -p artifacts
-          cp validate.log artifacts/WORLD_VALIDATION.txt
-          if [ "$STATUS" -ne 0 ]; then
-            echo "status=FAILED" > artifacts/DATA_STATUS.txt
-          fi
-          exit 0
+          set -o pipefail
+          python3 tools/validate_world.py 2>&1 | tee -a run.log
+          echo "WORLD_VALIDATION=PASSED" >> run.log
 
       - name: Show bundle summary
+        if: always()
         run: |
-          ls -la android/assets/world/ || true
-          du -sh android/assets/world/ || true
+          ls -la android/assets/world/ 2>&1 | tee -a run.log || true
+          du -sh android/assets/world/ 2>&1 | tee -a run.log || true
+
+      - name: Assemble evidence
+        if: always()
+        run: |
+          mkdir -p artifacts
+          cp run.log artifacts/DATA_RUN_LOG.txt 2>/dev/null || echo "no run.log" > artifacts/DATA_RUN_LOG.txt
+          if grep -q "WORLD_VALIDATION=PASSED" run.log 2>/dev/null; then
+            echo "status=PASSED" > artifacts/DATA_STATUS.txt
+          else
+            echo "status=FAILED" > artifacts/DATA_STATUS.txt
+          fi
+          {
+            echo "commit=${GITHUB_SHA}"
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "branch=${GITHUB_REF_NAME}"
+            echo "started_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } >> artifacts/DATA_STATUS.txt
+          tail -60 artifacts/DATA_RUN_LOG.txt || true
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -87,7 +98,7 @@ jobs:
           set -e
           git config user.name "qatar-data-ci"
           git config user.email "ci@users.noreply.github.com"
-          git add -A android/assets/world data/geodata artifacts
+          git add -A android/assets/world data/geodata artifacts || true
           git commit -m "World data: compiled country bundle and provenance [skip ci]" || echo "nothing to commit"
           for i in 1 2 3; do
             git pull --rebase -X ours origin "${GITHUB_REF_NAME}" || true
@@ -99,9 +110,11 @@ jobs:
         if: always()
         run: |
           if grep -q "status=PASSED" artifacts/DATA_STATUS.txt 2>/dev/null; then
-            echo "world data PASSED"; tail -30 artifacts/WORLD_VALIDATION.txt 2>/dev/null || true
+            echo "world data PASSED"
+            tail -40 artifacts/DATA_RUN_LOG.txt
           else
-            echo "world data FAILED"; cat artifacts/DATA_STATUS.txt 2>/dev/null || true
-            tail -80 artifacts/WORLD_COMPILE_LOG.txt 2>/dev/null || true
+            echo "world data FAILED"
+            cat artifacts/DATA_STATUS.txt 2>/dev/null || true
+            tail -80 artifacts/DATA_RUN_LOG.txt 2>/dev/null || true
             exit 1
           fi
