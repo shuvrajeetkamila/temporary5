@@ -34,20 +34,15 @@ fetch_exit=0
   national AOI: MultiPolygon, area 23222.0 km2, valid
   stats: {"coastline_ways": 378, "roads": 179943, "buildings": 186993, "landuse": 9103, "water_areas": 1170, "places": 159, "islands": 3, "aeroways": 1158, "named_areas": 1678}
   municipalities: 8
-Traceback (most recent call last):
-  File "/home/runner/work/temporary5/temporary5/tools/build_world.py", line 1461, in <module>
-    sys.exit(main())
-             ^^^^^^
-  File "/home/runner/work/temporary5/temporary5/tools/build_world.py", line 691, in main
-    coast_land_faces = _land_polygons_from_coastline(data.coastlines, boundary_line)
-                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/temporary5/temporary5/tools/build_world.py", line 1171, in _land_polygons_from_coastline
-    for poly in polys:
-                ^^^^^
-NameError: name 'polys' is not defined. Did you mean: 'poly'?
+  coastline faces: 162 candidate land/water polygons; 2 tagged island polygons
+  world grid: origin=(431000,2681000) 259x268 km
+  DEM mosaic: 9 tiles, 10801x10801 samples
+  land faces: 56 (mainland 20,091.1 km2, 55 islands >= 2 ha) classification={'landByReference': 1, 'seaByReference': 0, 'waterByFeature': 2, 'islandFaces': 55}
+  land area total: 23,220 km2 (Qatar land is ~11,600 km2)
+FATAL: classified land area 23,220 km2 is implausible; the coastline/land classification is wrong
 compile_exit=1
 FAIL: world manifest missing - the APK would not contain a country
 total 8
-drwxr-xr-x 2 runner runner 4096 Oct 12 13:20 .
-drwxr-xr-x 5 runner runner 4096 Oct 12 13:20 ..
+drwxr-xr-x 2 runner runner 4096 Oct 12 13:23 .
+drwxr-xr-x 5 runner runner 4096 Oct 12 13:23 ..
 4.0K	android/assets/world/
