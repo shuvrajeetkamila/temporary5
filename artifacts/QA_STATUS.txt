@@ -1,1 +1,1 @@
-status=FAILED
+status=PASSED
