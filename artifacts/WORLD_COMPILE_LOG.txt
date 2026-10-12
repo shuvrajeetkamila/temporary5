@@ -388,3 +388,5 @@ bundle already present: 12M
 bundle already present: 12M
 === world bundle self-sufficiency ===
 bundle already present: 12M
+=== world bundle self-sufficiency ===
+bundle already present: 12M
