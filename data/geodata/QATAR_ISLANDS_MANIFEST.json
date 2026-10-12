@@ -1,5 +1,5 @@
 {
- "count": 58,
+ "count": 57,
  "islands": [
   {
    "id": "osm-w1039580371",
@@ -18,14 +18,6 @@
    "north": 2903855.84
   },
   {
-   "id": "island-6",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 7175420000.0,
-   "east": 549050.0,
-   "north": 2840750.0
-  },
-  {
    "id": "island-2",
    "name": "",
    "nameAr": "",
@@ -34,7 +26,7 @@
    "north": 2720750.0
   },
   {
-   "id": "island-19",
+   "id": "island-18",
    "name": "",
    "nameAr": "",
    "areaM2": 1430000.0,
@@ -42,7 +34,7 @@
    "north": 2805850.0
   },
   {
-   "id": "island-68",
+   "id": "island-67",
    "name": "",
    "nameAr": "",
    "areaM2": 1420000.0,
@@ -50,7 +42,7 @@
    "north": 2892150.0
   },
   {
-   "id": "island-42",
+   "id": "island-41",
    "name": "",
    "nameAr": "",
    "areaM2": 1270000.0,
@@ -58,7 +50,7 @@
    "north": 2834350.0
   },
   {
-   "id": "island-47",
+   "id": "island-46",
    "name": "",
    "nameAr": "",
    "areaM2": 920000.0,
@@ -66,7 +58,7 @@
    "north": 2840450.0
   },
   {
-   "id": "island-37",
+   "id": "island-36",
    "name": "",
    "nameAr": "",
    "areaM2": 660000.0,
@@ -74,7 +66,7 @@
    "north": 2812650.0
   },
   {
-   "id": "island-18",
+   "id": "island-17",
    "name": "",
    "nameAr": "",
    "areaM2": 650000.0,
@@ -82,7 +74,7 @@
    "north": 2803350.0
   },
   {
-   "id": "island-57",
+   "id": "island-56",
    "name": "",
    "nameAr": "",
    "areaM2": 560000.0,
@@ -90,7 +82,7 @@
    "north": 2866950.0
   },
   {
-   "id": "island-23",
+   "id": "island-22",
    "name": "",
    "nameAr": "",
    "areaM2": 470000.0,
@@ -98,7 +90,7 @@
    "north": 2806350.0
   },
   {
-   "id": "island-13",
+   "id": "island-12",
    "name": "",
    "nameAr": "",
    "areaM2": 420000.0,
@@ -114,7 +106,7 @@
    "north": 2718750.0
   },
   {
-   "id": "island-31",
+   "id": "island-30",
    "name": "",
    "nameAr": "",
    "areaM2": 330000.0,
@@ -122,7 +114,7 @@
    "north": 2810050.0
   },
   {
-   "id": "island-64",
+   "id": "island-63",
    "name": "",
    "nameAr": "",
    "areaM2": 300000.0,
@@ -130,7 +122,7 @@
    "north": 2868550.0
   },
   {
-   "id": "island-8",
+   "id": "island-7",
    "name": "",
    "nameAr": "",
    "areaM2": 270000.0,
@@ -138,7 +130,7 @@
    "north": 2722750.0
   },
   {
-   "id": "island-10",
+   "id": "island-9",
    "name": "",
    "nameAr": "",
    "areaM2": 270000.0,
@@ -146,7 +138,7 @@
    "north": 2724350.0
   },
   {
-   "id": "island-16",
+   "id": "island-15",
    "name": "",
    "nameAr": "",
    "areaM2": 270000.0,
@@ -154,7 +146,7 @@
    "north": 2774150.0
   },
   {
-   "id": "island-14",
+   "id": "island-13",
    "name": "",
    "nameAr": "",
    "areaM2": 240000.0,
@@ -162,7 +154,7 @@
    "north": 2768450.0
   },
   {
-   "id": "island-9",
+   "id": "island-8",
    "name": "",
    "nameAr": "",
    "areaM2": 230000.0,
@@ -170,7 +162,7 @@
    "north": 2723450.0
   },
   {
-   "id": "island-33",
+   "id": "island-32",
    "name": "",
    "nameAr": "",
    "areaM2": 230000.0,
@@ -178,7 +170,7 @@
    "north": 2810850.0
   },
   {
-   "id": "island-7",
+   "id": "island-6",
    "name": "",
    "nameAr": "",
    "areaM2": 190000.0,
@@ -186,7 +178,7 @@
    "north": 2721750.0
   },
   {
-   "id": "island-12",
+   "id": "island-11",
    "name": "",
    "nameAr": "",
    "areaM2": 190000.0,
@@ -194,7 +186,7 @@
    "north": 2761350.0
   },
   {
-   "id": "island-21",
+   "id": "island-20",
    "name": "",
    "nameAr": "",
    "areaM2": 190000.0,
@@ -202,7 +194,7 @@
    "north": 2806150.0
   },
   {
-   "id": "island-35",
+   "id": "island-34",
    "name": "",
    "nameAr": "",
    "areaM2": 180000.0,
@@ -210,7 +202,7 @@
    "north": 2811650.0
   },
   {
-   "id": "island-48",
+   "id": "island-47",
    "name": "",
    "nameAr": "",
    "areaM2": 180000.0,
@@ -218,7 +210,7 @@
    "north": 2840650.0
   },
   {
-   "id": "island-15",
+   "id": "island-14",
    "name": "",
    "nameAr": "",
    "areaM2": 170000.0,
@@ -226,7 +218,7 @@
    "north": 2772150.0
   },
   {
-   "id": "island-43",
+   "id": "island-42",
    "name": "",
    "nameAr": "",
    "areaM2": 170000.0,
@@ -234,7 +226,7 @@
    "north": 2835550.0
   },
   {
-   "id": "island-50",
+   "id": "island-49",
    "name": "",
    "nameAr": "",
    "areaM2": 150000.0,
@@ -242,7 +234,7 @@
    "north": 2850550.0
   },
   {
-   "id": "island-58",
+   "id": "island-57",
    "name": "",
    "nameAr": "",
    "areaM2": 150000.0,
@@ -250,7 +242,7 @@
    "north": 2867050.0
   },
   {
-   "id": "island-63",
+   "id": "island-62",
    "name": "",
    "nameAr": "",
    "areaM2": 150000.0,
@@ -258,7 +250,7 @@
    "north": 2868050.0
   },
   {
-   "id": "island-51",
+   "id": "island-50",
    "name": "",
    "nameAr": "",
    "areaM2": 140000.0,
@@ -266,7 +258,7 @@
    "north": 2850450.0
   },
   {
-   "id": "island-56",
+   "id": "island-55",
    "name": "",
    "nameAr": "",
    "areaM2": 130000.0,
@@ -274,7 +266,7 @@
    "north": 2864250.0
   },
   {
-   "id": "island-26",
+   "id": "island-25",
    "name": "",
    "nameAr": "",
    "areaM2": 90000.0,
@@ -282,7 +274,7 @@
    "north": 2806650.0
   },
   {
-   "id": "island-34",
+   "id": "island-33",
    "name": "",
    "nameAr": "",
    "areaM2": 90000.0,
@@ -290,7 +282,7 @@
    "north": 2811250.0
   },
   {
-   "id": "island-36",
+   "id": "island-35",
    "name": "",
    "nameAr": "",
    "areaM2": 90000.0,
@@ -298,7 +290,7 @@
    "north": 2811850.0
   },
   {
-   "id": "island-41",
+   "id": "island-40",
    "name": "",
    "nameAr": "",
    "areaM2": 90000.0,
@@ -314,7 +306,7 @@
    "north": 2717150.0
   },
   {
-   "id": "island-11",
+   "id": "island-10",
    "name": "",
    "nameAr": "",
    "areaM2": 80000.0,
@@ -322,7 +314,7 @@
    "north": 2728250.0
   },
   {
-   "id": "island-53",
+   "id": "island-52",
    "name": "",
    "nameAr": "",
    "areaM2": 80000.0,
@@ -330,7 +322,7 @@
    "north": 2863650.0
   },
   {
-   "id": "island-32",
+   "id": "island-31",
    "name": "",
    "nameAr": "",
    "areaM2": 70000.0,
@@ -338,7 +330,7 @@
    "north": 2810750.0
   },
   {
-   "id": "island-44",
+   "id": "island-43",
    "name": "",
    "nameAr": "",
    "areaM2": 70000.0,
@@ -346,7 +338,7 @@
    "north": 2836050.0
   },
   {
-   "id": "island-49",
+   "id": "island-48",
    "name": "",
    "nameAr": "",
    "areaM2": 70000.0,
@@ -354,7 +346,7 @@
    "north": 2847450.0
   },
   {
-   "id": "island-29",
+   "id": "island-28",
    "name": "",
    "nameAr": "",
    "areaM2": 60000.0,
@@ -362,7 +354,7 @@
    "north": 2809050.0
   },
   {
-   "id": "island-39",
+   "id": "island-38",
    "name": "",
    "nameAr": "",
    "areaM2": 50000.0,
@@ -370,7 +362,7 @@
    "north": 2818050.0
   },
   {
-   "id": "island-45",
+   "id": "island-44",
    "name": "",
    "nameAr": "",
    "areaM2": 50000.0,
@@ -378,7 +370,7 @@
    "north": 2836450.0
   },
   {
-   "id": "island-40",
+   "id": "island-39",
    "name": "",
    "nameAr": "",
    "areaM2": 40000.0,
@@ -386,7 +378,7 @@
    "north": 2818350.0
   },
   {
-   "id": "island-17",
+   "id": "island-16",
    "name": "",
    "nameAr": "",
    "areaM2": 30000.0,
@@ -394,7 +386,7 @@
    "north": 2798350.0
   },
   {
-   "id": "island-38",
+   "id": "island-37",
    "name": "",
    "nameAr": "",
    "areaM2": 30000.0,
@@ -402,7 +394,7 @@
    "north": 2812650.0
   },
   {
-   "id": "island-67",
+   "id": "island-66",
    "name": "",
    "nameAr": "",
    "areaM2": 30000.0,
@@ -410,7 +402,7 @@
    "north": 2891150.0
   },
   {
-   "id": "island-69",
+   "id": "island-68",
    "name": "",
    "nameAr": "",
    "areaM2": 30000.0,
@@ -426,7 +418,7 @@
    "north": 2716650.0
   },
   {
-   "id": "island-28",
+   "id": "island-27",
    "name": "",
    "nameAr": "",
    "areaM2": 20000.0,
@@ -434,7 +426,7 @@
    "north": 2808550.0
   },
   {
-   "id": "island-52",
+   "id": "island-51",
    "name": "",
    "nameAr": "",
    "areaM2": 20000.0,
@@ -442,7 +434,7 @@
    "north": 2850250.0
   },
   {
-   "id": "island-54",
+   "id": "island-53",
    "name": "",
    "nameAr": "",
    "areaM2": 20000.0,
@@ -450,7 +442,7 @@
    "north": 2863850.0
   },
   {
-   "id": "island-59",
+   "id": "island-58",
    "name": "",
    "nameAr": "",
    "areaM2": 20000.0,
@@ -458,7 +450,7 @@
    "north": 2867550.0
   },
   {
-   "id": "island-66",
+   "id": "island-65",
    "name": "",
    "nameAr": "",
    "areaM2": 20000.0,
