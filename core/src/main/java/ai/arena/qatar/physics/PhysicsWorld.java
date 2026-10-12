@@ -56,6 +56,11 @@ public final class PhysicsWorld {
      */
     private static final double CONTACT_MARGIN = 0.02;
 
+    /** Rest must be sustained for this long before a body is allowed to sleep. */
+    private static final double SLEEP_DELAY_S = 0.75;
+    /** How fast a noisy substep erodes accumulated rest time (per second of simulation). */
+    private static final double SLEEP_DECAY_FACTOR = 3.0;
+
     public double gravity = STANDARD_GRAVITY;
 
     /** Rolling resistance applied to slow, grounded bodies (1/s). Contact is not frictionless. */
@@ -444,14 +449,20 @@ public final class PhysicsWorld {
                     && b.airTime == 0.0;
             if (quiet) {
                 b.sleepTime += h;
-                if (b.sleepTime > 0.75) {
+                if (b.sleepTime > SLEEP_DELAY_S) {
                     b.sleeping = true;
                     b.linearVelocity.set(0, 0, 0);
                     b.angularVelocity.set(0, 0, 0);
                 }
             } else {
-                b.sleepTime = 0.0;
-                b.sleeping = false;
+                // A single noisy substep (one gravity increment that a speculative contact had not yet
+                // cancelled, one contact probe solved out of order) must not throw away a full second
+                // of measured rest. Quiet time erodes on disturbance and only a sustained disturbance
+                // wakes the body, which is what the sleep contract actually promises.
+                b.sleepTime = Math.max(0.0, b.sleepTime - SLEEP_DECAY_FACTOR * h);
+                if (b.sleepTime == 0.0) {
+                    b.sleeping = false;
+                }
             }
         }
     }

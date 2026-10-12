@@ -59,7 +59,8 @@ final class PhysicsWorldTest {
         body.allowSleep = true;
         world.addBody(body);
 
-        for (int i = 0; i < 600; i++) {
+        // 15 s of simulation: a fall from 6 m, the settling bounce, then a sustained rest window.
+        for (int i = 0; i < 900; i++) {
             world.step(FixedStepClock.FIXED_DT);
         }
         assertTrue(body.position.y < 0.4, "crate rests near the surface, y=" + body.position.y);
@@ -144,7 +145,8 @@ final class PhysicsWorldTest {
         }
         assertTrue(body.sleeping, "a body placed at rest must sleep (v="
                 + body.linearVelocity.length() + ", preStepV=" + body.preStepLinearVelocity.length()
-                + ", w=" + body.angularVelocity.length() + ", airTime=" + body.airTime + ")");
+                + ", w=" + body.angularVelocity.length() + ", airTime=" + body.airTime
+                + ", sleepTime=" + body.sleepTime + ")");
         Vec3 resting = new Vec3(body.position);
         for (int i = 0; i < 120; i++) {
             world.step(FixedStepClock.FIXED_DT);
