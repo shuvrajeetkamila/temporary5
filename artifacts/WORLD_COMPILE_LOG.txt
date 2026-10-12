@@ -392,7 +392,8 @@ bundle already present: 12M
 bundle already present: 12M
 === world bundle self-sufficiency ===
 compiler_hash=2536fa6f9f27b6844fbd1cf5aa2b0255afe7bd834c77587e6b153d1804df78a7
-no compiler fingerprint on the committed bundle; rebuilding
+committed_hash=d091bffc0fde3b60f41ba31e6cfda16aaa8181d9925f50be2cca14e793094ee8
+committed bundle is stale (compiler changed); rebuilding
 --- static self-test of the compiler ---
 PASS  coastline ribbon rasterises into a barrier ({'barrierCells': 238, 'seedCells': 2, 'stitches': 0, 'longestStitchM': 0.0, 'area_0': np.float64(12.1), 'thickening': 0, 'islandComponents': 0})
 PASS  land seeds land inside the ring ({'barrierCells': 238, 'seedCells': 2, 'stitches': 0, 'longestStitchM': 0.0, 'area_0': np.float64(12.1), 'thickening': 0, 'islandComponents': 0})
@@ -493,15 +494,15 @@ WORLD COVERAGE VALIDATION PASSED
 validate_exit=0
 === bundle contents ===
 total 11940
-drwxr-xr-x 2 runner runner    4096 Oct 12 15:11 .
-drwxr-xr-x 5 runner runner    4096 Oct 12 15:07 ..
--rw-r--r-- 1 runner runner      65 Oct 12 15:11 COMPILER_SHA256
--rw-r--r-- 1 runner runner 2112774 Oct 12 15:11 buildings.bin.gz
--rw-r--r-- 1 runner runner  125625 Oct 12 15:11 coast.bin.gz
--rw-r--r-- 1 runner runner   21430 Oct 12 15:11 manifest.json
--rw-r--r-- 1 runner runner   87485 Oct 12 15:11 material_l1.bin.gz
--rw-r--r-- 1 runner runner 8764140 Oct 12 15:11 roads.bin.gz
--rw-r--r-- 1 runner runner  106004 Oct 12 15:11 strings.bin.gz
--rw-r--r-- 1 runner runner  103521 Oct 12 15:11 terrain_l0.bin.gz
--rw-r--r-- 1 runner runner  876807 Oct 12 15:11 terrain_l1.bin.gz
+drwxr-xr-x 2 runner runner    4096 Oct 12 15:20 .
+drwxr-xr-x 5 runner runner    4096 Oct 12 15:15 ..
+-rw-r--r-- 1 runner runner      65 Oct 12 15:20 COMPILER_SHA256
+-rw-r--r-- 1 runner runner 2112774 Oct 12 15:20 buildings.bin.gz
+-rw-r--r-- 1 runner runner  125625 Oct 12 15:20 coast.bin.gz
+-rw-r--r-- 1 runner runner   21430 Oct 12 15:20 manifest.json
+-rw-r--r-- 1 runner runner   87485 Oct 12 15:19 material_l1.bin.gz
+-rw-r--r-- 1 runner runner 8764140 Oct 12 15:20 roads.bin.gz
+-rw-r--r-- 1 runner runner  106004 Oct 12 15:20 strings.bin.gz
+-rw-r--r-- 1 runner runner  103521 Oct 12 15:19 terrain_l0.bin.gz
+-rw-r--r-- 1 runner runner  876807 Oct 12 15:19 terrain_l1.bin.gz
 12M	android/assets/world/
