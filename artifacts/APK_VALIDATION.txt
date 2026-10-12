@@ -1,6 +1,6 @@
 apk_path=artifacts/Qatar-The-Peninsula-v0.1.0-m0.apk
-apk_bytes=1344780
-apk_sha256=c534e2328e1fc1c4d2d70a4aeaaa3441e23fb1f3b6b7168c24922d76a4cfa7d4
+apk_bytes=1413702
+apk_sha256=a8b6a6c510c525c68698d6205e517fb5c13230fabf58ceb951088ccc1cebc688
 zip_integrity=ok
 manifest_package=package: name='ai.arena.qatar.peninsula' versionCode='1' versionName='0.1.0-m0' platformBuildVersionName='14' platformBuildVersionCode='34' compileSdkVersion='34' compileSdkVersionCodename='14'
 manifest_sdk=sdkVersion:26
@@ -12,9 +12,9 @@ dex_files=9
 world_assets=0
 FAIL: no packaged world assets found
 FAIL: world manifest missing from APK (packaged-country startup would fail)
-warning: licenses not packaged
+licenses_packaged=yes
 signature=present
-apk_entry_count=28
-largest_entries=2212440 classes.dex;193008 lib/x86_64/libgdx.so;163888 lib/arm64-v8a/libgdx.so;160156 lib/armeabi-v7a/libgdx.so;32728 classes7.dex;
+apk_entry_count=34
+largest_entries=2212440 classes.dex;193008 lib/x86_64/libgdx.so;163888 lib/arm64-v8a/libgdx.so;160156 lib/armeabi-v7a/libgdx.so;36871 assets/fonts/hud_large.png;
 checksum_sidecar=artifacts/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256
 validation=FAILED (2 failure(s))
