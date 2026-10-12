@@ -1,0 +1,107 @@
+name: Build world data
+
+# Fetches the verified open sources (OpenStreetMap Qatar extract + SRTM elevation), compiles the
+# runtime world bundle for the whole country, and commits the compiled result plus provenance.
+#
+# Raw acquisitions (PBF, HGT) stay out of Git; only the compiled bundles, reports, checksums and
+# the source provenance record are committed, per the repository data policy.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/**'
+      - '.github/workflows/data.yml'
+      - 'data/geodata/**'
+
+permissions:
+  contents: write
+
+jobs:
+  compile-world:
+    name: Fetch sources and compile the country bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install compiler dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tools/requirements.txt
+
+      - name: Fetch and verify sources
+        run: python3 tools/fetch_sources.py
+
+      - name: Compile world bundle (national AOI, municipalities, islands, terrain, roads, buildings)
+        run: |
+          set +e
+          python3 tools/build_world.py --stage all 2>&1 | tee world.log
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          mkdir -p artifacts
+          tail -200 world.log > artifacts/WORLD_COMPILE_LOG.txt
+          if [ "$STATUS" -eq 0 ]; then echo "status=PASSED" > artifacts/DATA_STATUS.txt;
+          else echo "status=FAILED" > artifacts/DATA_STATUS.txt; fi
+          exit 0
+
+      - name: Validate compiled country coverage
+        if: hashFiles('android/assets/world/manifest.json') != ''
+        run: |
+          set +e
+          python3 tools/validate_world.py 2>&1 | tee validate.log
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          mkdir -p artifacts
+          cp validate.log artifacts/WORLD_VALIDATION.txt
+          if [ "$STATUS" -ne 0 ]; then
+            echo "status=FAILED" > artifacts/DATA_STATUS.txt
+          fi
+          exit 0
+
+      - name: Show bundle summary
+        run: |
+          ls -la android/assets/world/ || true
+          du -sh android/assets/world/ || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: world-data
+          path: |
+            android/assets/world/
+            data/geodata/
+            artifacts/
+          if-no-files-found: warn
+
+      - name: Commit compiled world bundle and provenance
+        if: always()
+        continue-on-error: true
+        run: |
+          set -e
+          git config user.name "qatar-data-ci"
+          git config user.email "ci@users.noreply.github.com"
+          git add -A android/assets/world data/geodata artifacts
+          git commit -m "World data: compiled country bundle and provenance [skip ci]" || echo "nothing to commit"
+          for i in 1 2 3; do
+            git pull --rebase -X ours origin "${GITHUB_REF_NAME}" || true
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then echo "data pushed"; break; fi
+            sleep 5
+          done
+
+      - name: Fail the run if compilation or validation failed
+        if: always()
+        run: |
+          if grep -q "status=PASSED" artifacts/DATA_STATUS.txt 2>/dev/null; then
+            echo "world data PASSED"; tail -30 artifacts/WORLD_VALIDATION.txt 2>/dev/null || true
+          else
+            echo "world data FAILED"; cat artifacts/DATA_STATUS.txt 2>/dev/null || true
+            tail -80 artifacts/WORLD_COMPILE_LOG.txt 2>/dev/null || true
+            exit 1
+          fi

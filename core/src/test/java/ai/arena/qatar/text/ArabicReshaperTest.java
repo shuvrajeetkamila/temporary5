@@ -94,7 +94,7 @@ final class ArabicReshaperTest {
     @DisplayName("visual length never exceeds the logical length (ligatures only shorten)")
     void visualLength() {
         assertEquals(3, ArabicReshaper.visualLength("\u0642\u0637\u0631"));
-        assertEquals(2, ArabicReshaper.visualLength("\u0644\u0627")); // lam-alef collapses to one glyph
+        assertEquals(1, ArabicReshaper.visualLength("\u0644\u0627")); // lam-alef is a single glyph
     }
 
     private static String escape(String s) {

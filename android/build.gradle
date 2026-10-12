@@ -65,7 +65,49 @@ android.applicationVariants.all { variant ->
     }
 }
 
+configurations {
+    // libGDX natives ship as plain jars; the task below unpacks them into jniLibs.
+    natives
+}
+
 dependencies {
     implementation project(':core')
     implementation "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
+
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-arm64-v8a"
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi-v7a"
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86_64"
 }
+
+def supportedAbis = ['arm64-v8a', 'armeabi-v7a', 'x86_64', 'x86']
+
+tasks.register('copyAndroidNatives') {
+    def libsDir = layout.projectDirectory.dir('libs').asFile
+    def nativeFiles = configurations.natives
+    inputs.files(nativeFiles)
+    outputs.dir(libsDir)
+    doLast {
+        supportedAbis.each { abi -> new File(libsDir, abi).mkdirs() }
+        nativeFiles.files.each { jar ->
+            def abi = jar.name.replaceAll(/^.*natives-/, '').replaceAll(/\.jar$/, '')
+            if (!supportedAbis.contains(abi)) {
+                return
+            }
+            def target = new File(libsDir, abi)
+            copy {
+                from zipTree(jar)
+                include '**/*.so'
+                eachFile { it.path = it.name }
+                includeEmptyDirs = false
+                into target
+            }
+        }
+        def count = fileTree(libsDir).matching { include '**/*.so' }.files.size()
+        println "copyAndroidNatives: ${count} native libraries staged in ${libsDir}"
+    }
+}
+
+tasks.matching { it.name.toLowerCase().contains('jnilibfolders') }.configureEach {
+    dependsOn 'copyAndroidNatives'
+}
+tasks.named('preBuild') { dependsOn 'copyAndroidNatives' }
