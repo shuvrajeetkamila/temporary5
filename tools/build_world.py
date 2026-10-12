@@ -1167,6 +1167,7 @@ def _land_polygons_from_coastline(coastlines: list[list[tuple[float, float]]],
         if stitches:
             parts = parts + stitches
         parts.append(closing_line)
+    polys = list(shapely.ops.polygonize(parts))
     out = []
     for poly in polys:
         if not poly.is_valid:
