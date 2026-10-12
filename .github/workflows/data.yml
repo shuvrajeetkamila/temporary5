@@ -1,13 +1,15 @@
 name: Build world data
 
 # Fetches the verified open sources (OpenStreetMap Qatar extract + SRTM elevation), compiles the
-# runtime world bundle for the whole country, and commits the compiled result plus provenance.
+# runtime world bundle for the whole country, publishes it as a workflow artifact, records the
+# provenance/evidence files through the contents API, and then dispatches the APK workflow with the
+# run id so the APK build downloads exactly this bundle.
 #
-# Raw acquisitions (PBF, HGT) stay out of Git; only the compiled bundles, reports, checksums and the
-# source provenance record are committed, per the repository data policy.
+# Raw acquisitions (PBF, HGT) stay out of Git; only compiled derivatives, reports and checksums are
+# committed (by the APK workflow, which is the workflow with a verified push path).
 #
 # Every step tees into run.log, which is committed as artifacts/DATA_RUN_LOG.txt: CI logs are not
-# retrievable from the development sandbox, so the run carries its own diagnostics.
+# retrievable from the development sandbox, so each run carries its own diagnostics.
 
 on:
   workflow_dispatch:
@@ -19,6 +21,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   compile-world:
@@ -36,15 +39,14 @@ jobs:
 
       - name: Install compiler dependencies
         run: |
-          set -o pipefail
-          python -m pip install --upgrade pip 2>&1 | tail -2 | tee -a run.log
-          python -m pip install -r tools/requirements.txt 2>&1 | tail -5 | tee -a run.log
+          python -m pip install --upgrade pip 2>&1 | tail -1 | tee -a run.log
+          python -m pip install -r tools/requirements.txt 2>&1 | tail -3 | tee -a run.log
 
       - name: Probe source hosts
         run: |
           for url in "https://download.geofabrik.de/asia/qatar-latest.osm.pbf" \
                      "https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E051.hgt.gz"; do
-            code=$(curl -s -o /dev/null -w "%{http_code} %{size_download} %{redirect_url}" --max-time 30 -r 0-1023 "$url" || echo "CURLFAIL")
+            code=$(curl -s -o /dev/null -w "%{http_code} size=%{size_download} redirect=%{redirect_url}" --max-time 30 -r 0-511 "$url" || echo CURLFAIL)
             echo "probe: $url -> $code" | tee -a run.log
           done
 
@@ -88,9 +90,9 @@ jobs:
             echo "commit=${GITHUB_SHA}"
             echo "run_id=${GITHUB_RUN_ID}"
             echo "branch=${GITHUB_REF_NAME}"
-            echo "started_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "finished_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           } >> artifacts/DATA_STATUS.txt
-          tail -60 artifacts/DATA_RUN_LOG.txt || true
+          cat artifacts/DATA_STATUS.txt
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -102,21 +104,45 @@ jobs:
             artifacts/
           if-no-files-found: warn
 
-      - name: Commit compiled world bundle and provenance
+      - name: Publish evidence and provenance through the contents API
         if: always()
         continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          set -e
-          git config user.name "qatar-data-ci"
-          git config user.email "ci@users.noreply.github.com"
-          git add -A android/assets/world data/geodata artifacts || true
-          git commit -m "World data: compiled country bundle and provenance [skip ci]" || echo "nothing to commit"
-          for i in 1 2 3; do
-            git fetch origin "${GITHUB_REF_NAME}" || true
-            git merge -X ours --no-edit FETCH_HEAD -m "merge evidence [skip ci]" || git merge --abort || true
-            if git push origin "HEAD:${GITHUB_REF_NAME}"; then echo "data pushed"; break; fi
-            sleep 5
-          done
+          set -u
+          REPO="${GITHUB_REPOSITORY}"
+          BRANCH="${GITHUB_REF_NAME}"
+          commit_file() {
+            local path="$1"
+            [ -f "$path" ] || { echo "skip (missing): $path"; return 0; }
+            local sha
+            sha=$(gh api "repos/${REPO}/contents/${path}?ref=${BRANCH}" --jq .sha 2>/dev/null || true)
+            local args=(-X PUT "repos/${REPO}/contents/${path}" -f message="World data evidence [skip ci]" -f branch="${BRANCH}" -f content="$(base64 -w0 "$path")")
+            if [ -n "$sha" ]; then args+=(-f sha="$sha"); fi
+            if gh api "${args[@]}" >/dev/null 2>&1; then echo "committed via API: $path"; else echo "API commit failed: $path"; fi
+          }
+          commit_file artifacts/DATA_STATUS.txt
+          commit_file artifacts/DATA_RUN_LOG.txt
+          commit_file data/geodata/SOURCES.json
+          commit_file data/geodata/QATAR_NATIONAL_AOI.geojson
+          commit_file data/geodata/QATAR_MUNICIPALITIES.geojson
+          commit_file data/geodata/QATAR_ISLANDS_MANIFEST.json
+          commit_file data/geodata/QATAR_BOUNDARY_REPORT.md
+          commit_file data/geodata/SHA256SUMS
+
+      - name: Dispatch the APK build with this data run
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if grep -q "status=PASSED" artifacts/DATA_STATUS.txt 2>/dev/null; then
+            gh workflow run build.yml --repo "${GITHUB_REPOSITORY}" --ref "${GITHUB_REF_NAME}" \
+              -f data_run_id="${GITHUB_RUN_ID}" -f publish_release=false && echo "dispatched build.yml"
+          else
+            echo "world data FAILED - not dispatching the APK build"
+          fi
 
       - name: Fail the run if compilation or validation failed
         if: always()
@@ -127,6 +153,6 @@ jobs:
           else
             echo "world data FAILED"
             cat artifacts/DATA_STATUS.txt 2>/dev/null || true
-            tail -80 artifacts/DATA_RUN_LOG.txt 2>/dev/null || true
+            tail -100 artifacts/DATA_RUN_LOG.txt 2>/dev/null || true
             exit 1
           fi

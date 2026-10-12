@@ -11,6 +11,10 @@ on:
     branches: ["**"]
   workflow_dispatch:
     inputs:
+      data_run_id:
+        description: "World-data run id to download the compiled country bundle from (optional)"
+        type: string
+        default: ""
       publish_release:
         description: "Publish the APK as a GitHub Release asset when validation passes"
         type: boolean
@@ -38,6 +42,25 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
+
+      - name: Restore compiled world bundle from the data run
+        if: github.event_name == 'workflow_dispatch' && inputs.data_run_id != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: world-data
+          run-id: ${{ inputs.data_run_id }}
+          github-token: ${{ github.token }}
+          path: .
+
+      - name: Confirm world bundle present (packaged-country startup depends on it)
+        if: always()
+        run: |
+          ls -la android/assets/world/ 2>&1 | head -20 || true
+          if [ -f android/assets/world/manifest.json ]; then
+            echo "world bundle present: $(du -sh android/assets/world | cut -f1)"
+          else
+            echo "WARNING: no compiled world bundle in the workspace yet"
+          fi
 
       - name: Ensure Android SDK components
         run: |
