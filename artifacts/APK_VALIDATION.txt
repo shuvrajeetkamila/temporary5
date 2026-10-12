@@ -1,1 +1,18 @@
-validation=FAILED (no APK produced)
+apk_path=artifacts/Qatar-The-Peninsula-v0.1.0-m0.apk
+apk_bytes=1094978
+apk_sha256=38f934bcc56d5790cf99f3b28260022f0174b69761a787dcf596023cbd45a55d
+zip_integrity=ok
+manifest_package=package: name='ai.arena.qatar.peninsula' versionCode='1' versionName='0.1.0-m0' platformBuildVersionName='14' platformBuildVersionCode='34' compileSdkVersion='34' compileSdkVersionCodename='14'
+native_abis= 
+FAIL: missing native ABI: arm64-v8a
+FAIL: missing native ABI: armeabi-v7a
+FAIL: missing native ABI: x86_64
+FAIL: libgdx native library missing from APK
+dex_files=9
+world_assets=0
+FAIL: no packaged world assets found
+FAIL: world manifest missing from APK (packaged-country startup would fail)
+warning: licenses not packaged
+FAIL: APK is not signed
+checksum_sidecar=artifacts/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256
+validation=FAILED (7 failure(s))
