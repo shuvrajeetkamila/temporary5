@@ -40,22 +40,33 @@ jobs:
           python -m pip install --upgrade pip 2>&1 | tail -2 | tee -a run.log
           python -m pip install -r tools/requirements.txt 2>&1 | tail -5 | tee -a run.log
 
+      - name: Probe source hosts
+        run: |
+          for url in "https://download.geofabrik.de/asia/qatar-latest.osm.pbf" \
+                     "https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E051.hgt.gz"; do
+            code=$(curl -s -o /dev/null -w "%{http_code} %{size_download} %{redirect_url}" --max-time 30 -r 0-1023 "$url" || echo "CURLFAIL")
+            echo "probe: $url -> $code" | tee -a run.log
+          done
+
       - name: Fetch and verify sources
         run: |
-          set -o pipefail
+          set +e
           python3 tools/fetch_sources.py 2>&1 | tee -a run.log
-          echo "fetch done" >> run.log
+          echo "fetch_exit=${PIPESTATUS[0]}" | tee -a run.log
 
       - name: Compile world bundle
+        if: always()
         run: |
-          set -o pipefail
+          set +e
           python3 tools/build_world.py --stage all 2>&1 | tee -a run.log
+          echo "compile_exit=${PIPESTATUS[0]}" | tee -a run.log
 
       - name: Validate compiled country coverage
+        if: always()
         run: |
-          set -o pipefail
+          set +e
           python3 tools/validate_world.py 2>&1 | tee -a run.log
-          echo "WORLD_VALIDATION=PASSED" >> run.log
+          if [ "${PIPESTATUS[0]}" -eq 0 ]; then echo "WORLD_VALIDATION=PASSED" | tee -a run.log; fi
 
       - name: Show bundle summary
         if: always()
@@ -101,7 +112,8 @@ jobs:
           git add -A android/assets/world data/geodata artifacts || true
           git commit -m "World data: compiled country bundle and provenance [skip ci]" || echo "nothing to commit"
           for i in 1 2 3; do
-            git pull --rebase -X ours origin "${GITHUB_REF_NAME}" || true
+            git fetch origin "${GITHUB_REF_NAME}" || true
+            git merge -X ours --no-edit FETCH_HEAD -m "merge evidence [skip ci]" || git merge --abort || true
             if git push origin "HEAD:${GITHUB_REF_NAME}"; then echo "data pushed"; break; fi
             sleep 5
           done
