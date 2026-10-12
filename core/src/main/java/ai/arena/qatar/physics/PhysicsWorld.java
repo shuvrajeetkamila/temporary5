@@ -44,8 +44,13 @@ public final class PhysicsWorld {
     private static final double PENETRATION_SLOP = 0.005;
     private static final double POSITION_CORRECTION = 0.35;
     private static final double BOUNCE_THRESHOLD = 1.0;
+    /** Rolling resistance coefficient (1/s) applied to grounded, slow bodies. */
+    private static final double ROLLING_RESISTANCE = 6.0;
 
     public double gravity = STANDARD_GRAVITY;
+
+    /** Rolling resistance applied to slow, grounded bodies (1/s). Contact is not frictionless. */
+    public double rollingResistance = ROLLING_RESISTANCE;
 
     private final List<RigidBody> bodies = new ArrayList<>();
     private final List<StaticBox> staticBoxes = new ArrayList<>();
@@ -159,6 +164,7 @@ public final class PhysicsWorld {
             integrateVelocities(h);
             int contacts = detectContacts();
             solveContacts(contacts, h);
+            applyRollingResistance(h, contacts);
             integratePositions(h, contacts);
             updateSleepState(h, contacts);
         }
@@ -360,6 +366,27 @@ public final class PhysicsWorld {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * Rolling and pivoting resistance for bodies that are in contact and no longer moving.
+     *
+     * <p>A speed-ordered sequential impulse solver leaves a small permanent angular velocity on a
+     * resting body (each contact probe is solved in turn, so the last one always spins it slightly).
+     * Real contact resists that rolling; modelling it is what lets a settled crate actually stop, and
+     * without it no resting body would ever sleep.
+     */
+    private void applyRollingResistance(double h, int contactCount) {
+        for (int c = 0; c < contactCount; c++) {
+            RigidBody b = bodies.get(contactBody[c]);
+            if (b.sleeping) {
+                continue;
+            }
+            if (b.preStepLinearVelocity.length() < b.linearSleepThreshold) {
+                double damp = Math.max(0.0, 1.0 - rollingResistance * h);
+                b.angularVelocity.scale(damp);
             }
         }
     }

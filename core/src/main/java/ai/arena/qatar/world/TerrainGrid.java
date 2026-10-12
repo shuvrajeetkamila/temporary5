@@ -72,19 +72,25 @@ public final class TerrainGrid {
         return landMask[row * cols + col] != 0;
     }
 
-    /** Raw (nearest-cell) height in metres, clamped at the grid edges. */
-    public double heightNearest(double localX, double localZ) {
-        int col = (int) Math.floor((localX - originEast) / cellM);
-        int row = (int) Math.floor((localZ - originNorth) / cellM);
+    /** Raw (nearest-cell) height in metres at global EPSG:32639 east/north, clamped at the edges. */
+    public double heightNearest(double globalEastM, double globalNorthM) {
+        int col = (int) Math.floor((globalEastM - originEast) / cellM);
+        int row = (int) Math.floor((globalNorthM - originNorth) / cellM);
         col = clamp(col, 0, cols - 1);
         row = clamp(row, 0, rows - 1);
         return heights[row * cols + col];
     }
 
-    /** Bilinear height sample in metres; never returns NaN. */
-    public double heightBilinear(double localX, double localZ) {
-        double fx = (localX - originEast) / cellM - 0.5;
-        double fz = (localZ - originNorth) / cellM - 0.5;
+    /**
+     * Bilinear height sample in metres at global EPSG:32639 east/north; never returns NaN.
+     *
+     * <p>The grid works in global coordinates on purpose: the renderer, the solver and the compiler
+     * then agree on cell indices no matter how the floating origin has been rebased. Converting
+     * local float metres to global doubles happens once, at the sampler boundary.
+     */
+    public double heightBilinear(double globalEastM, double globalNorthM) {
+        double fx = (globalEastM - originEast) / cellM - 0.5;
+        double fz = (globalNorthM - originNorth) / cellM - 0.5;
         int c0 = (int) Math.floor(fx);
         int r0 = (int) Math.floor(fz);
         double tx = fx - c0;
@@ -102,17 +108,19 @@ public final class TerrainGrid {
         return top + (bottom - top) * tz;
     }
 
-    public boolean landBilinear(double localX, double localZ) {
-        int col = clamp((int) Math.floor((localX - originEast) / cellM), 0, cols - 1);
-        int row = clamp((int) Math.floor((localZ - originNorth) / cellM), 0, rows - 1);
+    public boolean landBilinear(double globalEastM, double globalNorthM) {
+        int col = clamp((int) Math.floor((globalEastM - originEast) / cellM), 0, cols - 1);
+        int row = clamp((int) Math.floor((globalNorthM - originNorth) / cellM), 0, rows - 1);
         return landMask[row * cols + col] != 0;
     }
 
-    /** Height gradient (dH/dx, dH/dz), used to derive surface normals consistently with rendering. */
-    public double[] heightGradient(double localX, double localZ, double h) {
+    /** Height gradient (dH/dx, dH/dz) at global east/north, for surface normals. */
+    public double[] heightGradient(double globalEastM, double globalNorthM, double h) {
         double[] out = new double[2];
-        out[0] = (heightBilinear(localX + h, localZ) - heightBilinear(localX - h, localZ)) / (2 * h);
-        out[1] = (heightBilinear(localX, localZ + h) - heightBilinear(localX, localZ - h)) / (2 * h);
+        out[0] = (heightBilinear(globalEastM + h, globalNorthM)
+                - heightBilinear(globalEastM - h, globalNorthM)) / (2 * h);
+        out[1] = (heightBilinear(globalEastM, globalNorthM + h)
+                - heightBilinear(globalEastM, globalNorthM - h)) / (2 * h);
         return out;
     }
 

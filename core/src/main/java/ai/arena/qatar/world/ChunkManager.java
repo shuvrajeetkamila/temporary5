@@ -118,6 +118,7 @@ public final class ChunkManager {
     public static final int CHUNK_CELLS = 32;
 
     private final TerrainGrid terrain;
+    private final WorldOrigin origin;
     private final double cellM;
     private final double originEast;
     private final double originNorth;
@@ -137,7 +138,16 @@ public final class ChunkManager {
     private int gpuUploadsThisFrame;
 
     public ChunkManager(TerrainGrid terrain) {
+        this(terrain, new WorldOrigin(terrain.originEast, terrain.originNorth));
+    }
+
+    /**
+     * @param origin floating origin used to convert the solver's local float metres into global
+     *               double metres. Rebasing the origin never changes chunk identity or terrain.
+     */
+    public ChunkManager(TerrainGrid terrain, WorldOrigin origin) {
         this.terrain = terrain;
+        this.origin = origin;
         this.cellM = terrain.cellM;
         this.originEast = terrain.originEast;
         this.originNorth = terrain.originNorth;
@@ -372,7 +382,11 @@ public final class ChunkManager {
         return gpuUploadsThisFrame;
     }
 
-    /** Collision terrain is only trustworthy inside the resident safety ring. */
+    public WorldOrigin origin() {
+        return origin;
+    }
+
+    /** Collision terrain is only trustworthy inside the resident safety ring (global east/north). */
     public boolean collisionAt(double east, double north) {
         int col = (int) Math.floor((east - originEast) / (cellM * CHUNK_CELLS));
         int row = (int) Math.floor((north - originNorth) / (cellM * CHUNK_CELLS));
@@ -385,12 +399,13 @@ public final class ChunkManager {
         return new TerrainSampler() {
             @Override
             public double height(double localX, double localZ) {
-                return terrain.heightBilinear(localX, localZ);
+                return terrain.heightBilinear(origin.globalEast(localX), origin.globalNorth(localZ));
             }
 
             @Override
             public void normal(double x, double z, Vec3 out) {
-                double[] gradient = terrain.heightGradient(x, z, Math.max(1.0, cellM));
+                double[] gradient = terrain.heightGradient(origin.globalEast(x), origin.globalNorth(z),
+                        Math.max(1.0, cellM));
                 out.set(-gradient[0], 1.0, -gradient[1]).normalize();
             }
 
@@ -399,7 +414,7 @@ public final class ChunkManager {
                 // Material classes come from the compiled material layer in the full runtime; the
                 // terrain mask already distinguishes land from water, which is the safety-critical
                 // distinction (a car must not think the Gulf is sand).
-                return terrain.landBilinear(x, z)
+                return terrain.landBilinear(origin.globalEast(x), origin.globalNorth(z))
                         ? SurfaceMaterial.ID_COMPACT_SAND : SurfaceMaterial.ID_SHALLOW_WATER;
             }
 

@@ -60,11 +60,9 @@ class ChunkManagerTest {
         manager.setBudgets(2, 2);
         double east = ORIGIN_E + 20000;
         double north = ORIGIN_N + 20000;
-        int frames = 0;
-        while (manager.activeCount() == 0 && frames < 200) {
+        for (int frame = 0; frame < 120; frame++) {
             manager.update(east, north, 0.0, 0.0, 1.0, 1.0 / 60.0);
             assertTrue(manager.gpuUploadsThisFrame() <= 2, "GPU uploads must respect the per-frame budget");
-            frames++;
         }
         assertTrue(manager.activeCount() > 0, "chunks must become active within a couple of seconds");
         assertTrue(manager.countInState(ChunkManager.State.ACTIVE_HIGH)
@@ -147,11 +145,16 @@ class ChunkManagerTest {
         // Row index grows northwards; the test grid stores height = row / 3.
         double localZ = 1500.0;
         double localX = 2500.0;
+        // The sampler takes local metres and must translate them through the floating origin before
+        // indexing the grid, so a local probe inside the lattice is not clamped to its edge.
         assertEquals(grid.heightBilinear(localX, localZ), sampler.height(localX, localZ), 1e-9);
         assertEquals(SurfaceMaterial.ID_COMPACT_SAND, sampler.materialId(localX, localZ),
                 "the test lattice marks its western half as land");
-        assertEquals(SurfaceMaterial.ID_SHALLOW_WATER, sampler.materialId(COLS * CELL - 500, 1500),
+        assertEquals(SurfaceMaterial.ID_SHALLOW_WATER, sampler.materialId(COLS * CELL - 500.0, 1500.0),
                 "the test lattice marks its eastern half as water");
+        assertEquals(ORIGIN_E + 59500.0,
+                manager.origin().globalEast(COLS * CELL - 500.0), 1e-6,
+                "local probes are translated through the floating origin");
         var normal = new ai.arena.qatar.math.Vec3();
         sampler.normal(localX, localZ, normal);
         assertEquals(1.0, normal.length(), 1e-6, "sampled normals are unit length");
