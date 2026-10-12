@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import ast
 import builtins
-import json
 import struct
 import sys
 from pathlib import Path
@@ -45,6 +44,33 @@ def test_unresolved_names() -> None:
     missing = sorted(c for c in called
                      if c not in defined and c not in imported and not hasattr(builtins, c))
     check(not missing, f"no unresolved function names in the compiler (found: {missing})")
+
+
+def test_no_undefined_names() -> None:
+    """pyflakes catches undefined variables and dead assignments in code paths tests never reach."""
+    try:
+        from pyflakes import api as pyflakes_api
+        from pyflakes import reporter as pyflakes_reporter
+    except ImportError:
+        print("SKIP  pyflakes not installed; undefined-name check skipped")
+        return
+    class Collector:
+        def __init__(self) -> None:
+            self.messages: list[str] = []
+
+        def write(self, text: str) -> None:
+            self.messages.append(text)
+
+        def flush(self) -> None:
+            pass
+
+    collector = Collector()
+    reporter = pyflakes_reporter.Reporter(collector, collector)  # type: ignore[arg-type]
+    tools_dir = Path(bw.__file__).parent
+    for tool in sorted(tools_dir.glob("*.py")):
+        pyflakes_api.checkPath(str(tool), reporter)
+    undefined = [m.strip() for m in collector.messages if "undefined name" in m]
+    check(not undefined, f"no undefined names in tools/ (found: {undefined})")
 
 
 def test_projection_round_trip() -> None:
@@ -192,6 +218,7 @@ def test_road_class_table() -> None:
 
 def main() -> int:
     test_unresolved_names()
+    test_no_undefined_names()
     test_projection_round_trip()
     test_land_derivation_synthetic()
     test_land_derivation_with_a_coast_that_ends_at_the_border()

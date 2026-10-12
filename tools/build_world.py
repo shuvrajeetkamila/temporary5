@@ -40,7 +40,7 @@ import numpy as np
 import shapely
 import shapely.ops
 from pyproj import CRS, Transformer
-from shapely.geometry import (LineString, MultiPolygon, Point, Polygon, mapping, shape)
+from shapely.geometry import (LineString, MultiPolygon, Point, Polygon, mapping)
 from shapely.geometry.polygon import orient
 
 REPO = Path(__file__).resolve().parent.parent
@@ -525,7 +525,6 @@ class StringTable:
 
 
 def pack_roads(roads: list[dict], strings: StringTable) -> tuple[bytes, dict]:
-    out = bytearray()
     counts: dict[int, int] = {}
     payload = bytearray()
     n = 0
@@ -780,7 +779,6 @@ def main() -> int:
     lat_l1 = np.asarray(lat_l1).reshape(xx.shape)
     lon_l1 = np.asarray(lon_l1).reshape(xx.shape)
     heights_l1 = sample_dem(dem_mosaic, dem_lat_max, lat_l1, lon_l1)
-    elevation_valid = sample_dem_valid(dem_mosaic, dem_lat_max, lat_l1, lon_l1)
 
     # Land classification. The OSM administrative boundary of Qatar includes territorial water, so it
     # cannot be used as the land mask directly. The land polygons below come from the coastline
@@ -810,10 +808,6 @@ def main() -> int:
     log(f"  land derivation: {land_diag}")
     log(f"  land area total: {land_area_km2:,.0f} km2 across {comp_count} components "
         f"({len(island_km2)} islands >= 2 ha, largest island {island_km2[0] if island_km2 else 0:.2f} km2)")
-    mainland_mask = land_mask.copy()
-    if island_faces:
-        biggest = max(range(1, comp_count + 1), key=lambda i: float(sizes[i - 1]))
-        mainland_mask = labels_all == biggest
     log(f"  land mask: {land_mask.sum():,} of {land_mask.size:,} cells ({100 * land_mask.mean():.1f}%)")
 
     # Island records: every land component other than the mainland, with its true centroid. Islands
@@ -1101,8 +1095,10 @@ def main() -> int:
         "stats": {
             "landCells": int(land_mask.sum()),
             "landAreaKm2": round(land_area_km2, 2),
+            "landComponents": int(comp_count),
             "islandFaces": len(island_faces),
-            "mainlandKm2": round(mainland.area / 1e6, 2),
+            "islandCount": len(island_manifest),
+            "mainlandKm2": round(float(sizes.max()) * args.cell_l1 ** 2 / 1e6, 2) if len(sizes) else 0.0,
             "materialHistogram": {str(int(k)): int(v) for k, v in zip(*np.unique(material, return_counts=True))},
             "roadsByClass": {str(k): int(v) for k, v in road_counts.items()},
         },
@@ -1381,17 +1377,17 @@ def _land_polygons_from_coastline(coastlines: list[list[tuple[float, float]]],
             parts = parts + stitches
         parts.append(closing_line)
     polys = list(shapely.ops.polygonize(parts))
-    out = []
+    kept = []
     for poly in polys:
         if not poly.is_valid:
             poly = poly.buffer(0)
         if poly.is_empty:
             continue
         if poly.geom_type == "Polygon":
-            out.append(poly)
+            kept.append(poly)
         else:
-            out.extend(list(poly.geoms))
-    return sorted(out, key=lambda p: -p.area)
+            kept.extend(list(poly.geoms))
+    return sorted(kept, key=lambda p: -p.area)
 
 
 def _rasterize(geom, xs: np.ndarray, ys: np.ndarray, cell_m: float) -> np.ndarray:

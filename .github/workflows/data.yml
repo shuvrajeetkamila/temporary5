@@ -56,7 +56,7 @@ jobs:
         if: always()
         run: |
           set +e
-          python3 -m pip install --quiet numpy shapely pyproj 2>&1 | tail -2 | tee -a run.log
+          python3 -m pip install --quiet numpy shapely pyproj pyflakes 2>&1 | tail -2 | tee -a run.log
           python3 tools/selftest_world.py 2>&1 | tee -a run.log
           echo "selftest_exit=${PIPESTATUS[0]}" | tee -a run.log
 
