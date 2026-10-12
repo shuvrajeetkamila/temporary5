@@ -134,9 +134,6 @@ public final class QatarGame extends ApplicationAdapter {
         if (sceneRenderer != null) {
             sceneRenderer.dispose();
         }
-        if (cameraController != null) {
-            cameraController.dispose();
-        }
     }
 
     public BootSequence boot() {

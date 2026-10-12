@@ -74,7 +74,7 @@ jobs:
             echo "stage=unit-tests"
             echo "gradle_exit=$STATUS"
           } >> artifacts/BUILD_META.txt
-          grep -E "^> Task|error:|FAILED|Caused by|BUILD (SUCCESSFUL|FAILED)|tests? (completed|failed)" unit.log | tail -150 > artifacts/UNIT_TEST_LOG.txt || true
+          grep -B3 -A10 -E "error:|FAILED|Caused by" unit.log | tail -500 > artifacts/UNIT_TEST_LOG.txt || true
           if [ "$STATUS" -eq 0 ]; then echo "status=PASSED" > artifacts/UNIT_TEST_STATUS.txt;
           else echo "status=FAILED" > artifacts/UNIT_TEST_STATUS.txt; fi
           find core/build/test-results -name '*.xml' -exec grep -h -o 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' {} \; \
@@ -94,7 +94,7 @@ jobs:
             echo "stage=assemble"
             echo "assemble_exit=$STATUS"
           } >> artifacts/BUILD_META.txt
-          grep -E "^> Task|error:|FAILED|Caused by|e: |BUILD (SUCCESSFUL|FAILED)" apk.log | tail -200 > artifacts/APK_BUILD_LOG.txt || true
+          grep -B3 -A10 -E "error:|FAILED|Caused by|what went wrong" apk.log | tail -500 > artifacts/APK_BUILD_LOG.txt || true
           exit 0
 
       - name: Validate APK and produce evidence
@@ -149,6 +149,14 @@ jobs:
             if git push origin "HEAD:${GITHUB_REF_NAME}"; then echo "evidence pushed"; break; fi
             sleep 5
           done
+
+      - name: Enforce QA gate (fail the run when the commit did not pass)
+        if: always() && steps.qa.outputs.passed != 'true'
+        run: |
+          echo "QA gate: status is not PASSED for ${GITHUB_SHA}"
+          echo "--- unit tests ---"; cat artifacts/UNIT_TEST_STATUS.txt 2>/dev/null || true
+          echo "--- apk validation ---"; cat artifacts/APK_VALIDATION.txt 2>/dev/null || true
+          exit 1
 
       - name: Publish GitHub Release with the validated APK
         if: success() && steps.qa.outputs.passed == 'true' && github.event_name == 'workflow_dispatch' && inputs.publish_release

@@ -210,7 +210,7 @@ public final class SkyAndGroundRenderer {
             return;
         }
         model.idt().setToTranslation(focus.x, 0f, focus.z);
-        terrainShader.begin();
+        terrainShader.bind();
         terrainShader.setUniformMatrix("u_projView", camera.combined);
         terrainShader.setUniformMatrix("u_model", model);
         terrainShader.setUniformf("u_sunDirection", sunDirection);
@@ -221,7 +221,7 @@ public final class SkyAndGroundRenderer {
         terrainShader.setUniformf("u_heatHaze", 0f);
         terrainShader.setUniformf("u_cameraLocal", camera.position);
         groundMesh.render(terrainShader, GL20.GL_TRIANGLES);
-        terrainShader.end();
+        
     }
 
     private void renderWater(Camera camera, Vector3 focus, float time) {
@@ -229,7 +229,7 @@ public final class SkyAndGroundRenderer {
             return;
         }
         model.idt().setToTranslation(focus.x, 0f, focus.z);
-        waterShader.begin();
+        waterShader.bind();
         waterShader.setUniformMatrix("u_projView", camera.combined);
         waterShader.setUniformMatrix("u_model", model);
         waterShader.setUniformf("u_time", time);
@@ -244,7 +244,7 @@ public final class SkyAndGroundRenderer {
         waterShader.setUniformf("u_deepColor", 0.03f, 0.20f, 0.32f);
         waterShader.setUniformf("u_cameraLocal", camera.position);
         waterMesh.render(waterShader, GL20.GL_TRIANGLES);
-        waterShader.end();
+        
     }
 
     private final java.util.List<ai.arena.qatar.physics.StaticBox> pendingBoxes = new java.util.ArrayList<>();
@@ -286,7 +286,7 @@ public final class SkyAndGroundRenderer {
     }
 
     private void drawSolid(Camera camera, Matrix4 modelMatrix, Vector3 color, float roughness, float metallic) {
-        solidShader.begin();
+        solidShader.bind();
         solidShader.setUniformMatrix("u_projView", camera.combined);
         solidShader.setUniformMatrix("u_model", modelMatrix);
         solidShader.setUniformf("u_baseColor", color);
@@ -299,7 +299,7 @@ public final class SkyAndGroundRenderer {
         solidShader.setUniformf("u_metallic", metallic);
         solidShader.setUniformf("u_cameraLocal", camera.position);
         cubeMesh.render(solidShader, GL20.GL_TRIANGLES);
-        solidShader.end();
+        
     }
 
     public boolean shadersCompiled() {
