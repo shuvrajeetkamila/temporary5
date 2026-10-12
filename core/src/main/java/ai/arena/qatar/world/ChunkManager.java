@@ -320,8 +320,12 @@ public final class ChunkManager {
                 chunk.state = State.EVICTED;
             }
         }
+        // Release collision residency only well outside the ring: the focus is up to one chunk
+        // diagonal away from its own chunk centre, so a tight radius would drop the chunk the player
+        // is standing on and the sampler would refuse to answer.
+        double releaseRadius = mode.collisionRadiusM + 2.0 * cellM * CHUNK_CELLS;
         for (Chunk chunk : chunks.values()) {
-            if (chunk.collisionResident && chunk.distanceTo(east, north) > mode.collisionRadiusM * 1.6) {
+            if (chunk.collisionResident && chunk.distanceTo(east, north) > releaseRadius) {
                 chunk.collisionResident = false;
             }
         }
