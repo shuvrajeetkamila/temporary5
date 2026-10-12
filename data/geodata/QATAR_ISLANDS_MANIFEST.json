@@ -1,5 +1,5 @@
 {
- "count": 59,
+ "count": 58,
  "islands": [
   {
    "id": "osm-w1039580371",
@@ -18,460 +18,452 @@
    "north": 2903855.84
   },
   {
-   "id": "coast-ring-1000",
+   "id": "island-6",
    "name": "",
    "nameAr": "",
-   "areaM2": 1644959860.8,
-   "east": 653305.84,
-   "north": 2840423.23
+   "areaM2": 7175420000.0,
+   "east": 549050.0,
+   "north": 2840750.0
   },
   {
-   "id": "coast-ring-1001",
+   "id": "island-2",
    "name": "",
    "nameAr": "",
-   "areaM2": 1466570566.3,
-   "east": 612702.78,
-   "north": 2769035.73
+   "areaM2": 70700000.0,
+   "east": 530050.0,
+   "north": 2720750.0
   },
   {
-   "id": "coast-ring-1002",
+   "id": "island-19",
    "name": "",
    "nameAr": "",
-   "areaM2": 3669558.7,
-   "east": 555451.64,
-   "north": 2805863.48
+   "areaM2": 1430000.0,
+   "east": 556050.0,
+   "north": 2805850.0
   },
   {
-   "id": "coast-ring-1003",
+   "id": "island-68",
    "name": "",
    "nameAr": "",
-   "areaM2": 2829310.2,
-   "east": 481014.17,
-   "north": 2839692.59
+   "areaM2": 1420000.0,
+   "east": 527750.0,
+   "north": 2892150.0
   },
   {
-   "id": "coast-ring-1004",
+   "id": "island-42",
    "name": "",
    "nameAr": "",
-   "areaM2": 2427641.2,
-   "east": 552465.29,
-   "north": 2806459.61
+   "areaM2": 1270000.0,
+   "east": 483050.0,
+   "north": 2834350.0
   },
   {
-   "id": "coast-ring-1005",
+   "id": "island-47",
    "name": "",
    "nameAr": "",
-   "areaM2": 1579887.7,
-   "east": 641598.08,
-   "north": 2840252.26
+   "areaM2": 920000.0,
+   "east": 641550.0,
+   "north": 2840450.0
   },
   {
-   "id": "coast-ring-1006",
+   "id": "island-37",
    "name": "",
    "nameAr": "",
-   "areaM2": 1471100.9,
-   "east": 553082.28,
-   "north": 2812834.57
+   "areaM2": 660000.0,
+   "east": 553150.0,
+   "north": 2812650.0
   },
   {
-   "id": "coast-ring-1007",
+   "id": "island-18",
    "name": "",
    "nameAr": "",
-   "areaM2": 1250006.7,
-   "east": 557964.91,
-   "north": 2803188.51
+   "areaM2": 650000.0,
+   "east": 558150.0,
+   "north": 2803350.0
   },
   {
-   "id": "coast-ring-1008",
+   "id": "island-57",
    "name": "",
    "nameAr": "",
-   "areaM2": 945653.9,
-   "east": 557381.52,
-   "north": 2809642.4
+   "areaM2": 560000.0,
+   "east": 560250.0,
+   "north": 2866950.0
   },
   {
-   "id": "coast-ring-1009",
+   "id": "island-23",
    "name": "",
    "nameAr": "",
-   "areaM2": 724387.6,
-   "east": 521827.28,
-   "north": 2895155.24
+   "areaM2": 470000.0,
+   "east": 552850.0,
+   "north": 2806350.0
   },
   {
-   "id": "coast-ring-1010",
+   "id": "island-13",
    "name": "",
    "nameAr": "",
-   "areaM2": 657043.6,
-   "east": 552792.31,
-   "north": 2811169.1
+   "areaM2": 420000.0,
+   "east": 559250.0,
+   "north": 2761450.0
   },
   {
-   "id": "coast-ring-1011",
+   "id": "island-5",
    "name": "",
    "nameAr": "",
-   "areaM2": 522931.2,
-   "east": 527956.9,
-   "north": 2892673.59
+   "areaM2": 370000.0,
+   "east": 537950.0,
+   "north": 2718750.0
   },
   {
-   "id": "coast-ring-1012",
+   "id": "island-31",
    "name": "",
    "nameAr": "",
-   "areaM2": 379786.7,
-   "east": 552123.52,
-   "north": 2811954.38
+   "areaM2": 330000.0,
+   "east": 557050.0,
+   "north": 2810050.0
   },
   {
-   "id": "coast-ring-1013",
+   "id": "island-64",
    "name": "",
    "nameAr": "",
-   "areaM2": 336654.9,
-   "east": 552094.86,
-   "north": 2811156.53
+   "areaM2": 300000.0,
+   "east": 554450.0,
+   "north": 2868550.0
   },
   {
-   "id": "coast-ring-1014",
+   "id": "island-8",
    "name": "",
    "nameAr": "",
-   "areaM2": 323606.6,
-   "east": 552798.77,
-   "north": 2824151.21
+   "areaM2": 270000.0,
+   "east": 535450.0,
+   "north": 2722750.0
   },
   {
-   "id": "coast-ring-1015",
+   "id": "island-10",
    "name": "",
    "nameAr": "",
-   "areaM2": 320335.5,
-   "east": 558053.15,
-   "north": 2805530.45
+   "areaM2": 270000.0,
+   "east": 535750.0,
+   "north": 2724350.0
   },
   {
-   "id": "coast-ring-1016",
+   "id": "island-16",
    "name": "",
    "nameAr": "",
-   "areaM2": 303639.2,
-   "east": 554661.8,
-   "north": 2822588.34
+   "areaM2": 270000.0,
+   "east": 562150.0,
+   "north": 2774150.0
   },
   {
-   "id": "coast-ring-1017",
+   "id": "island-14",
    "name": "",
    "nameAr": "",
-   "areaM2": 291996.7,
-   "east": 559555.23,
-   "north": 2849721.18
+   "areaM2": 240000.0,
+   "east": 564250.0,
+   "north": 2768450.0
   },
   {
-   "id": "coast-ring-1018",
+   "id": "island-9",
    "name": "",
    "nameAr": "",
-   "areaM2": 237022.1,
-   "east": 551257.49,
-   "north": 2805941.75
+   "areaM2": 230000.0,
+   "east": 534950.0,
+   "north": 2723450.0
   },
   {
-   "id": "coast-ring-1019",
+   "id": "island-33",
    "name": "",
    "nameAr": "",
-   "areaM2": 229126.1,
-   "east": 553345.98,
-   "north": 2807193.32
+   "areaM2": 230000.0,
+   "east": 552750.0,
+   "north": 2810850.0
   },
   {
-   "id": "coast-ring-1020",
+   "id": "island-7",
    "name": "",
    "nameAr": "",
-   "areaM2": 224927.7,
-   "east": 559319.1,
-   "north": 2818593.5
+   "areaM2": 190000.0,
+   "east": 534750.0,
+   "north": 2721750.0
   },
   {
-   "id": "coast-ring-1021",
+   "id": "island-12",
    "name": "",
    "nameAr": "",
-   "areaM2": 198488.3,
-   "east": 565038.46,
-   "north": 2797939.68
+   "areaM2": 190000.0,
+   "east": 560250.0,
+   "north": 2761350.0
   },
   {
-   "id": "coast-ring-1022",
+   "id": "island-21",
    "name": "",
    "nameAr": "",
-   "areaM2": 194194.6,
-   "east": 624291.95,
-   "north": 2769002.9
+   "areaM2": 190000.0,
+   "east": 554050.0,
+   "north": 2806150.0
   },
   {
-   "id": "coast-ring-1023",
+   "id": "island-35",
    "name": "",
    "nameAr": "",
-   "areaM2": 169629.6,
-   "east": 555167.94,
-   "north": 2841673.15
+   "areaM2": 180000.0,
+   "east": 551550.0,
+   "north": 2811650.0
   },
   {
-   "id": "coast-ring-1024",
+   "id": "island-48",
    "name": "",
    "nameAr": "",
-   "areaM2": 167481.4,
-   "east": 552048.29,
-   "north": 2806049.5
+   "areaM2": 180000.0,
+   "east": 555450.0,
+   "north": 2840650.0
   },
   {
-   "id": "coast-ring-1025",
+   "id": "island-15",
    "name": "",
    "nameAr": "",
-   "areaM2": 165863.5,
-   "east": 495002.12,
-   "north": 2834311.25
+   "areaM2": 170000.0,
+   "east": 560350.0,
+   "north": 2772150.0
   },
   {
-   "id": "coast-ring-1026",
+   "id": "island-43",
    "name": "",
    "nameAr": "",
-   "areaM2": 164392.7,
-   "east": 478170.33,
-   "north": 2834900.35
+   "areaM2": 170000.0,
+   "east": 484050.0,
+   "north": 2835550.0
   },
   {
-   "id": "coast-ring-1027",
+   "id": "island-50",
    "name": "",
    "nameAr": "",
-   "areaM2": 162045.9,
-   "east": 558665.05,
-   "north": 2817988.29
+   "areaM2": 150000.0,
+   "east": 556450.0,
+   "north": 2850550.0
   },
   {
-   "id": "coast-ring-1028",
+   "id": "island-58",
    "name": "",
    "nameAr": "",
-   "areaM2": 150151.9,
-   "east": 553259.16,
-   "north": 2822807.75
+   "areaM2": 150000.0,
+   "east": 559150.0,
+   "north": 2867050.0
   },
   {
-   "id": "coast-ring-1029",
+   "id": "island-63",
    "name": "",
    "nameAr": "",
-   "areaM2": 141229.7,
-   "east": 558269.75,
-   "north": 2818585.15
+   "areaM2": 150000.0,
+   "east": 559750.0,
+   "north": 2868050.0
   },
   {
-   "id": "coast-ring-1030",
+   "id": "island-51",
    "name": "",
    "nameAr": "",
-   "areaM2": 139844.6,
-   "east": 559493.04,
-   "north": 2817855.44
+   "areaM2": 140000.0,
+   "east": 556950.0,
+   "north": 2850450.0
   },
   {
-   "id": "coast-ring-1031",
+   "id": "island-56",
    "name": "",
    "nameAr": "",
-   "areaM2": 136195.5,
-   "east": 492332.74,
-   "north": 2833415.12
+   "areaM2": 130000.0,
+   "east": 564950.0,
+   "north": 2864250.0
   },
   {
-   "id": "coast-ring-1032",
+   "id": "island-26",
    "name": "",
    "nameAr": "",
-   "areaM2": 117864.9,
-   "east": 558357.49,
-   "north": 2849655.67
+   "areaM2": 90000.0,
+   "east": 554750.0,
+   "north": 2806650.0
   },
   {
-   "id": "coast-ring-1033",
+   "id": "island-34",
    "name": "",
    "nameAr": "",
-   "areaM2": 115971.8,
-   "east": 557735.92,
-   "north": 2848892.74
+   "areaM2": 90000.0,
+   "east": 552150.0,
+   "north": 2811250.0
   },
   {
-   "id": "coast-ring-1034",
+   "id": "island-36",
    "name": "",
    "nameAr": "",
-   "areaM2": 114633.2,
-   "east": 501577.36,
-   "north": 2875749.79
+   "areaM2": 90000.0,
+   "east": 552150.0,
+   "north": 2811850.0
   },
   {
-   "id": "coast-ring-1035",
+   "id": "island-41",
    "name": "",
    "nameAr": "",
-   "areaM2": 106255.8,
-   "east": 558709.75,
-   "north": 2850679.91
+   "areaM2": 90000.0,
+   "east": 549950.0,
+   "north": 2826650.0
   },
   {
-   "id": "coast-ring-1036",
+   "id": "island-4",
    "name": "",
    "nameAr": "",
-   "areaM2": 106092.7,
-   "east": 473374.31,
-   "north": 2826882.86
+   "areaM2": 80000.0,
+   "east": 535650.0,
+   "north": 2717150.0
   },
   {
-   "id": "coast-ring-1037",
+   "id": "island-11",
    "name": "",
    "nameAr": "",
-   "areaM2": 81931.2,
-   "east": 527321.26,
-   "north": 2892023.3
+   "areaM2": 80000.0,
+   "east": 529350.0,
+   "north": 2728250.0
   },
   {
-   "id": "coast-ring-1038",
+   "id": "island-53",
    "name": "",
    "nameAr": "",
-   "areaM2": 81483.4,
-   "east": 559110.93,
-   "north": 2849110.45
+   "areaM2": 80000.0,
+   "east": 563650.0,
+   "north": 2863650.0
   },
   {
-   "id": "coast-ring-1039",
+   "id": "island-32",
    "name": "",
    "nameAr": "",
-   "areaM2": 75474.9,
-   "east": 554731.35,
-   "north": 2805960.56
+   "areaM2": 70000.0,
+   "east": 551850.0,
+   "north": 2810750.0
   },
   {
-   "id": "coast-ring-1040",
+   "id": "island-44",
    "name": "",
    "nameAr": "",
-   "areaM2": 58501.0,
-   "east": 559191.65,
-   "north": 2851892.95
+   "areaM2": 70000.0,
+   "east": 484550.0,
+   "north": 2836050.0
   },
   {
-   "id": "coast-ring-1041",
+   "id": "island-49",
    "name": "",
    "nameAr": "",
-   "areaM2": 55423.1,
-   "east": 557129.55,
-   "north": 2847127.39
+   "areaM2": 70000.0,
+   "east": 554350.0,
+   "north": 2847450.0
   },
   {
-   "id": "coast-ring-1042",
+   "id": "island-29",
    "name": "",
    "nameAr": "",
-   "areaM2": 55122.0,
-   "east": 555296.03,
-   "north": 2806729.21
+   "areaM2": 60000.0,
+   "east": 552850.0,
+   "north": 2809050.0
   },
   {
-   "id": "coast-ring-1043",
+   "id": "island-39",
    "name": "",
    "nameAr": "",
-   "areaM2": 53415.9,
-   "east": 556104.95,
-   "north": 2805691.87
+   "areaM2": 50000.0,
+   "east": 559150.0,
+   "north": 2818050.0
   },
   {
-   "id": "coast-ring-1044",
+   "id": "island-45",
    "name": "",
    "nameAr": "",
-   "areaM2": 48138.6,
-   "east": 562329.57,
-   "north": 2792724.98
+   "areaM2": 50000.0,
+   "east": 484150.0,
+   "north": 2836450.0
   },
   {
-   "id": "coast-ring-1045",
+   "id": "island-40",
    "name": "",
    "nameAr": "",
-   "areaM2": 47484.5,
-   "east": 553110.13,
-   "north": 2798809.75
+   "areaM2": 40000.0,
+   "east": 558750.0,
+   "north": 2818350.0
   },
   {
-   "id": "coast-ring-1046",
+   "id": "island-17",
    "name": "",
    "nameAr": "",
-   "areaM2": 46427.5,
-   "east": 553428.81,
-   "north": 2806823.52
+   "areaM2": 30000.0,
+   "east": 555250.0,
+   "north": 2798350.0
   },
   {
-   "id": "coast-ring-1047",
+   "id": "island-38",
    "name": "",
    "nameAr": "",
-   "areaM2": 44141.6,
-   "east": 553802.8,
-   "north": 2802592.75
+   "areaM2": 30000.0,
+   "east": 552050.0,
+   "north": 2812650.0
   },
   {
-   "id": "coast-ring-1048",
+   "id": "island-67",
    "name": "",
    "nameAr": "",
-   "areaM2": 39765.4,
-   "east": 528824.85,
-   "north": 2721560.99
+   "areaM2": 30000.0,
+   "east": 529250.0,
+   "north": 2891150.0
   },
   {
-   "id": "coast-ring-1049",
+   "id": "island-69",
    "name": "",
    "nameAr": "",
-   "areaM2": 33569.5,
-   "east": 508463.1,
-   "north": 2884234.92
+   "areaM2": 30000.0,
+   "east": 521850.0,
+   "north": 2895250.0
   },
   {
-   "id": "coast-ring-1050",
+   "id": "island-3",
    "name": "",
    "nameAr": "",
-   "areaM2": 31617.0,
-   "east": 562633.12,
-   "north": 2761532.7
+   "areaM2": 20000.0,
+   "east": 535250.0,
+   "north": 2716650.0
   },
   {
-   "id": "coast-ring-1051",
+   "id": "island-28",
    "name": "",
    "nameAr": "",
-   "areaM2": 29428.7,
-   "east": 561626.96,
-   "north": 2737589.25
+   "areaM2": 20000.0,
+   "east": 553250.0,
+   "north": 2808550.0
   },
   {
-   "id": "coast-ring-1052",
+   "id": "island-52",
    "name": "",
    "nameAr": "",
-   "areaM2": 29129.4,
-   "east": 477995.94,
-   "north": 2833613.85
+   "areaM2": 20000.0,
+   "east": 558650.0,
+   "north": 2850250.0
   },
   {
-   "id": "coast-ring-1053",
+   "id": "island-54",
    "name": "",
    "nameAr": "",
-   "areaM2": 26821.4,
-   "east": 549327.43,
-   "north": 2825232.27
+   "areaM2": 20000.0,
+   "east": 564350.0,
+   "north": 2863850.0
   },
   {
-   "id": "coast-ring-1054",
+   "id": "island-59",
    "name": "",
    "nameAr": "",
-   "areaM2": 25610.7,
-   "east": 527056.29,
-   "north": 2892893.84
+   "areaM2": 20000.0,
+   "east": 559650.0,
+   "north": 2867550.0
   },
   {
-   "id": "coast-ring-1055",
+   "id": "island-66",
    "name": "",
    "nameAr": "",
-   "areaM2": 22901.9,
-   "east": 559172.64,
-   "north": 2851434.23
-  },
-  {
-   "id": "coast-ring-1056",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 22546.5,
-   "east": 549393.53,
-   "north": 2824506.78
+   "areaM2": 20000.0,
+   "east": 538050.0,
+   "north": 2878450.0
   }
  ]
 }
