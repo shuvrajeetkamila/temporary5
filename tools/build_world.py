@@ -1090,19 +1090,7 @@ def main() -> int:
                       "sha256": checksums["buildings.bin.gz"]},
         "coast": {"file": "coast.bin.gz", "rings": len(rings), "sha256": checksums["coast.bin.gz"]},
         "strings": {"file": "strings.bin.gz", "count": len(strings), "sha256": checksums["strings.bin.gz"]},
-        "islands": [
-            {"id": isl["id"], "name": isl["name"], "nameAr": isl["name_ar"],
-             "areaM2": round(isl["area_m2"], 1),
-             "east": round(isl["geometry"].representative_point().x, 2),
-             "north": round(isl["geometry"].representative_point().y, 2)}
-            for isl in islands
-        ] + [
-            {"id": f"coast-ring-{1000 + i}", "name": "", "nameAr": "",
-             "areaM2": round(p.area, 1),
-             "east": round(p.representative_point().x, 2),
-             "north": round(p.representative_point().y, 2)}
-            for i, p in enumerate(island_faces)
-        ],
+        "islands": island_manifest,
         "municipalities": hubs,
         "checkpoints": checkpoints,
         "checkpointReport": checkpoint_report,
@@ -1127,7 +1115,7 @@ def main() -> int:
     if munis:
         _write_geojson_multi(GEODATA / "QATAR_MUNICIPALITIES.geojson", munis)
     (GEODATA / "QATAR_ISLANDS_MANIFEST.json").write_text(
-        json.dumps({"count": len(islands) + len(island_faces),
+        json.dumps({"count": len(island_manifest),
                     "islands": manifest["islands"]}, indent=1, ensure_ascii=False) + "\n",
         encoding="utf-8")
 
