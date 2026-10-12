@@ -29,7 +29,7 @@ fetch_exit=0
   parsing ways/nodes
   ways visited: 410312
   national boundary assembled from relation 305095 (Qatar)
-/home/runner/work/temporary5/temporary5/tools/build_world.py:977: DeprecationWarning: The 'shapely.ops.transform()' function is deprecated. Use 'shapely.transform()' or 'shapely.transform_coordseq()' instead. See https://shapely.readthedocs.io/en/latest/manual.html#shapely.ops.transform for more details.
+/home/runner/work/temporary5/temporary5/tools/build_world.py:979: DeprecationWarning: The 'shapely.ops.transform()' function is deprecated. Use 'shapely.transform()' or 'shapely.transform_coordseq()' instead. See https://shapely.readthedocs.io/en/latest/manual.html#shapely.ops.transform for more details.
   return shapely_transform(lambda x, y, z=None: FWD.transform(x, y), geom)
   national AOI: MultiPolygon, area 23222.0 km2, valid
   stats: {"coastline_ways": 378, "roads": 179943, "buildings": 186993, "landuse": 9103, "water_areas": 1170, "places": 159, "islands": 3, "aeroways": 1158, "named_areas": 1678}
@@ -43,25 +43,28 @@ fetch_exit=0
   materials: 9 distinct classes present
   roads compiled: 179943
   buildings compiled: 186993
-  checkpoints: 26 found, 6 missing
+  checkpoints: 26 found, 6 missing -> SOUTH_AND_BORDER/KHOR_AL_ADAID, SOUTH_AND_BORDER/HAMAD_PORT, CENTRAL_AND_CAPITAL/HAMAD_INTERNATIONAL_AIRPORT, NORTH_AND_NORTHEAST/THE_PEARL, ISLANDS_AND_WATER/HALUL_ISLAND, ISLANDS_AND_WATER/SHAROUH_ISLAND
 [2] writing runtime bundles
+  buildings packed: 186993
 Traceback (most recent call last):
-  File "/home/runner/work/temporary5/temporary5/tools/build_world.py", line 1305, in <module>
+  File "/home/runner/work/temporary5/temporary5/tools/build_world.py", line 1307, in <module>
     sys.exit(main())
              ^^^^^^
-  File "/home/runner/work/temporary5/temporary5/tools/build_world.py", line 847, in main
-    roads_bytes, road_counts = pack_roads(roads, strings)
-                               ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/temporary5/temporary5/tools/build_world.py", line 531, in pack_roads
-    min(65535, int(width * 10)))
-                   ~~~~~~^~~~
-TypeError: unsupported operand type(s) for *: 'NoneType' and 'int'
+  File "/home/runner/work/temporary5/temporary5/tools/build_world.py", line 893, in main
+    write_gz(WORLD / "coast.bin.gz", pack_coast(rings, grid))
+                                     ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/temporary5/temporary5/tools/build_world.py", line 573, in pack_coast
+    ie = int(round(e * 100))
+             ^^^^^^^^^^^^^^
+OverflowError: cannot convert float infinity to integer
 compile_exit=1
 FAIL: world manifest missing - the APK would not contain a country
-total 1080
-drwxr-xr-x 2 runner runner   4096 Oct 12 13:07 .
-drwxr-xr-x 5 runner runner   4096 Oct 12 13:06 ..
--rw-r--r-- 1 runner runner  85115 Oct 12 13:07 material_l1.bin.gz
--rw-r--r-- 1 runner runner 106994 Oct 12 13:07 terrain_l0.bin.gz
--rw-r--r-- 1 runner runner 899731 Oct 12 13:07 terrain_l1.bin.gz
-1.1M	android/assets/world/
+total 11704
+drwxr-xr-x 2 runner runner    4096 Oct 12 13:11 .
+drwxr-xr-x 5 runner runner    4096 Oct 12 13:09 ..
+-rw-r--r-- 1 runner runner 2112770 Oct 12 13:11 buildings.bin.gz
+-rw-r--r-- 1 runner runner   85115 Oct 12 13:11 material_l1.bin.gz
+-rw-r--r-- 1 runner runner 8764199 Oct 12 13:11 roads.bin.gz
+-rw-r--r-- 1 runner runner  106994 Oct 12 13:11 terrain_l0.bin.gz
+-rw-r--r-- 1 runner runner  899731 Oct 12 13:11 terrain_l1.bin.gz
+12M	android/assets/world/
