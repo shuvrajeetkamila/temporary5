@@ -9,6 +9,12 @@ name: Build APK
 on:
   push:
     branches: ["**"]
+    # Documentation-only commits must not rebuild the country or replace the published APK: the
+    # release asset stays the exact validated artefact that the delivery report describes.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'artifacts/**'
   workflow_dispatch:
     inputs:
       data_run_id:
