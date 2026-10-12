@@ -192,13 +192,13 @@ def extract_osm(osm_path: Path) -> OsmData:
         def way(self, w):  # noqa: N802
             self.count += 1
             tags = {t.k: t.v for t in w.tags}
-            if not tags:
-                return
             coords = [(n.lon, n.lat) for n in w.nodes if n.location.valid()]
-            if len(coords) < 2:
-                return
-            if w.id in wanted_relation_ways:
+            # Relation membership is captured BEFORE the tag filter: boundary member ways frequently
+            # carry no tags of their own, and dropping them breaks ring assembly.
+            if w.id in wanted_relation_ways and len(coords) >= 2:
                 way_tags_for_relations[w.id] = coords
+            if not tags or len(coords) < 2:
+                return
 
             if tags.get("natural") == "coastline":
                 data.coastlines.append(coords)
@@ -600,6 +600,10 @@ def main() -> int:
     national, data = extract_osm(osm_path)
     national = orient(national, 1.0)
     log(f"  national AOI: {national.geom_type}, area {national.area / 1e6:.1f} km2")
+    if national.area / 1e6 < 1000.0:
+        raise SystemExit(
+            f"FATAL: national boundary area {national.area / 1e6:.2f} km2 is implausible for Qatar; "
+            f"relation ring assembly failed (outers={len(national.geoms) if hasattr(national, 'geoms') else 1})")
     log(f"  stats: {json.dumps(data.stats)}")
 
     # Municipalities (admin_level 4 preferred, 6 as fallback), clipped to the national AOI -------
@@ -641,7 +645,13 @@ def main() -> int:
             "source": "osm-way-place-island",
         })
     # Coastline-derived land rings inside the national AOI become island candidates too.
-    coast_land = _land_polygons_from_coastline(data.coastlines)
+    boundary_line = None
+    if national.geom_type == "Polygon":
+        boundary_line = LineString(national.exterior.coords)
+    else:
+        boundary_line = shapely.ops.unary_union(
+            [LineString(poly.exterior.coords) for poly in national.geoms])
+    coast_land = _land_polygons_from_coastline(data.coastlines, boundary_line)
     islands_from_coast = []
     for poly in coast_land:
         if poly.area < 20000.0:
@@ -973,16 +983,21 @@ def _closed_way_polygon(coords_wgs) -> Polygon | None:
     return poly
 
 
-def _land_polygons_from_coastline(coastlines: list[list[tuple[float, float]]]) -> list[Polygon]:
+def _land_polygons_from_coastline(coastlines: list[list[tuple[float, float]]],
+                                  closing_line: LineString | None = None) -> list[Polygon]:
+    """Polygonise the coastline network. OSM coastlines are open lines (they end at land borders and
+    tile edges), so the national boundary ring is supplied as the closing line."""
     lines = []
     for way in coastlines:
         if len(way) >= 2:
-            pts = _project(way)
-            lines.append(LineString(pts))
+            lines.append(LineString(_project(way)))
     if not lines:
         return []
-    merged = shapely.ops.unary_union(lines)
-    polys = list(shapely.ops.polygonize([merged]))
+    merged = shapely.ops.linemerge(shapely.union_all(lines))
+    parts = [merged] if merged.geom_type == "LineString" else list(getattr(merged, "geoms", []))
+    if closing_line is not None:
+        parts.append(closing_line)
+    polys = list(shapely.ops.polygonize(parts))
     out = []
     for poly in polys:
         if not poly.is_valid:

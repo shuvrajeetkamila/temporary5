@@ -62,8 +62,12 @@ jobs:
         if: always()
         run: |
           set +e
-          python3 tools/build_world.py --stage all 2>&1 | tee -a run.log
-          echo "compile_exit=${PIPESTATUS[0]}" | tee -a run.log
+          if [ -f data/raw/qatar-latest.osm.pbf ]; then
+            python3 tools/build_world.py --stage all 2>&1 | tee -a run.log
+            echo "compile_exit=${PIPESTATUS[0]}" | tee -a run.log
+          else
+            echo "compile_exit=1 (no OSM extract available)" | tee -a run.log
+          fi
 
       - name: Validate compiled country coverage
         if: always()

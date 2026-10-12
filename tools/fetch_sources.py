@@ -51,6 +51,23 @@ def sha256_of(path: Path) -> str:
     return h.hexdigest()
 
 
+def is_pbf(path: Path) -> bool:
+    """A .osm.pbf starts with a 4-byte big-endian BlobHeader length, then a protobuf whose first
+    field is the file type string ("OSMHeader"). Length 14 and 13 both occur in the wild."""
+    try:
+        with path.open("rb") as fh:
+            head = fh.read(4)
+            if len(head) < 4:
+                return False
+            n = int.from_bytes(head, "big")
+            if not 1 <= n <= 128:
+                return False
+            blob_header = fh.read(n)
+        return b"OSMHeader" in blob_header
+    except OSError:
+        return False
+
+
 def probe(url: str) -> str:
     """Range-request probe used for diagnostics before a full download."""
     req = urllib.request.Request(url, headers={"User-Agent": "qatar-peninsula-world-builder/1.0",
@@ -123,7 +140,27 @@ def main() -> int:
         "sources": [],
     }
 
-    print("[1/2] OpenStreetMap Qatar extract")
+    print("[1/2] SRTM 1 arc-second elevation tiles (public domain)")
+    for lat in range(LAT_MIN, LAT_MAX + 1):
+        for lon in range(LON_MIN, LON_MAX + 1):
+            url = SRTM_URL.format(ns="N", lat=lat, lon=lon)
+            dest = RAW / "srtm" / f"N{lat:02d}E{lon:03d}.hgt.gz"
+            try:
+                info = download(url, dest)
+            except Exception as exc:  # noqa: BLE001 - reported, remaining tiles still attempted
+                print(f"  FAILED {dest.name}: {exc}")
+                continue
+            record["sources"].append({
+                "id": f"srtm-N{lat:02d}E{lon:03d}",
+                "name": f"SRTM 1 arc-second elevation tile N{lat:02d}E{lon:03d}",
+                "url": url,
+                "retrieved_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "license": "Public domain (NASA/USGS SRTM); packaging by AWS Open Data Terrain Tiles",
+                "geographic_scope": f"1x1 degree cell N{lat} E{lon}",
+                **info,
+            })
+
+    print("[2/2] OpenStreetMap Qatar extract")
     osm = None
     osm_url = None
     osm_provider = None
@@ -131,7 +168,9 @@ def main() -> int:
         print(f"  trying {provider}: {url}")
         print(f"  probe   {probe(url)}")
         try:
-            osm = download(url, RAW / "qatar-latest.osm.pbf", expect_magic=b"\x00\x00\x00\x0d")
+            osm = download(url, RAW / "qatar-latest.osm.pbf")
+            if not is_pbf(RAW / "qatar-latest.osm.pbf"):
+                raise RuntimeError("downloaded file is not an OSM PBF container")
             osm_url = url
             osm_provider = provider
             break
@@ -151,22 +190,6 @@ def main() -> int:
         "geographic_scope": "State of Qatar, WGS84",
         **osm,
     })
-
-    print("[2/2] SRTM 1 arc-second elevation tiles (public domain)")
-    for lat in range(LAT_MIN, LAT_MAX + 1):
-        for lon in range(LON_MIN, LON_MAX + 1):
-            url = SRTM_URL.format(ns="N", lat=lat, lon=lon)
-            dest = RAW / "srtm" / f"N{lat:02d}E{lon:03d}.hgt.gz"
-            info = download(url, dest)
-            record["sources"].append({
-                "id": f"srtm-N{lat:02d}E{lon:03d}",
-                "name": f"SRTM 1 arc-second elevation tile N{lat:02d}E{lon:03d}",
-                "url": url,
-                "retrieved_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "license": "Public domain (NASA/USGS SRTM); tile packaging by AWS Open Data (Terrain Tiles)",
-                "geographic_scope": f"1x1 degree cell N{lat} E{lon}",
-                **info,
-            })
 
     out = GEODATA / "SOURCES.json"
     out.write_text(json.dumps(record, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
