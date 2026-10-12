@@ -90,6 +90,60 @@ def test_land_derivation_synthetic() -> None:
     check(not bool(land[0, 0]), "the far corner (outside the ring) is not land")
 
 
+def test_land_derivation_with_a_coast_that_ends_at_the_border() -> None:
+    """A shoreline that ends on the land border must still enclose the country.
+
+    This is the exact regression that produced a 69,000 km2 "country": the fill walked around the
+    dangling shoreline ends and turned the Gulf into dry land. The synthetic geometry mirrors Qatar,
+    where the coastline runs from the western border, around the peninsula, back to the eastern
+    border, so the two open ends land on the border ring itself.
+    """
+    import math
+
+    lon0, lat0 = 51.50, 25.25
+    half_deg = 0.040                       # an 8.9 km border ring, comfortably inside the lattice
+    border_lat = lat0 - half_deg
+    ring = [(lon0 - half_deg, border_lat), (lon0 + half_deg, border_lat),
+            (lon0 + half_deg, lat0 + half_deg), (lon0 - half_deg, lat0 + half_deg),
+            (lon0 - half_deg, border_lat)]
+    radius_deg = 0.020                     # a 2.2 km peninsula
+    coast = []
+    for i in range(37):                    # semicircle bulging north from the border
+        angle = math.pi - math.pi * i / 36.0
+        coast.append((lon0 + radius_deg * math.cos(angle), border_lat + radius_deg * math.sin(angle)))
+
+    cell = 100.0
+    cols = rows = 120                      # a 12 km lattice
+    centre_e, centre_n = bw.FWD.transform(lon0, lat0)
+    east0, north0 = centre_e - cols * cell / 2.0, centre_n - rows * cell / 2.0
+    xs = east0 + (np.arange(cols) + 0.5) * cell
+    ys = north0 + (np.arange(rows) + 0.5) * cell
+    boundary_ring = bw.LineString(bw._project(ring))
+    clip = bw.Polygon(bw._project(ring))
+    seeds = [(lon0, border_lat + radius_deg * 0.5), (lon0 + radius_deg * 0.3, border_lat + 0.002)]
+    analytic_km2 = math.pi * (radius_deg * 111_000) ** 2 / 2.0 / 1e6
+    land, diag = bw.derive_land_mask([coast], [], seeds, xs, ys, cell,
+                                     min_area_km2=analytic_km2 * 0.2,
+                                     max_area_km2=analytic_km2 * 3.0,
+                                     clip_polygon=clip, border_ring=boundary_ring,
+                                     island_max_km2=20.0)
+    derived_km2 = float(land.sum()) * cell * cell / 1e6
+    check(diag.get("longestStitchM", 0) <= 5000.0,
+          f"shoreline ends sit on the border, so no long stitch is needed ({diag})")
+    check(0.2 * analytic_km2 <= derived_km2 <= 2.0 * analytic_km2,
+          f"land is confined to the enclosed peninsula ({derived_km2:.2f} km2 derived, "
+          f"{analytic_km2:.2f} km2 analytic)")
+    sea_row = int((centre_n + half_deg * 111_000 * 0.6 - north0) / cell)
+    sea_col = int((centre_e - east0) / cell)
+    check(not bool(land[sea_row, sea_col]), "the Gulf north of the shoreline stays water")
+    # Outside the country is not playable terrain and must never be classified as land: probe the
+    # strip of the lattice that lies beyond the maritime boundary.
+    _, border_north = bw.FWD.transform(lon0, border_lat)
+    outside_row = int((border_north - 800.0 - north0) / cell)
+    check(outside_row >= 0 and not bool(land[max(outside_row, 0), sea_col]),
+          "the strip beyond the maritime boundary is not classified as land")
+
+
 def test_terrain_bundle_contract() -> None:
     """QTT1: magic, cols, rows, cell, reserved int, int16 heights, then the land mask."""
     heights = np.array([[0, 5, 10], [20, 30, 40]], dtype="<i2")
@@ -140,6 +194,7 @@ def main() -> int:
     test_unresolved_names()
     test_projection_round_trip()
     test_land_derivation_synthetic()
+    test_land_derivation_with_a_coast_that_ends_at_the_border()
     test_terrain_bundle_contract()
     test_string_table_contract()
     test_checkpoint_table()

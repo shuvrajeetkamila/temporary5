@@ -793,8 +793,14 @@ def main() -> int:
         if len(coords) >= 3:
             seed_points.append((sum(c[0] for c in coords) / len(coords),
                                 sum(c[1] for c in coords) / len(coords)))
+    border_ring = None
+    if national.geom_type == "Polygon":
+        border_ring = LineString(national.exterior.coords)
+    else:
+        border_ring = shapely.ops.unary_union([LineString(p.exterior.coords) for p in national.geoms])
     land_mask, land_diag = derive_land_mask(data.coastlines, seed_lines, seed_points,
-                                           xs_l1, ys_l1, args.cell_l1)
+                                           xs_l1, ys_l1, args.cell_l1, clip_polygon=national,
+                                           border_ring=border_ring)
     land_area_km2 = float(land_mask.sum()) * args.cell_l1 * args.cell_l1 / 1e6
     from scipy import ndimage as _ndimage
     labels_all, comp_count = _ndimage.label(land_mask)
@@ -1195,7 +1201,8 @@ def sanitise_ring(ring, tolerance_m: float = 2.0):
 def derive_land_mask(coastlines: list[list[tuple[float, float]]], seed_lines: list[list[tuple[float, float]]],
                      seed_points: list[tuple[float, float]], xs: np.ndarray, ys: np.ndarray,
                      cell_m: float, min_area_km2: float = 6000.0,
-                     max_area_km2: float = 20000.0) -> tuple[np.ndarray, dict]:
+                     max_area_km2: float = 20000.0, clip_polygon=None,
+                     border_ring=None, island_max_km2: float = 100.0) -> tuple[np.ndarray, dict]:
     """Derive the land mask from open data, without inventing any geometry.
 
     Method (the standard open-data land/sea derivation):
@@ -1223,9 +1230,36 @@ def derive_land_mask(coastlines: list[list[tuple[float, float]]], seed_lines: li
 
     projected_coast = [_project(w) for w in coastlines if len(w) >= 2]
     barrier_geom = None
+    diagnostics_extra = {}
     if projected_coast:
-        merged = shapely.ops.unary_union([LineString(p) for p in projected_coast])
-        barrier_geom = merged.buffer(cell_m * 0.75, quad_segs=1, cap_style=2, join_style=2)
+        unioned = shapely.union_all([LineString(p) for p in projected_coast])
+        if unioned.geom_type == "LineString":
+            parts = [unioned]
+        else:
+            merged = shapely.ops.linemerge(unioned)
+            parts = [merged] if merged.geom_type == "LineString" else list(getattr(merged, "geoms", []))
+        parts = [p for p in parts if p.geom_type == "LineString" and len(p.coords) >= 2]
+        # OSM coastlines are open lines that stop at the land border. Left open, the fill walks around
+        # the dangling end and swallows the Gulf, so every dangling end is stitched straight to the
+        # national border ring: the barrier then genuinely separates land from sea.
+        stitches = _seal_network(parts, border_ring) if border_ring is not None else []
+        diagnostics_extra["stitches"] = len(stitches)
+        longest_stitch = max((st.length for st in stitches), default=0.0)
+        diagnostics_extra["longestStitchM"] = round(longest_stitch, 1)
+        if longest_stitch > 5000.0:
+            # A long stitch means the shoreline ends somewhere in the interior rather than at the
+            # border, so the fill may still find a way out; report it instead of failing silently.
+            print(f"  WARNING: a shoreline end was stitched over {longest_stitch / 1000:.1f} km; "
+                  f"land/sea classification may be unreliable", flush=True)
+        barrier_lines = list(parts) + list(stitches)
+        if border_ring is not None:
+            # The border ring closes the loop: coast + stitches alone would leave the fill free to
+            # walk out of the country along the land border.
+            ring_parts = ([border_ring] if border_ring.geom_type == "LineString"
+                          else list(getattr(border_ring, "geoms", [])))
+            barrier_lines += [p for p in ring_parts if p.geom_type == "LineString"]
+        barrier_geom = shapely.union_all(barrier_lines).buffer(
+            cell_m * 0.75, quad_segs=1, cap_style=2, join_style=2)
     base_barrier = np.zeros((rows, cols), dtype=bool)
     if barrier_geom is not None and not barrier_geom.is_empty:
         base_barrier = rasterio.features.rasterize([(barrier_geom, 1)], out_shape=(rows, cols),
@@ -1249,7 +1283,14 @@ def derive_land_mask(coastlines: list[list[tuple[float, float]]], seed_lines: li
         valid = (col_idx >= 0) & (col_idx < cols) & (row_idx >= 0) & (row_idx < rows)
         seeds[row_idx[valid], col_idx[valid]] = True
 
-    diagnostics = {"barrierCells": int(base_barrier.sum()), "seedCells": int(seeds.sum())}
+    clip_mask = None
+    if clip_polygon is not None and not clip_polygon.is_empty:
+        clip_mask = rasterio.features.rasterize([(clip_polygon, 1)], out_shape=(rows, cols),
+                                                transform=transform, fill=0, all_touched=True,
+                                                dtype="uint8").astype(bool)
+
+    diagnostics = {"barrierCells": int(base_barrier.sum()), "seedCells": int(seeds.sum()),
+                   **diagnostics_extra}
     land = None
     for thickening in range(0, 7):
         barrier = base_barrier
@@ -1262,6 +1303,10 @@ def derive_land_mask(coastlines: list[list[tuple[float, float]]], seed_lines: li
         seed_labels = np.unique(labels[seeds & free])
         seed_labels = seed_labels[seed_labels > 0]
         candidate = np.isin(labels, seed_labels)
+        if clip_mask is not None:
+            # Only the country's own land counts: a road that crosses the border must not drag the
+            # neighbouring country into the playable terrain.
+            candidate &= clip_mask
         area_km2 = candidate.sum() * cell_m * cell_m / 1e6
         diagnostics[f"area_{thickening}"] = round(area_km2, 1)
         if min_area_km2 <= area_km2 <= max_area_km2:
@@ -1284,13 +1329,18 @@ def derive_land_mask(coastlines: list[list[tuple[float, float]]], seed_lines: li
         if label in sea_labels:
             continue
         size_km2 = float((labels == label).sum()) * cell_m * cell_m / 1e6
-        if size_km2 >= 0.02 and not land[labels == label].any():
-            island_ids.append((label, size_km2))
+        # A real Qatari island is small; anything above 100 km2 is the band of territorial water
+        # between the shoreline and the maritime boundary, and must never be called dry land.
+        if 0.02 <= size_km2 <= island_max_km2 and not land[labels == label].any():
+            if clip_mask is None or clip_mask[labels == label].mean() > 0.5:
+                island_ids.append((label, size_km2))
     diagnostics["islandComponents"] = len(island_ids)
     land_with_islands = land.copy()
     for label, _size in island_ids:
         land_with_islands |= (labels == label)
-    return land_with_islands, diagnostics
+    # rasterio works north-up; the engine, the compiled heights and every bundle use row 0 = SOUTH.
+    # Forgetting this flip mirrors the coastline against the terrain, so it happens exactly here.
+    return land_with_islands[::-1, :].copy(), diagnostics
 
 
 def _seal_network(parts: list, ring) -> list:
