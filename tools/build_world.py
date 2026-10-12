@@ -597,9 +597,12 @@ def main() -> int:
     WORLD.mkdir(parents=True, exist_ok=True)
 
     log("[1] OpenStreetMap extraction")
-    national, data = extract_osm(osm_path)
+    national_wgs, data = extract_osm(osm_path)
+    # Project exactly once: the rest of the compiler works in EPSG:32639 metres only.
+    national = project_geometry(national_wgs)
     national = orient(national, 1.0)
-    log(f"  national AOI: {national.geom_type}, area {national.area / 1e6:.1f} km2")
+    log(f"  national AOI: {national.geom_type}, area {national.area / 1e6:.1f} km2, "
+        f"{'valid' if national.is_valid else 'INVALID'}")
     if national.area / 1e6 < 1000.0:
         raise SystemExit(
             f"FATAL: national boundary area {national.area / 1e6:.2f} km2 is implausible for Qatar; "
@@ -609,8 +612,12 @@ def main() -> int:
     # Municipalities (admin_level 4 preferred, 6 as fallback), clipped to the national AOI -------
     munis = []
     for rel in data.municipality_relations:
-        if not national.buffer(1000.0).contains(rel["geometry"].representative_point()):
+        geom = project_geometry(rel["geometry"])
+        if geom.is_empty:
+            continue
+        if not national.buffer(1000.0).contains(geom.representative_point()):
             continue  # neighbouring country in a regional extract
+        rel = dict(rel, geometry=geom)
         name = rel["tags"].get("name") or rel["tags"].get("name:en") or f"admin-{rel['id']}"
         munis.append({
             "id": rel["tags"].get("ISO3166-2") or f"OSM-{rel['id']}",
@@ -964,6 +971,12 @@ def main() -> int:
 
 
 # -------------------------------------------------------------------------------------- helpers
+def project_geometry(geom):
+    """WGS84 geometry -> EPSG:32639 metres (the single documented projection step)."""
+    from shapely.ops import transform as shapely_transform
+    return shapely_transform(lambda x, y, z=None: FWD.transform(x, y), geom)
+
+
 def _project(coords_wgs) -> list[tuple[float, float]]:
     xs, ys = FWD.transform([c[0] for c in coords_wgs], [c[1] for c in coords_wgs])
     return list(zip(xs, ys))
