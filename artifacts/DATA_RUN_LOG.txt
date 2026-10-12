@@ -29,11 +29,39 @@ fetch_exit=0
   parsing ways/nodes
   ways visited: 410312
   national boundary assembled from relation 305095 (Qatar)
-  national AOI: MultiPolygon, area 0.0 km2
-FATAL: national boundary area 0.00 km2 is implausible for Qatar; relation ring assembly failed (outers=3)
+/home/runner/work/temporary5/temporary5/tools/build_world.py:977: DeprecationWarning: The 'shapely.ops.transform()' function is deprecated. Use 'shapely.transform()' or 'shapely.transform_coordseq()' instead. See https://shapely.readthedocs.io/en/latest/manual.html#shapely.ops.transform for more details.
+  return shapely_transform(lambda x, y, z=None: FWD.transform(x, y), geom)
+  national AOI: MultiPolygon, area 23222.0 km2, valid
+  stats: {"coastline_ways": 378, "roads": 179943, "buildings": 186993, "landuse": 9103, "water_areas": 1170, "places": 159, "islands": 3, "aeroways": 1158, "named_areas": 1678}
+  municipalities: 9
+  islands: 2 tagged + 55 coastline-derived rings
+  world grid: origin=(431000,2681000) 259x268 km
+  land mask: 2,322,178 of 6,941,200 cells (33.5%)
+  DEM mosaic: 9 tiles, 10801x10801 samples
+  terrain L1 (100 m): min 0.0 max 103.2 m
+  terrain L0 (300 m): 864x894
+  materials: 9 distinct classes present
+  roads compiled: 179943
+  buildings compiled: 186993
+  checkpoints: 26 found, 6 missing
+[2] writing runtime bundles
+Traceback (most recent call last):
+  File "/home/runner/work/temporary5/temporary5/tools/build_world.py", line 1305, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/runner/work/temporary5/temporary5/tools/build_world.py", line 847, in main
+    roads_bytes, road_counts = pack_roads(roads, strings)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/temporary5/temporary5/tools/build_world.py", line 531, in pack_roads
+    min(65535, int(width * 10)))
+                   ~~~~~~^~~~
+TypeError: unsupported operand type(s) for *: 'NoneType' and 'int'
 compile_exit=1
 FAIL: world manifest missing - the APK would not contain a country
-total 8
-drwxr-xr-x 2 runner runner 4096 Oct 12 13:04 .
-drwxr-xr-x 5 runner runner 4096 Oct 12 13:04 ..
-4.0K	android/assets/world/
+total 1080
+drwxr-xr-x 2 runner runner   4096 Oct 12 13:07 .
+drwxr-xr-x 5 runner runner   4096 Oct 12 13:06 ..
+-rw-r--r-- 1 runner runner  85115 Oct 12 13:07 material_l1.bin.gz
+-rw-r--r-- 1 runner runner 106994 Oct 12 13:07 terrain_l0.bin.gz
+-rw-r--r-- 1 runner runner 899731 Oct 12 13:07 terrain_l1.bin.gz
+1.1M	android/assets/world/
