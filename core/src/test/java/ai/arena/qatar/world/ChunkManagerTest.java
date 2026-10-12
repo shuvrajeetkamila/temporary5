@@ -147,7 +147,9 @@ class ChunkManagerTest {
         double localX = 2500.0;
         // The sampler takes local metres and must translate them through the floating origin before
         // indexing the grid, so a local probe inside the lattice is not clamped to its edge.
-        assertEquals(grid.heightBilinear(localX, localZ), sampler.height(localX, localZ), 1e-9);
+        // The grid is indexed by global metres; the sampler accepts local metres and must convert.
+        assertEquals(grid.heightBilinear(ORIGIN_E + localX, ORIGIN_N + localZ),
+                sampler.height(localX, localZ), 1e-9);
         assertEquals(SurfaceMaterial.ID_COMPACT_SAND, sampler.materialId(localX, localZ),
                 "the test lattice marks its western half as land");
         assertEquals(SurfaceMaterial.ID_SHALLOW_WATER, sampler.materialId(COLS * CELL - 500.0, 1500.0),
