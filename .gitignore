@@ -24,3 +24,7 @@ tools/.cache/
 
 # Local QA scratch
 artifacts/local/
+
+# APK binaries travel through Actions artifacts / Releases, never through Git.
+artifacts/*.apk
+artifacts/*.apk.sha256

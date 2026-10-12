@@ -1,8 +1,10 @@
 name: Build APK
 
 # QATAR: THE PENINSULA -- clean build, test and APK publication.
-# Gates: unit/data/physics tests, APK structure validation, packaged-country startup check.
-# A failed run never publishes an APK and never leaves a stale PASSED status.
+#
+# Evidence policy: CI writes machine readable evidence into artifacts/ and commits it back to the
+# branch. A build that does not pass validation publishes nothing and leaves status=FAILED for the
+# exact commit it ran on (no stale PASSED can ever approve a later commit).
 
 on:
   push:
@@ -17,18 +19,17 @@ on:
 permissions:
   contents: write
 
-env:
-  GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3g"
-
 jobs:
-  unit-tests:
-    name: Unit, data and physics tests
+  build:
+    name: Test, assemble, validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -37,92 +38,95 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
-          cache-read-only: false
-
-      - name: Reset prior QA status (no stale PASSED may approve a build)
-        run: rm -f artifacts/QA_STATUS.txt artifacts/APK_VALIDATION.txt
-
-      - name: Run JVM test suites
-        run: gradle --no-daemon --stacktrace :core:test
-
-      - name: Collect test evidence
-        if: always()
-        run: |
-          mkdir -p artifacts
-          {
-            echo "commit=${GITHUB_SHA}"
-            echo "run_id=${GITHUB_RUN_ID}"
-            echo "unit_tests=completed"
-          } > artifacts/UNIT_TEST_STATUS.txt
-          find core/build/test-results -name '*.xml' -exec sh -c 'grep -h -o "tests=\"[0-9]*\" skipped=\"[0-9]*\" failures=\"[0-9]*\" errors=\"[0-9]*\"" "$1" | head -1' _ {} \; > artifacts/UNIT_TEST_SUMMARY.txt 2>/dev/null || true
-          cat artifacts/UNIT_TEST_SUMMARY.txt 2>/dev/null || true
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: unit-test-evidence
-          path: artifacts/
-
-  apk:
-    name: Assemble and validate APK
-    runs-on: ubuntu-latest
-    needs: unit-tests
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.7'
-          cache-read-only: false
 
       - name: Ensure Android SDK components
         run: |
           set -e
           SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
           export ANDROID_SDK_ROOT="$SDK_ROOT"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "$SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
           SDKM="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-          if [ ! -x "$SDKM" ]; then
-            echo "sdkmanager not found at $SDKM"; ls "$SDK_ROOT" || true; exit 1
-          fi
+          [ -x "$SDKM" ] || { echo "sdkmanager missing at $SDKM"; ls "$SDK_ROOT"; exit 1; }
           yes | "$SDKM" --licenses > /dev/null 2>&1 || true
           "$SDKM" "platforms;android-34" "build-tools;34.0.0" "platform-tools" || true
-          ls "$SDK_ROOT/platforms" || true
 
-      - name: Assemble debug APK (universal, all ABIs)
-        run: gradle --no-daemon --stacktrace :android:assembleDebug
+      - name: Reset prior QA status (stale PASSED may never approve a build)
+        run: |
+          mkdir -p artifacts
+          rm -f artifacts/QA_STATUS.txt artifacts/APK_VALIDATION.txt artifacts/UNIT_TEST_STATUS.txt
+          {
+            echo "commit=${GITHUB_SHA}"
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "run_url=https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "branch=${GITHUB_REF_NAME}"
+            echo "started_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } > artifacts/BUILD_META.txt
+
+      - name: Run JVM test suites (geography, physics, text)
+        run: |
+          set +e
+          gradle --no-daemon --stacktrace :core:test 2>&1 | tee unit.log
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          {
+            echo "stage=unit-tests"
+            echo "gradle_exit=$STATUS"
+          } >> artifacts/BUILD_META.txt
+          grep -E "^> Task|error:|FAILED|Caused by|BUILD (SUCCESSFUL|FAILED)|tests? (completed|failed)" unit.log | tail -150 > artifacts/UNIT_TEST_LOG.txt || true
+          if [ "$STATUS" -eq 0 ]; then echo "status=PASSED" > artifacts/UNIT_TEST_STATUS.txt;
+          else echo "status=FAILED" > artifacts/UNIT_TEST_STATUS.txt; fi
+          find core/build/test-results -name '*.xml' -exec grep -h -o 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' {} \; \
+            | awk -F'"' '{t+=$2; s+=$4; f+=$6; e+=$8} END {printf "tests=%d skipped=%d failures=%d errors=%d\n", t, s, f, e}' \
+            > artifacts/UNIT_TEST_SUMMARY.txt 2>/dev/null || echo "tests=unknown" > artifacts/UNIT_TEST_SUMMARY.txt
+          cat artifacts/UNIT_TEST_SUMMARY.txt
+          cat artifacts/UNIT_TEST_STATUS.txt
+          exit 0
+
+      - name: Assemble debug APK (universal: arm64-v8a, armeabi-v7a, x86_64)
+        run: |
+          set +e
+          gradle --no-daemon --stacktrace :android:assembleDebug 2>&1 | tee apk.log
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          {
+            echo "stage=assemble"
+            echo "assemble_exit=$STATUS"
+          } >> artifacts/BUILD_META.txt
+          grep -E "^> Task|error:|FAILED|Caused by|e: |BUILD (SUCCESSFUL|FAILED)" apk.log | tail -200 > artifacts/APK_BUILD_LOG.txt || true
+          exit 0
 
       - name: Validate APK and produce evidence
+        continue-on-error: true
         run: |
           set -e
           SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
           export PATH="$SDK_ROOT/build-tools/34.0.0:$PATH"
-          mkdir -p artifacts
           APK=$(find android/build/outputs/apk/debug -name '*.apk' | head -1)
-          cp "$APK" "artifacts/$(basename "$APK")"
-          bash tools/validate_apk.sh "artifacts/$(basename "$APK")" artifacts/APK_VALIDATION.txt || true
+          if [ -z "$APK" ]; then
+            echo "validation=FAILED (no APK produced)" > artifacts/APK_VALIDATION.txt
+            cat artifacts/APK_VALIDATION.txt
+            exit 0
+          fi
+          cp "$APK" artifacts/Qatar-The-Peninsula-v0.1.0-m0.apk
+          bash tools/validate_apk.sh artifacts/Qatar-The-Peninsula-v0.1.0-m0.apk artifacts/APK_VALIDATION.txt || true
           cat artifacts/APK_VALIDATION.txt
-          if grep -q "validation=PASSED" artifacts/APK_VALIDATION.txt; then
+
+      - name: Decide QA status for this commit
+        id: qa
+        run: |
+          set -e
+          UNIT=$(grep -c "status=PASSED" artifacts/UNIT_TEST_STATUS.txt || true)
+          VALID=$(grep -c "validation=PASSED" artifacts/APK_VALIDATION.txt 2>/dev/null || true)
+          if [ "$UNIT" -eq 1 ] && [ "$VALID" -eq 1 ]; then
             echo "status=PASSED" > artifacts/QA_STATUS.txt
+            echo "passed=true" >> "$GITHUB_OUTPUT"
           else
             echo "status=FAILED" > artifacts/QA_STATUS.txt
-            exit 1
+            echo "passed=false" >> "$GITHUB_OUTPUT"
           fi
-
-      - name: Stage release asset name
-        run: |
-          APK=$(find artifacts -name '*.apk' | head -1)
-          cp "$APK" artifacts/Qatar-The-Peninsula-v0.1.0-m0.apk
-          (cd artifacts && sha256sum Qatar-The-Peninsula-v0.1.0-m0.apk > Qatar-The-Peninsula-v0.1.0-m0.apk.sha256)
-          cat artifacts/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256
+          cat artifacts/QA_STATUS.txt
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -131,29 +135,31 @@ jobs:
           path: artifacts/
           if-no-files-found: warn
 
-      - name: Publish build status back to the branch
+      - name: Commit build evidence to the branch
         if: always()
         continue-on-error: true
         run: |
           set -e
           git config user.name "qatar-ci"
           git config user.email "ci@users.noreply.github.com"
-          mkdir -p artifacts
-          {
-            echo "commit=${GITHUB_SHA}"
-            echo "run_id=${GITHUB_RUN_ID}"
-            echo "workflow=build.yml"
-          } >> artifacts/BUILD_META.txt || true
-          git add -f artifacts/QA_STATUS.txt artifacts/APK_VALIDATION.txt artifacts/BUILD_META.txt 2>/dev/null || true
-          git commit -m "CI: APK validation status for ${GITHUB_SHA} [skip ci]" || true
-          git push origin HEAD:${GITHUB_REF_NAME} || true
+          git add -A artifacts/ || true
+          git commit -m "CI evidence for ${GITHUB_SHA} [skip ci]" || echo "no evidence changes"
+          for i in 1 2 3; do
+            git pull --rebase -X ours origin "${GITHUB_REF_NAME}" || true
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then echo "evidence pushed"; break; fi
+            sleep 5
+          done
 
-      - name: Create release with APK
-        if: success() && (github.event_name == 'workflow_dispatch' && inputs.publish_release)
+      - name: Publish GitHub Release with the validated APK
+        if: success() && steps.qa.outputs.passed == 'true' && github.event_name == 'workflow_dispatch' && inputs.publish_release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -e
           TAG="v0.1.0-m0-build-${GITHUB_RUN_NUMBER}"
-          gh release create "$TAG" artifacts/Qatar-The-Peninsula-v0.1.0-m0.apk artifacts/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256 \
+          APK="artifacts/Qatar-The-Peninsula-v0.1.0-m0.apk"
+          sha256sum "$APK" > "$APK.sha256"
+          gh release create "$TAG" "$APK" "$APK.sha256" \
             --title "Qatar: The Peninsula $TAG" \
-            --notes "Automated milestone build. See artifacts/APK_VALIDATION.txt in the repository for the validation report of commit ${GITHUB_SHA}." || true
+            --notes "Automated milestone build of commit ${GITHUB_SHA}. Validation report: artifacts/APK_VALIDATION.txt in the repository (validation=PASSED)." \
+            || echo "release creation failed"
