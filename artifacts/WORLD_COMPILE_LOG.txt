@@ -382,3 +382,5 @@ drwxr-xr-x 5 runner runner    4096 Oct 12 14:18 ..
 -rw-r--r-- 1 runner runner  107420 Oct 12 14:20 terrain_l0.bin.gz
 -rw-r--r-- 1 runner runner  896745 Oct 12 14:20 terrain_l1.bin.gz
 12M	android/assets/world/
+=== world bundle self-sufficiency ===
+bundle already present: 12M
