@@ -58,6 +58,14 @@ jobs:
           python3 tools/fetch_sources.py 2>&1 | tee -a run.log
           echo "fetch_exit=${PIPESTATUS[0]}" | tee -a run.log
 
+      - name: Diagnose country geometry
+        if: always()
+        run: |
+          set +e
+          if [ -f data/raw/qatar-latest.osm.pbf ]; then
+            python3 tools/build_world.py --stage diagnose 2>&1 | tee -a run.log
+          fi
+
       - name: Compile world bundle
         if: always()
         run: |

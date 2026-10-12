@@ -610,9 +610,88 @@ def pack_coast(rings: list[tuple[int, list[tuple[float, float]]]], grid: dict) -
     return header + bytes(payload)
 
 
+def diagnose(osm_path: Path) -> int:
+    """Print the geometry facts needed to debug land/sea classification. No outputs are written."""
+    national_wgs, data = extract_osm(osm_path)
+    national = project_geometry(national_wgs)
+    log("== national boundary ==")
+    parts = [national] if national.geom_type == "Polygon" else list(national.geoms)
+    for i, part in enumerate(parts):
+        rep = part.representative_point()
+        lon, lat = INV.transform(rep.x, rep.y)
+        log(f"  part {i}: {part.area / 1e6:,.1f} km2, rep point {lon:.4f},{lat:.4f}, "
+            f"bounds E {part.bounds[0]:,.0f}..{part.bounds[2]:,.0f}")
+
+    log("== coastline ==")
+    lines = [LineString(_project(w)) for w in data.coastlines if len(w) >= 2]
+    merged = shapely.ops.linemerge(shapely.union_all(lines)) if lines else None
+    log(f"  coastline ways: {len(lines)}")
+    if merged is not None:
+        pieces = [merged] if merged.geom_type == "LineString" else list(merged.geoms)
+        log(f"  merged pieces: {len(pieces)}")
+        total = sum(len(p.coords) for p in pieces)
+        log(f"  total vertices: {total:,}")
+        ring = LineString(parts[0].exterior.coords)
+        stitches = _seal_network(pieces, ring)
+        log(f"  dangling endpoints stitched to the largest ring: {len(stitches)}")
+        for st in stitches[:8]:
+            lon0, lat0 = INV.transform(st.coords[0][0], st.coords[0][1])
+            lon1, lat1 = INV.transform(st.coords[1][0], st.coords[1][1])
+            log(f"    stitch {lon0:.4f},{lat0:.4f} -> {lon1:.4f},{lat1:.4f} "
+                f"({st.length / 1000:.1f} km)")
+
+    log("== candidate faces (top 10 by area) ==")
+    from collections import Counter
+    ends: Counter = Counter()
+    for part in ([merged] if merged is not None and merged.geom_type == "LineString" else list(merged.geoms)):
+        coords = list(part.coords)
+        ends[(round(coords[0][0], 6), round(coords[0][1], 6))] += 1
+        ends[(round(coords[-1][0], 6), round(coords[-1][1], 6))] += 1
+    log(f"  distinct line endpoints: {len(ends)}, dangling (occur once): {sum(1 for v in ends.values() if v == 1)}")
+
+    road_points = []
+    for road in data.roads[:4000]:
+        coords = road["coords"]
+        if len(coords) >= 2:
+            mid = coords[len(coords) // 2]
+            road_points.append(Point(*FWD.transform(mid[0], mid[1])))
+    building_points = []
+    for b in data.buildings[:4000]:
+        coords = b["coords"]
+        if len(coords) >= 3:
+            lon = sum(c[0] for c in coords) / len(coords)
+            lat = sum(c[1] for c in coords) / len(coords)
+            building_points.append(Point(*FWD.transform(lon, lat)))
+
+    water_polys = []
+    for w in data.water_areas:
+        poly = _closed_way_polygon(w["coords"])
+        if poly is not None and poly.area > 10000.0:
+            water_polys.append(poly)
+    log(f"  sampled roads: {len(road_points)}, buildings: {len(building_points)}, "
+        f"mapped water polygons: {len(water_polys)}")
+
+    for i, part in enumerate(parts[:3]):
+        ring = LineString(part.exterior.coords)
+        pieces = [merged] if merged is not None and merged.geom_type == "LineString" else list(merged.geoms)
+        st = _seal_network(pieces, ring)
+        polys = list(shapely.ops.polygonize(pieces + st + [ring]))
+        log(f"  -- largest ring {i}: {len(polys)} faces")
+        polys.sort(key=lambda p: -p.area)
+        for face in polys[:10]:
+            rep = face.representative_point()
+            lon, lat = INV.transform(rep.x, rep.y)
+            roads = sum(1 for p in road_points if face.contains(p))
+            buildings = sum(1 for p in building_points if face.contains(p))
+            water = sum(1 for p in water_polys if face.contains(p.representative_point()))
+            log(f"     {face.area / 1e6:9,.1f} km2 at {lon:7.4f},{lat:6.4f}  roads={roads:4d} "
+                f"buildings={buildings:4d} waterPolys={water:3d}")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--stage", default="all", choices=["boundary", "terrain", "vectors", "all"])
+    ap.add_argument("--stage", default="all", choices=["boundary", "terrain", "vectors", "all", "diagnose"])
     ap.add_argument("--cell-l0", type=float, default=300.0)
     ap.add_argument("--cell-l1", type=float, default=100.0)
     args = ap.parse_args()
@@ -624,6 +703,8 @@ def main() -> int:
     GEODATA.mkdir(parents=True, exist_ok=True)
     WORLD.mkdir(parents=True, exist_ok=True)
 
+    if args.stage == "diagnose":
+        return diagnose(osm_path)
     log("[1] OpenStreetMap extraction")
     national_wgs, data = extract_osm(osm_path)
     # Project exactly once: the rest of the compiler works in EPSG:32639 metres only.
