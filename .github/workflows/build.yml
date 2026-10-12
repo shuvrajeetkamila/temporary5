@@ -242,15 +242,44 @@ jobs:
           exit 1
 
       - name: Publish GitHub Release with the validated APK
-        if: success() && steps.qa.outputs.passed == 'true' && github.event_name == 'workflow_dispatch' && inputs.publish_release
+        # Publishing is part of the delivery contract: the installable APK must be reachable as a
+        # normal release download, not only as a CI artefact behind a login. The tag is stable, so the
+        # download link never rots: each green run replaces the asset with the newly validated build.
+        if: success() && steps.qa.outputs.passed == 'true' && (github.event_name == 'push' || inputs.publish_release)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -e
-          TAG="v0.1.0-m0-build-${GITHUB_RUN_NUMBER}"
+          TAG="v0.1.0-m0"
           APK="artifacts/Qatar-The-Peninsula-v0.1.0-m0.apk"
+          BYTES=$(stat -c %s "$APK")
+          DIGEST=$(sha256sum "$APK" | cut -d" " -f1)
           sha256sum "$APK" > "$APK.sha256"
-          gh release create "$TAG" "$APK" "$APK.sha256" \
-            --title "Qatar: The Peninsula $TAG" \
-            --notes "Automated milestone build of commit ${GITHUB_SHA}. Validation report: artifacts/APK_VALIDATION.txt in the repository (validation=PASSED)." \
-            || echo "release creation failed"
+          cat > RELEASE_NOTES.md <<NOTES
+          Installable debug-signed universal APK built from commit ${GITHUB_SHA}.
+
+          * **Bytes**: ${BYTES}
+          * **SHA-256**: ${DIGEST}
+          * **Package**: ai.arena.qatar.peninsula, versionName 0.1.0-m0 (versionCode 1)
+          * **SDK**: minSdk 26, targetSdk 34, compileSdk 34
+          * **ABIs**: arm64-v8a, armeabi-v7a, x86_64
+          * **Coverage**: the whole State of Qatar at 1:1 scale (land + islands + water/airspace buffer),
+            compiled from OpenStreetMap and SRTM; see DATA_SOURCES.md and ASSET_LICENSES.md.
+          * **Evidence**: artifacts/APK_VALIDATION.txt (validation=PASSED), artifacts/UNIT_TEST_SUMMARY.txt,
+            artifacts/QA_STATUS.txt on branch ${GITHUB_REF_NAME}; CI run ${GITHUB_RUN_ID}
+            (https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}).
+          * **Offline**: no INTERNET permission; every asset is bundled.
+
+          Debug-signed with the standard Android debug key: install it for testing, not for store
+          distribution. This is a milestone build (M1: installable app with real-world data).
+          NOTES
+          if gh release view "$TAG" --repo "${GITHUB_REPOSITORY}" > /dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" "$APK.sha256" --clobber --repo "${GITHUB_REPOSITORY}"
+            gh release edit "$TAG" --title "Qatar: The Peninsula ${TAG} (milestone 1)" \
+              --notes-file RELEASE_NOTES.md --repo "${GITHUB_REPOSITORY}"
+          else
+            gh release create "$TAG" "$APK" "$APK.sha256" \
+              --title "Qatar: The Peninsula ${TAG} (milestone 1)" \
+              --notes-file RELEASE_NOTES.md --repo "${GITHUB_REPOSITORY}"
+          fi
+          echo "release link: https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/Qatar-The-Peninsula-v0.1.0-m0.apk"
