@@ -106,6 +106,11 @@ public final class RigidBody {
         wake();
     }
 
+    /**
+     * Applies an impulse at a world point without waking the body: this is the contact solver's hot
+     * path, and waking on every solver impulse would make it impossible for a resting body to ever
+     * sleep. Gameplay code that genuinely disturbs a body calls {@link #wake()} explicitly.
+     */
     public void applyImpulse(Vec3 impulse, Vec3 worldPoint) {
         linearVelocity.addScaled(impulse, inverseMass);
         scratchB.set(worldPoint).sub(position);
@@ -113,11 +118,16 @@ public final class RigidBody {
         scratchB.cross(impulse, scratchC);
         applyInverseInertiaWorld(scratchC, scratchC);
         angularVelocity.add(scratchC);
-        wake();
     }
 
+    /** Solver-friendly central impulse (no implicit wake). */
     public void applyCentralImpulse(Vec3 impulse) {
         linearVelocity.addScaled(impulse, inverseMass);
+    }
+
+    /** Explicit disturbance from gameplay (collision with another vehicle, explosion, wind gust). */
+    public void applyDisturbingImpulse(Vec3 impulse, Vec3 worldPoint) {
+        applyImpulse(impulse, worldPoint);
         wake();
     }
 

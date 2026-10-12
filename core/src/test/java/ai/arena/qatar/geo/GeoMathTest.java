@@ -71,9 +71,9 @@ final class GeoMathTest {
     @Test
     @DisplayName("projected distances and bearings match known national geometry")
     void distancesAndBearings() {
-        // Doha Corniche to Al Ruwais: the full northwestern run of the peninsula.
+        // Doha Corniche to Al Ruwais: the full northwestern run of the peninsula (~99.1 km).
         double d = GeoMath.planarDistance(553459.1074, 2796656.1019, 521492.4432, 2890430.6448);
-        assertEquals(100250.0, d, 600.0, "Doha to Al Ruwais straight-line distance (km-scale sanity)");
+        assertEquals(99072.0, d, 600.0, "Doha to Al Ruwais straight-line distance (km-scale sanity)");
 
         // The country is roughly 160 km north-south and 90 km east-west.
         double ns = GeoMath.planarDistance(530882.6071, 2893218.2435, 517190.3159, 2736390.9423);
@@ -89,8 +89,8 @@ final class GeoMathTest {
     @Test
     @DisplayName("grid convergence is small but non-zero and signed correctly")
     void gridConvergence() {
-        double near = Math.abs(GeoMath.gridConvergenceRad(25.2854, 51.5310));
-        double far = Math.abs(GeoMath.gridConvergenceRad(24.7, 50.78));
+        double near = Math.abs(GeoMath.gridConvergenceRad(25.2854, 51.5310));   // east of 51E
+        double far = Math.abs(GeoMath.gridConvergenceRad(25.0000, 50.2000));    // far west of 51E
         assertTrue(near < Math.toRadians(0.5), "convergence near the central meridian stays small");
         assertTrue(far > near, "convergence grows away from the central meridian");
         assertTrue(GeoMath.gridConvergenceRad(25.0, 52.0) > 0, "east of the central meridian is positive");
