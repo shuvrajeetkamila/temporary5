@@ -52,6 +52,14 @@ jobs:
             echo "tool_fetch_sources_sha256=$(sha256sum tools/fetch_sources.py | cut -d' ' -f1)"
           } | tee -a run.log
 
+      - name: Static self-test of the compiler
+        if: always()
+        run: |
+          set +e
+          python3 -m pip install --quiet numpy shapely pyproj 2>&1 | tail -2 | tee -a run.log
+          python3 tools/selftest_world.py 2>&1 | tee -a run.log
+          echo "selftest_exit=${PIPESTATUS[0]}" | tee -a run.log
+
       - name: Probe source hosts
         run: |
           for url in "https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf" \

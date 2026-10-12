@@ -1140,6 +1140,40 @@ def main() -> int:
 
 
 # -------------------------------------------------------------------------------------- helpers
+def _project(coords_wgs) -> list[tuple[float, float]]:
+    """WGS84 lon/lat sequence -> EPSG:32639 east/north vertices."""
+    lons = np.asarray([c[0] for c in coords_wgs], dtype="float64")
+    lats = np.asarray([c[1] for c in coords_wgs], dtype="float64")
+    easts, norths = FWD.transform(lons, lats)
+    return [(float(e), float(n)) for e, n in zip(easts, norths)]
+
+
+def _closed_way_polygon(coords_wgs, min_area_m2: float = 0.0):
+    """Closed OSM way -> projected polygon, or None when it is not a usable ring."""
+    if coords_wgs is None or len(coords_wgs) < 3:
+        return None
+    ring = list(coords_wgs)
+    if ring[0] != ring[-1]:
+        ring.append(ring[0])
+    try:
+        poly = Polygon(_project(ring))
+    except Exception:  # noqa: BLE001 - degenerate input is skipped, never fatal
+        return None
+    if poly.is_empty:
+        return None
+    if not poly.is_valid:
+        poly = poly.buffer(0)
+    if poly.is_empty or not isinstance(poly, Polygon):
+        return None
+    return poly if poly.area >= min_area_m2 else None
+
+
+def project_geometry(geom):
+    """WGS84 geometry -> EPSG:32639 metres (the single, documented projection step)."""
+    from shapely.ops import transform as shapely_transform
+    return shapely_transform(lambda x, y, z=None: FWD.transform(x, y), geom)
+
+
 def sanitise_ring(ring, tolerance_m: float = 2.0):
     """Simplify and clean a coast ring so the bundle stays small and contains no invalid numbers."""
     geom = Polygon(ring.coords) if not isinstance(ring, Polygon) else ring
@@ -1160,7 +1194,8 @@ def sanitise_ring(ring, tolerance_m: float = 2.0):
 
 def derive_land_mask(coastlines: list[list[tuple[float, float]]], seed_lines: list[list[tuple[float, float]]],
                      seed_points: list[tuple[float, float]], xs: np.ndarray, ys: np.ndarray,
-                     cell_m: float) -> tuple[np.ndarray, dict]:
+                     cell_m: float, min_area_km2: float = 6000.0,
+                     max_area_km2: float = 20000.0) -> tuple[np.ndarray, dict]:
     """Derive the land mask from open data, without inventing any geometry.
 
     Method (the standard open-data land/sea derivation):
@@ -1229,7 +1264,7 @@ def derive_land_mask(coastlines: list[list[tuple[float, float]]], seed_lines: li
         candidate = np.isin(labels, seed_labels)
         area_km2 = candidate.sum() * cell_m * cell_m / 1e6
         diagnostics[f"area_{thickening}"] = round(area_km2, 1)
-        if 6000.0 <= area_km2 <= 20000.0:
+        if min_area_km2 <= area_km2 <= max_area_km2:
             land = candidate
             diagnostics["thickening"] = thickening
             break

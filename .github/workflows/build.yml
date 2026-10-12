@@ -79,6 +79,9 @@ jobs:
           fi
           python3 -m pip install --quiet --upgrade pip
           python3 -m pip install --quiet -r tools/requirements.txt
+          echo "--- static self-test of the compiler ---"
+          python3 tools/selftest_world.py 2>&1 | tail -22
+          echo "selftest_exit=${PIPESTATUS[0]}"
           echo "--- fetch sources ---"
           python3 tools/fetch_sources.py 2>&1 | tail -25
           echo "fetch_exit=${PIPESTATUS[0]}"
