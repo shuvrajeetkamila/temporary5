@@ -84,7 +84,7 @@ jobs:
           cat artifacts/UNIT_TEST_STATUS.txt
           exit 0
 
-      - name: Assemble debug APK (universal: arm64-v8a, armeabi-v7a, x86_64)
+      - name: Assemble debug APK for all supported ABIs
         run: |
           set +e
           gradle --no-daemon --stacktrace :android:assembleDebug 2>&1 | tee apk.log
