@@ -47,6 +47,15 @@ public final class PhysicsWorld {
     /** Rolling resistance coefficient (1/s) applied to grounded, slow bodies. */
     private static final double ROLLING_RESISTANCE = 6.0;
 
+    /**
+     * Speculative contact margin (metres): the terrain generates a contact when a probe is within this
+     * distance of the surface, not only when it has already penetrated. Without it a resting body
+     * alternates between "in contact" and "hovering" frames, its air time keeps resetting the sleep
+     * timer, and no body would ever fall asleep. It also cancels each step's gravity increment before
+     * it becomes visible motion.
+     */
+    private static final double CONTACT_MARGIN = 0.02;
+
     public double gravity = STANDARD_GRAVITY;
 
     /** Rolling resistance applied to slow, grounded bodies (1/s). Contact is not frictionless. */
@@ -241,12 +250,12 @@ public final class PhysicsWorld {
                 if (terrain.isCollisionLoaded(sA.x, sA.z)) {
                     double groundY = terrain.height(sA.x, sA.z);
                     double depth = (groundY + radius) - sA.y;
-                    if (depth > 0.0) {
+                    if (depth > -CONTACT_MARGIN) {
                         terrain.normal(sA.x, sA.z, sB);
                         int matId = terrain.materialId(sA.x, sA.z);
                         if (n < MAX_CONTACTS) {
                             recordContact(n++, bi, pi, sA.x - sB.x * radius, sA.y - sB.y * radius,
-                                    sA.z - sB.z * radius, sB, depth, matId);
+                                    sA.z - sB.z * radius, sB, Math.max(depth, 0.0), matId);
                         } else {
                             overflowContacts++;
                         }
