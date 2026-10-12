@@ -1,0 +1,71 @@
+// :android -- Android launcher module for QATAR: THE PENINSULA
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'ai.arena.qatar.android'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "ai.arena.qatar.peninsula"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "0.1.0-m0"
+        // Universal APK: every supported ABI, so it installs on any device.
+        ndk {
+            abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main {
+            // libGDX loads everything through the Android asset manager.
+            assets.srcDirs = ['assets']
+            jniLibs.srcDirs = ['libs']
+        }
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+            minifyEnabled false
+        }
+        release {
+            minifyEnabled false
+            // Debug signing only: no private release keystore is ever committed or requested.
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+        resources {
+            excludes += ['META-INF/*.kotlin_module', 'META-INF/DEPENDENCIES', 'META-INF/LICENSE*', 'META-INF/NOTICE*']
+        }
+    }
+
+    lint {
+        abortOnError false
+    }
+}
+
+// Deterministic artefact naming for both variants.
+android.applicationVariants.all { variant ->
+    variant.outputs.all { output ->
+        outputFileName = "Qatar-The-Peninsula-v${variant.versionName}-${variant.buildType.name}.apk"
+    }
+}
+
+dependencies {
+    implementation project(':core')
+    implementation "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
+}
