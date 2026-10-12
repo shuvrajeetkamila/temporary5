@@ -115,3 +115,71 @@ total 8
 drwxr-xr-x 2 runner runner 4096 Oct 12 13:59 .
 drwxr-xr-x 5 runner runner 4096 Oct 12 13:59 ..
 4.0K	android/assets/world/
+=== world bundle self-sufficiency ===
+--- static self-test of the compiler ---
+PASS  Doha projects to the documented grid reference
+PASS  coastline ribbon rasterises into a barrier ({'barrierCells': 238, 'seedCells': 2, 'area_0': np.float64(12.1), 'thickening': 0, 'islandComponents': 0})
+PASS  land seeds land inside the ring ({'barrierCells': 238, 'seedCells': 2, 'area_0': np.float64(12.1), 'thickening': 0, 'islandComponents': 0})
+PASS  derived land area 12.06 km2 is within the ring (15.48 km2 analytic)
+PASS  the ring centre is land
+PASS  the far corner (outside the ring) is not land
+PASS  terrain bundle magic is QTT1
+PASS  terrain header carries cols/rows/cell/little-endian reserved
+PASS  terrain payload length matches the documented layout
+PASS  terrain heights are int16 little-endian, row 0 first
+PASS  land mask follows the heights as one byte per cell
+PASS  string table magic is QTS1
+PASS  string table counts entries
+PASS  entries are length-prefixed UTF-8 in insertion order
+PASS  string indices are stable and start at 0
+PASS  all five mandated checkpoint groups are declared (['CENTRAL_AND_CAPITAL', 'ISLANDS_AND_WATER', 'NORTH_AND_NORTHEAST', 'SOUTH_AND_BORDER', 'WEST_AND_NORTHWEST'])
+PASS  checkpoint table covers the country (32 entries)
+PASS  road class table is rich enough (23 classes)
+PASS  road classes include the urban and motorway ends of the range
+PASS  road classes map to integer material/geometry ids
+
+WORLD SELF-TEST PASSED
+selftest_exit=0
+--- fetch sources ---
+[1/2] SRTM 1 arc-second elevation tiles (public domain)
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N24/N24E050.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N24/N24E051.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N24/N24E052.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E050.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E051.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E052.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N26/N26E050.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N26/N26E051.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N26/N26E052.hgt.gz
+[2/2] OpenStreetMap Qatar extract
+  trying openstreetmap.fr: https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf
+  probe   http=206 bytes=64 magic=0000000e0a094f53
+  fetch   https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf
+  ok      qatar-latest.osm.pbf (24.5 MB)
+wrote /home/runner/work/temporary5/temporary5/data/geodata/SOURCES.json with 10 sources
+fetch_exit=0
+--- compile ---
+[1] OpenStreetMap extraction
+  parsing relations (boundaries)
+  boundary relations: 18 (admin levels 2/4/6)
+  parsing ways/nodes
+  ways visited: 410312
+  national boundary assembled from relation 305095 (Qatar)
+/home/runner/work/temporary5/temporary5/tools/build_world.py:1174: DeprecationWarning: The 'shapely.ops.transform()' function is deprecated. Use 'shapely.transform()' or 'shapely.transform_coordseq()' instead. See https://shapely.readthedocs.io/en/latest/manual.html#shapely.ops.transform for more details.
+  return shapely_transform(lambda x, y, z=None: FWD.transform(x, y), geom)
+  national AOI: MultiPolygon, area 23222.0 km2, valid
+  stats: {"coastline_ways": 378, "roads": 179943, "buildings": 186993, "landuse": 9103, "water_areas": 1170, "places": 159, "islands": 3, "aeroways": 1158, "named_areas": 1678}
+  municipalities: 8
+  coastline ways for the land derivation: 378; 2 tagged island polygons
+  world grid: origin=(431000,2681000) 259x268 km
+  DEM mosaic: 9 tiles, 10801x10801 samples
+FATAL: land derivation did not converge: {'barrierCells': 32895, 'seedCells': 277242, 'area_0': np.float64(69074.3), 'area_1': np.float64(68823.0), 'area_2': np.float64(68655.7), 'area_3': np.float64(68499.4), 'area_4': np.float64(68361.9), 'area_5': np.float64(68233.6), 'area_6': np.float64(68105.7)}
+compile_exit=1
+--- validate ---
+FAIL: world manifest missing - the APK would not contain a country
+validate_exit=1
+=== bundle contents ===
+total 8
+drwxr-xr-x 2 runner runner 4096 Oct 12 14:04 .
+drwxr-xr-x 5 runner runner 4096 Oct 12 14:04 ..
+4.0K	android/assets/world/
