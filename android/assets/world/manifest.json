@@ -16,7 +16,7 @@
    "cols": 864,
    "rows": 894,
    "file": "terrain_l0.bin.gz",
-   "sha256": "f2e5b2e0f7711181dfac2b7b2319d0a3599730605c4368b183007e2320602797"
+   "sha256": "b88282c5766072b2bf45c4187869b8f869a7ce1208a07f22098971810312bd46"
   },
   {
    "name": "l1",
@@ -24,7 +24,7 @@
    "cols": 2590,
    "rows": 2680,
    "file": "terrain_l1.bin.gz",
-   "sha256": "d3ec64361e98c941980f884c0a44c2a1598ffcada3e0f0e73ae9b98a0ec1f7c6"
+   "sha256": "22c532d0ebdf5c0d4596fae6819ae3187376bc328a7cc06cf6e1809e909bb810"
   }
  ],
  "materials": {
@@ -32,7 +32,7 @@
   "cellM": 100.0,
   "cols": 2590,
   "rows": 2680,
-  "sha256": "ddf2d7716da5de9f31adf6956fbd419dc95141951e493fc3db2904907013e0cc"
+  "sha256": "b69bae6b810586f85030b9c4e30b3353a66798fc072a4a6b3b7a170e08bb1456"
  },
  "roads": {
   "file": "roads.bin.gz",
@@ -97,14 +97,6 @@
    "north": 2903855.84
   },
   {
-   "id": "island-6",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 7175420000.0,
-   "east": 549050.0,
-   "north": 2840750.0
-  },
-  {
    "id": "island-2",
    "name": "",
    "nameAr": "",
@@ -113,7 +105,7 @@
    "north": 2720750.0
   },
   {
-   "id": "island-19",
+   "id": "island-18",
    "name": "",
    "nameAr": "",
    "areaM2": 1430000.0,
@@ -121,7 +113,7 @@
    "north": 2805850.0
   },
   {
-   "id": "island-68",
+   "id": "island-67",
    "name": "",
    "nameAr": "",
    "areaM2": 1420000.0,
@@ -129,7 +121,7 @@
    "north": 2892150.0
   },
   {
-   "id": "island-42",
+   "id": "island-41",
    "name": "",
    "nameAr": "",
    "areaM2": 1270000.0,
@@ -137,7 +129,7 @@
    "north": 2834350.0
   },
   {
-   "id": "island-47",
+   "id": "island-46",
    "name": "",
    "nameAr": "",
    "areaM2": 920000.0,
@@ -145,7 +137,7 @@
    "north": 2840450.0
   },
   {
-   "id": "island-37",
+   "id": "island-36",
    "name": "",
    "nameAr": "",
    "areaM2": 660000.0,
@@ -153,7 +145,7 @@
    "north": 2812650.0
   },
   {
-   "id": "island-18",
+   "id": "island-17",
    "name": "",
    "nameAr": "",
    "areaM2": 650000.0,
@@ -161,7 +153,7 @@
    "north": 2803350.0
   },
   {
-   "id": "island-57",
+   "id": "island-56",
    "name": "",
    "nameAr": "",
    "areaM2": 560000.0,
@@ -169,7 +161,7 @@
    "north": 2866950.0
   },
   {
-   "id": "island-23",
+   "id": "island-22",
    "name": "",
    "nameAr": "",
    "areaM2": 470000.0,
@@ -177,7 +169,7 @@
    "north": 2806350.0
   },
   {
-   "id": "island-13",
+   "id": "island-12",
    "name": "",
    "nameAr": "",
    "areaM2": 420000.0,
@@ -193,7 +185,7 @@
    "north": 2718750.0
   },
   {
-   "id": "island-31",
+   "id": "island-30",
    "name": "",
    "nameAr": "",
    "areaM2": 330000.0,
@@ -201,7 +193,7 @@
    "north": 2810050.0
   },
   {
-   "id": "island-64",
+   "id": "island-63",
    "name": "",
    "nameAr": "",
    "areaM2": 300000.0,
@@ -209,7 +201,7 @@
    "north": 2868550.0
   },
   {
-   "id": "island-8",
+   "id": "island-7",
    "name": "",
    "nameAr": "",
    "areaM2": 270000.0,
@@ -217,7 +209,7 @@
    "north": 2722750.0
   },
   {
-   "id": "island-10",
+   "id": "island-9",
    "name": "",
    "nameAr": "",
    "areaM2": 270000.0,
@@ -225,7 +217,7 @@
    "north": 2724350.0
   },
   {
-   "id": "island-16",
+   "id": "island-15",
    "name": "",
    "nameAr": "",
    "areaM2": 270000.0,
@@ -233,7 +225,7 @@
    "north": 2774150.0
   },
   {
-   "id": "island-14",
+   "id": "island-13",
    "name": "",
    "nameAr": "",
    "areaM2": 240000.0,
@@ -241,7 +233,7 @@
    "north": 2768450.0
   },
   {
-   "id": "island-9",
+   "id": "island-8",
    "name": "",
    "nameAr": "",
    "areaM2": 230000.0,
@@ -249,7 +241,7 @@
    "north": 2723450.0
   },
   {
-   "id": "island-33",
+   "id": "island-32",
    "name": "",
    "nameAr": "",
    "areaM2": 230000.0,
@@ -257,7 +249,7 @@
    "north": 2810850.0
   },
   {
-   "id": "island-7",
+   "id": "island-6",
    "name": "",
    "nameAr": "",
    "areaM2": 190000.0,
@@ -265,7 +257,7 @@
    "north": 2721750.0
   },
   {
-   "id": "island-12",
+   "id": "island-11",
    "name": "",
    "nameAr": "",
    "areaM2": 190000.0,
@@ -273,7 +265,7 @@
    "north": 2761350.0
   },
   {
-   "id": "island-21",
+   "id": "island-20",
    "name": "",
    "nameAr": "",
    "areaM2": 190000.0,
@@ -281,7 +273,7 @@
    "north": 2806150.0
   },
   {
-   "id": "island-35",
+   "id": "island-34",
    "name": "",
    "nameAr": "",
    "areaM2": 180000.0,
@@ -289,7 +281,7 @@
    "north": 2811650.0
   },
   {
-   "id": "island-48",
+   "id": "island-47",
    "name": "",
    "nameAr": "",
    "areaM2": 180000.0,
@@ -297,7 +289,7 @@
    "north": 2840650.0
   },
   {
-   "id": "island-15",
+   "id": "island-14",
    "name": "",
    "nameAr": "",
    "areaM2": 170000.0,
@@ -305,7 +297,7 @@
    "north": 2772150.0
   },
   {
-   "id": "island-43",
+   "id": "island-42",
    "name": "",
    "nameAr": "",
    "areaM2": 170000.0,
@@ -313,7 +305,7 @@
    "north": 2835550.0
   },
   {
-   "id": "island-50",
+   "id": "island-49",
    "name": "",
    "nameAr": "",
    "areaM2": 150000.0,
@@ -321,7 +313,7 @@
    "north": 2850550.0
   },
   {
-   "id": "island-58",
+   "id": "island-57",
    "name": "",
    "nameAr": "",
    "areaM2": 150000.0,
@@ -329,7 +321,7 @@
    "north": 2867050.0
   },
   {
-   "id": "island-63",
+   "id": "island-62",
    "name": "",
    "nameAr": "",
    "areaM2": 150000.0,
@@ -337,7 +329,7 @@
    "north": 2868050.0
   },
   {
-   "id": "island-51",
+   "id": "island-50",
    "name": "",
    "nameAr": "",
    "areaM2": 140000.0,
@@ -345,7 +337,7 @@
    "north": 2850450.0
   },
   {
-   "id": "island-56",
+   "id": "island-55",
    "name": "",
    "nameAr": "",
    "areaM2": 130000.0,
@@ -353,7 +345,7 @@
    "north": 2864250.0
   },
   {
-   "id": "island-26",
+   "id": "island-25",
    "name": "",
    "nameAr": "",
    "areaM2": 90000.0,
@@ -361,7 +353,7 @@
    "north": 2806650.0
   },
   {
-   "id": "island-34",
+   "id": "island-33",
    "name": "",
    "nameAr": "",
    "areaM2": 90000.0,
@@ -369,7 +361,7 @@
    "north": 2811250.0
   },
   {
-   "id": "island-36",
+   "id": "island-35",
    "name": "",
    "nameAr": "",
    "areaM2": 90000.0,
@@ -377,7 +369,7 @@
    "north": 2811850.0
   },
   {
-   "id": "island-41",
+   "id": "island-40",
    "name": "",
    "nameAr": "",
    "areaM2": 90000.0,
@@ -393,7 +385,7 @@
    "north": 2717150.0
   },
   {
-   "id": "island-11",
+   "id": "island-10",
    "name": "",
    "nameAr": "",
    "areaM2": 80000.0,
@@ -401,7 +393,7 @@
    "north": 2728250.0
   },
   {
-   "id": "island-53",
+   "id": "island-52",
    "name": "",
    "nameAr": "",
    "areaM2": 80000.0,
@@ -409,7 +401,7 @@
    "north": 2863650.0
   },
   {
-   "id": "island-32",
+   "id": "island-31",
    "name": "",
    "nameAr": "",
    "areaM2": 70000.0,
@@ -417,7 +409,7 @@
    "north": 2810750.0
   },
   {
-   "id": "island-44",
+   "id": "island-43",
    "name": "",
    "nameAr": "",
    "areaM2": 70000.0,
@@ -425,7 +417,7 @@
    "north": 2836050.0
   },
   {
-   "id": "island-49",
+   "id": "island-48",
    "name": "",
    "nameAr": "",
    "areaM2": 70000.0,
@@ -433,7 +425,7 @@
    "north": 2847450.0
   },
   {
-   "id": "island-29",
+   "id": "island-28",
    "name": "",
    "nameAr": "",
    "areaM2": 60000.0,
@@ -441,7 +433,7 @@
    "north": 2809050.0
   },
   {
-   "id": "island-39",
+   "id": "island-38",
    "name": "",
    "nameAr": "",
    "areaM2": 50000.0,
@@ -449,7 +441,7 @@
    "north": 2818050.0
   },
   {
-   "id": "island-45",
+   "id": "island-44",
    "name": "",
    "nameAr": "",
    "areaM2": 50000.0,
@@ -457,7 +449,7 @@
    "north": 2836450.0
   },
   {
-   "id": "island-40",
+   "id": "island-39",
    "name": "",
    "nameAr": "",
    "areaM2": 40000.0,
@@ -465,7 +457,7 @@
    "north": 2818350.0
   },
   {
-   "id": "island-17",
+   "id": "island-16",
    "name": "",
    "nameAr": "",
    "areaM2": 30000.0,
@@ -473,7 +465,7 @@
    "north": 2798350.0
   },
   {
-   "id": "island-38",
+   "id": "island-37",
    "name": "",
    "nameAr": "",
    "areaM2": 30000.0,
@@ -481,7 +473,7 @@
    "north": 2812650.0
   },
   {
-   "id": "island-67",
+   "id": "island-66",
    "name": "",
    "nameAr": "",
    "areaM2": 30000.0,
@@ -489,7 +481,7 @@
    "north": 2891150.0
   },
   {
-   "id": "island-69",
+   "id": "island-68",
    "name": "",
    "nameAr": "",
    "areaM2": 30000.0,
@@ -505,7 +497,7 @@
    "north": 2716650.0
   },
   {
-   "id": "island-28",
+   "id": "island-27",
    "name": "",
    "nameAr": "",
    "areaM2": 20000.0,
@@ -513,7 +505,7 @@
    "north": 2808550.0
   },
   {
-   "id": "island-52",
+   "id": "island-51",
    "name": "",
    "nameAr": "",
    "areaM2": 20000.0,
@@ -521,7 +513,7 @@
    "north": 2850250.0
   },
   {
-   "id": "island-54",
+   "id": "island-53",
    "name": "",
    "nameAr": "",
    "areaM2": 20000.0,
@@ -529,7 +521,7 @@
    "north": 2863850.0
   },
   {
-   "id": "island-59",
+   "id": "island-58",
    "name": "",
    "nameAr": "",
    "areaM2": 20000.0,
@@ -537,7 +529,7 @@
    "north": 2867550.0
   },
   {
-   "id": "island-66",
+   "id": "island-65",
    "name": "",
    "nameAr": "",
    "areaM2": 20000.0,
@@ -1132,22 +1124,23 @@
   "SRTM 1 arc-second elevation (NASA/USGS, public domain)"
  ],
  "stats": {
-  "landCells": 1867792,
-  "landAreaKm2": 18677.92,
-  "landComponents": 69,
-  "islandFaces": 57,
-  "islandCount": 58,
-  "mainlandKm2": 114.18,
+  "landCells": 1150250,
+  "landAreaKm2": 11502.5,
+  "landComponents": 68,
+  "islandFaces": 56,
+  "islandCount": 57,
+  "mainlandKm2": 11418.13,
+  "largestIslandKm2": 70.7,
   "materialHistogram": {
-   "5": 1429509,
+   "5": 919497,
    "6": 4409,
    "7": 18249,
-   "8": 25849,
-   "9": 255174,
+   "8": 11854,
+   "9": 61942,
    "12": 30381,
    "13": 70297,
-   "15": 37621,
-   "16": 5069711
+   "15": 37677,
+   "16": 5786894
   },
   "roadsByClass": {
    "2": 1423,
