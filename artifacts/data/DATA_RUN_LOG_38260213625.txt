@@ -1,0 +1,133 @@
+Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages (26.2.1)
+Installing collected packages: urllib3, pyparsing, numpy, idna, click, charset_normalizer, certifi, attrs, shapely, scipy, requests, pyproj, cligj, click-plugins, affine, rasterio, osmium
+
+Successfully installed affine-3.0.1 attrs-26.1.0 certifi-2026.7.22 charset_normalizer-3.5.2 click-8.5.0 click-plugins-1.1.1.2 cligj-0.7.2 idna-3.20 numpy-2.4.6 osmium-4.2.0 pyparsing-3.3.3 pyproj-3.7.2 rasterio-1.4.4 requests-2.34.2 scipy-1.17.1 shapely-2.2.0 urllib3-2.8.0
+head_sha=dd70c811b657ac6d210adbc5ce88db155b6fa90b
+head_subject=merge evidence Co-authored-by: arena-agent <297053741+arena-agent@users.noreply.github.com>
+tool_build_world_sha256=d1f7080fd24b9d48b9987815f00fab6d8c25f11eb78155cd5dd0a1faee711a93
+tool_fetch_sources_sha256=51eb4b8f90b46a1801514f981ee12290ebb2173fda5cec5d62a67301c12094a9
+PASS  no unresolved function names in the compiler (found: [])
+PASS  EPSG:32639 round trip for Doha
+PASS  Doha projects to the documented grid reference
+PASS  coastline ribbon rasterises into a barrier ({'barrierCells': 238, 'seedCells': 2, 'area_0': np.float64(12.1), 'thickening': 0, 'islandComponents': 0})
+PASS  land seeds land inside the ring ({'barrierCells': 238, 'seedCells': 2, 'area_0': np.float64(12.1), 'thickening': 0, 'islandComponents': 0})
+PASS  derived land area 12.06 km2 is within the ring (15.48 km2 analytic)
+PASS  the ring centre is land
+PASS  the far corner (outside the ring) is not land
+PASS  terrain bundle magic is QTT1
+PASS  terrain header carries cols/rows/cell/little-endian reserved
+PASS  terrain payload length matches the documented layout
+PASS  terrain heights are int16 little-endian, row 0 first
+PASS  land mask follows the heights as one byte per cell
+PASS  string table magic is QTS1
+PASS  string table counts entries
+PASS  entries are length-prefixed UTF-8 in insertion order
+PASS  string indices are stable and start at 0
+PASS  all five mandated checkpoint groups are declared (['CENTRAL_AND_CAPITAL', 'ISLANDS_AND_WATER', 'NORTH_AND_NORTHEAST', 'SOUTH_AND_BORDER', 'WEST_AND_NORTHWEST'])
+PASS  checkpoint table covers the country (32 entries)
+PASS  road class table is rich enough (23 classes)
+PASS  road classes include the urban and motorway ends of the range
+PASS  road classes map to integer material/geometry ids
+
+WORLD SELF-TEST PASSED
+selftest_exit=0
+probe: https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf -> 206 size=512 redirect=
+probe: https://download.bbbike.org/osm/bbbike/Qatar/Qatar.osm.pbf -> 404 size=2236 redirect=
+probe: https://download.geofabrik.de/asia/gcc-states-latest.osm.pbf -> 307 size=270 redirect=https://download.geofabrik.de/asia/gcc-states-261011.osm.pbf
+probe: https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E051.hgt.gz -> 206 size=512 redirect=
+[1/2] SRTM 1 arc-second elevation tiles (public domain)
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N24/N24E050.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N24/N24E051.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N24/N24E052.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E050.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E051.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E052.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N26/N26E050.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N26/N26E051.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N26/N26E052.hgt.gz
+[2/2] OpenStreetMap Qatar extract
+  trying openstreetmap.fr: https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf
+  probe   http=206 bytes=64 magic=0000000e0a094f53
+  fetch   https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf
+  ok      qatar-latest.osm.pbf (24.5 MB)
+wrote /home/runner/work/temporary5/temporary5/data/geodata/SOURCES.json with 10 sources
+fetch_exit=0
+  parsing relations (boundaries)
+  boundary relations: 18 (admin levels 2/4/6)
+  parsing ways/nodes
+  ways visited: 410312
+  national boundary assembled from relation 305095 (Qatar)
+/home/runner/work/temporary5/temporary5/tools/build_world.py:1174: DeprecationWarning: The 'shapely.ops.transform()' function is deprecated. Use 'shapely.transform()' or 'shapely.transform_coordseq()' instead. See https://shapely.readthedocs.io/en/latest/manual.html#shapely.ops.transform for more details.
+  return shapely_transform(lambda x, y, z=None: FWD.transform(x, y), geom)
+== national boundary ==
+  part 0: 20,108.7 km2, rep point 51.2307,25.4473, bounds E 456,562..588,466
+  part 1: 1,646.5 km2, rep point 52.4103,25.6746, bounds E 618,669..664,394
+  part 2: 1,466.8 km2, rep point 52.2312,25.0270, bounds E 601,519..646,897
+== coastline ==
+  coastline ways: 378
+  merged pieces: 162
+  total vertices: 41,089
+  dangling endpoints stitched to the largest ring: 6
+    stitch 50.7378,25.6559 -> 50.7983,25.6225 (7.1 km)
+    stitch 50.7734,25.6468 -> 50.7983,25.6225 (3.7 km)
+    stitch 51.4559,24.5795 -> 51.4536,24.6384 (6.5 km)
+    stitch 50.7699,24.7185 -> 50.8139,24.7405 (5.1 km)
+    stitch 50.7845,25.6470 -> 50.7983,25.6225 (3.1 km)
+    stitch 50.7842,25.6472 -> 50.7983,25.6225 (3.1 km)
+== candidate faces (top 10 by area) ==
+  distinct line endpoints: 165, dangling (occur once): 6
+  sampled roads: 4000, buildings: 4000, mapped water polygons: 583
+  -- largest ring 0: 160 faces
+      20,091.1 km2 at 51.2294,25.4510  roads=3857 buildings=3981 waterPolys=580
+           3.7 km2 at 51.5512,25.3685  roads=  63 buildings=   4 waterPolys=  1
+           2.8 km2 at 50.8108,25.6749  roads=   0 buildings=   0 waterPolys=  0
+           2.4 km2 at 51.5215,25.3740  roads=  61 buildings=  12 waterPolys=  0
+           1.6 km2 at 52.4109,25.6732  roads=   0 buildings=   0 waterPolys=  0
+           1.5 km2 at 51.5279,25.4315  roads=   0 buildings=   0 waterPolys=  1
+           1.3 km2 at 51.5760,25.3442  roads=   0 buildings=   0 waterPolys=  0
+           0.9 km2 at 51.5705,25.4025  roads=   0 buildings=   0 waterPolys=  0
+           0.7 km2 at 51.2184,26.1757  roads=   0 buildings=   0 waterPolys=  0
+           0.7 km2 at 51.5249,25.4165  roads=   0 buildings=   0 waterPolys=  0
+  -- largest ring 1: 160 faces
+       1,645.0 km2 at 52.5276,25.6736  roads=   0 buildings=   0 waterPolys=  0
+           3.7 km2 at 51.5512,25.3685  roads=  63 buildings=   4 waterPolys=  1
+           2.8 km2 at 50.8108,25.6749  roads=   0 buildings=   0 waterPolys=  0
+           2.4 km2 at 51.5215,25.3740  roads=  61 buildings=  12 waterPolys=  0
+           1.6 km2 at 52.4109,25.6732  roads=   0 buildings=   0 waterPolys=  0
+           1.5 km2 at 51.5279,25.4315  roads=   0 buildings=   0 waterPolys=  1
+           1.3 km2 at 51.5760,25.3442  roads=   0 buildings=   0 waterPolys=  0
+           0.9 km2 at 51.5705,25.4025  roads=   0 buildings=   0 waterPolys=  0
+           0.7 km2 at 51.2184,26.1757  roads=   0 buildings=   0 waterPolys=  0
+           0.7 km2 at 51.5249,25.4165  roads=   0 buildings=   0 waterPolys=  0
+  -- largest ring 2: 160 faces
+       1,466.6 km2 at 52.1171,25.0327  roads=   0 buildings=   0 waterPolys=  0
+           3.7 km2 at 51.5512,25.3685  roads=  63 buildings=   4 waterPolys=  1
+           2.8 km2 at 50.8108,25.6749  roads=   0 buildings=   0 waterPolys=  0
+           2.4 km2 at 51.5215,25.3740  roads=  61 buildings=  12 waterPolys=  0
+           1.6 km2 at 52.4109,25.6732  roads=   0 buildings=   0 waterPolys=  0
+           1.5 km2 at 51.5279,25.4315  roads=   0 buildings=   0 waterPolys=  1
+           1.3 km2 at 51.5760,25.3442  roads=   0 buildings=   0 waterPolys=  0
+           0.9 km2 at 51.5705,25.4025  roads=   0 buildings=   0 waterPolys=  0
+           0.7 km2 at 51.2184,26.1757  roads=   0 buildings=   0 waterPolys=  0
+           0.7 km2 at 51.5249,25.4165  roads=   0 buildings=   0 waterPolys=  0
+[1] OpenStreetMap extraction
+  parsing relations (boundaries)
+  boundary relations: 18 (admin levels 2/4/6)
+  parsing ways/nodes
+  ways visited: 410312
+  national boundary assembled from relation 305095 (Qatar)
+/home/runner/work/temporary5/temporary5/tools/build_world.py:1174: DeprecationWarning: The 'shapely.ops.transform()' function is deprecated. Use 'shapely.transform()' or 'shapely.transform_coordseq()' instead. See https://shapely.readthedocs.io/en/latest/manual.html#shapely.ops.transform for more details.
+  return shapely_transform(lambda x, y, z=None: FWD.transform(x, y), geom)
+  national AOI: MultiPolygon, area 23222.0 km2, valid
+  stats: {"coastline_ways": 378, "roads": 179943, "buildings": 186993, "landuse": 9103, "water_areas": 1170, "places": 159, "islands": 3, "aeroways": 1158, "named_areas": 1678}
+  municipalities: 8
+  coastline ways for the land derivation: 378; 2 tagged island polygons
+  world grid: origin=(431000,2681000) 259x268 km
+  DEM mosaic: 9 tiles, 10801x10801 samples
+FATAL: land derivation did not converge: {'barrierCells': 32895, 'seedCells': 277242, 'area_0': np.float64(69074.3), 'area_1': np.float64(68823.0), 'area_2': np.float64(68655.7), 'area_3': np.float64(68499.4), 'area_4': np.float64(68361.9), 'area_5': np.float64(68233.6), 'area_6': np.float64(68105.7)}
+compile_exit=1
+FAIL: world manifest missing - the APK would not contain a country
+total 8
+drwxr-xr-x 2 runner runner 4096 Oct 12 14:04 .
+drwxr-xr-x 5 runner runner 4096 Oct 12 14:04 ..
+4.0K	android/assets/world/
