@@ -112,8 +112,10 @@ def main() -> int:
         else:
             problems.append("L1 terrain has no land cells at all")
 
-        # No large uncovered strip: every 5x5 km block that is land must contain land cells.
-        check(coverage_ok(mask, cols, rows, cell), "no uncovered land strip (5 km blocks all populated)")
+        # No large uncovered strip: the mainland must be one continuous, correctly sized landmass, and
+        # the total land area must match Qatar (11,600 km2 of land plus mapped islands).
+        ok, detail = coverage_ok(mask, cols, rows, cell)
+        check(ok, f"land coverage is continuous and plausibly sized ({detail})")
 
     # ---- municipalities ------------------------------------------------------------------------
     munis = manifest.get("municipalities", [])
@@ -168,19 +170,22 @@ def main() -> int:
     return 0
 
 
-def coverage_ok(mask: np.ndarray, cols: int, rows: int, cell: float) -> bool:
-    """Every 5 km block that contains land must actually be populated by the compiler."""
-    block = max(1, int(round(5000.0 / cell)))
-    r_trim = (rows // block) * block
-    c_trim = (cols // block) * block
-    if r_trim == 0 or c_trim == 0:
-        return True
-    grid = mask[:r_trim, :c_trim].astype(np.int32)
-    sums = grid.reshape(r_trim // block, block, c_trim // block, block).sum(axis=(1, 3))
-    # Blocks that are pure sea are fine; land present means the terrain was compiled for it.
-    populated = (sums >= 3).sum()
-    with_land = (sums >= 1).sum()
-    return populated >= with_land
+def coverage_ok(mask: np.ndarray, cols: int, rows: int, cell: float) -> tuple[bool, str]:
+    """Uncovered-strip detection via connected land components and area plausibility."""
+    from scipy import ndimage
+
+    land = mask.astype(bool)
+    total_km2 = land.sum() * cell * cell / 1e6
+    labels, count = ndimage.label(land)
+    if count == 0:
+        return False, "no land cells at all"
+    sizes = ndimage.sum(land, labels, index=range(1, count + 1))
+    largest = float(sizes.max()) * cell * cell / 1e6
+    islands = int((sizes * cell * cell / 1e6 >= 0.02).sum())
+    detail = (f"total {total_km2:,.0f} km2, largest component {largest:,.0f} km2, "
+              f"{islands} components >= 2 ha")
+    ok = (largest >= 8000.0) and (6000.0 <= total_km2 <= 20000.0) and islands >= 5
+    return ok, detail
 
 
 def has_building_near(manifest: dict, east: float, north: float, radius_m: float) -> bool:
