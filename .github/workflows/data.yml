@@ -127,23 +127,31 @@ jobs:
           set -u
           REPO="${GITHUB_REPOSITORY}"
           BRANCH="${GITHUB_REF_NAME}"
+          # Per-run filenames never collide with the APK workflow's commits or with other runs.
+          # A small pointer file is retried on conflict.
           commit_file() {
-            local path="$1"
-            [ -f "$path" ] || { echo "skip (missing): $path"; return 0; }
-            local sha
-            sha=$(gh api "repos/${REPO}/contents/${path}?ref=${BRANCH}" --jq .sha 2>/dev/null || true)
-            local args=(-X PUT "repos/${REPO}/contents/${path}" -f message="World data evidence [skip ci]" -f branch="${BRANCH}" -f content="$(base64 -w0 "$path")")
-            if [ -n "$sha" ]; then args+=(-f sha="$sha"); fi
-            if gh api "${args[@]}" >/dev/null 2>&1; then echo "committed via API: $path"; else echo "API commit failed: $path"; fi
+            local src="$1" dest="$2" attempt
+            [ -f "$src" ] || { echo "skip (missing): $src"; return 0; }
+            for attempt in 1 2 3 4; do
+              local sha
+              sha=$(gh api "repos/${REPO}/contents/${dest}?ref=${BRANCH}" --jq .sha 2>/dev/null || true)
+              local args=(-X PUT "repos/${REPO}/contents/${dest}" -f message="World data evidence [skip ci]" -f branch="${BRANCH}" -f content="$(base64 -w0 "$src")")
+              if [ -n "$sha" ]; then args+=(-f sha="$sha"); fi
+              if gh api "${args[@]}" >/dev/null 2>&1; then echo "published $dest (attempt $attempt)"; return 0; fi
+              sleep 3
+            done
+            echo "WARNING: could not publish $dest"
+            return 0
           }
-          commit_file artifacts/DATA_STATUS.txt
-          commit_file artifacts/DATA_RUN_LOG.txt
-          commit_file data/geodata/SOURCES.json
-          commit_file data/geodata/QATAR_NATIONAL_AOI.geojson
-          commit_file data/geodata/QATAR_MUNICIPALITIES.geojson
-          commit_file data/geodata/QATAR_ISLANDS_MANIFEST.json
-          commit_file data/geodata/QATAR_BOUNDARY_REPORT.md
-          commit_file data/geodata/SHA256SUMS
+          commit_file artifacts/DATA_STATUS.txt "artifacts/data/DATA_STATUS_${GITHUB_RUN_ID}.txt"
+          commit_file artifacts/DATA_STATUS.txt "artifacts/data/DATA_LATEST.txt"
+          commit_file artifacts/DATA_RUN_LOG.txt "artifacts/data/DATA_RUN_LOG_${GITHUB_RUN_ID}.txt"
+          commit_file data/geodata/SOURCES.json "data/geodata/SOURCES.json"
+          commit_file data/geodata/QATAR_NATIONAL_AOI.geojson "data/geodata/QATAR_NATIONAL_AOI.geojson"
+          commit_file data/geodata/QATAR_MUNICIPALITIES.geojson "data/geodata/QATAR_MUNICIPALITIES.geojson"
+          commit_file data/geodata/QATAR_ISLANDS_MANIFEST.json "data/geodata/QATAR_ISLANDS_MANIFEST.json"
+          commit_file data/geodata/QATAR_BOUNDARY_REPORT.md "data/geodata/QATAR_BOUNDARY_REPORT.md"
+          commit_file data/geodata/SHA256SUMS "data/geodata/SHA256SUMS"
 
       - name: Dispatch the APK build with this data run
         if: always()
