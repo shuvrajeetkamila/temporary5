@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe toolchain availability
+        run: |
+          echo "runner: $RUNNER_OS $RUNNER_ARCH"
+          uname -a
+          java -version 2>&1 || echo "no java"
+          python3 --version
+          df -h /
+          echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-unset}"
+          ls "${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}" 2>&1 | head -20 || true
+      - name: Check network reachability of build hosts
+        run: |
+          for h in services.gradle.org dl.google.com repo1.maven.org registry.npmjs.org pypi.org; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$h/" || echo FAIL)
+            echo "$h -> $code"
+          done
