@@ -1,0 +1,74 @@
+=== world bundle self-sufficiency ===
+--- fetch sources ---
+[1/2] SRTM 1 arc-second elevation tiles (public domain)
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N24/N24E050.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N24/N24E051.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N24/N24E052.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E050.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E051.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E052.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N26/N26E050.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N26/N26E051.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N26/N26E052.hgt.gz
+[2/2] OpenStreetMap Qatar extract
+  trying openstreetmap.fr: https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf
+  probe   http=206 bytes=64 magic=0000000e0a094f53
+  fetch   https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf
+  ok      qatar-latest.osm.pbf (24.5 MB)
+wrote /home/runner/work/temporary5/temporary5/data/geodata/SOURCES.json with 10 sources
+fetch_exit=0
+--- compile ---
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(543853.1393751388, 2813711.7889771564), (543852.3092827522, 2813784.2202447425)] at index 179921 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(543852.2146619648, 2813794.7068615495), (543852.0798823633, 2813808.2497269996), (543851.7959229456, 2813836.66427232)] at index 179922 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(549641.759402931, 2788530.4091387256), (549619.9430480555, 2788562.3761831936)] at index 179923 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(549607.4495635802, 2788505.0910725323), (549641.759402931, 2788530.4091387256), (549656.6487395936, 2788541.393327627)] at index 179924 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(548807.3146248766, 2789335.6934179314), (548802.4560057683, 2789344.9887947747), (548800.4360600358, 2789346.4543035594), (548798.1259070084, 2789347.3872351106), (548795.1428847286, 2789347.752990288), (548792.1832001797, 2789347.232943544), (548756.7275849608, 2789326.9513492314), (548755.804795685, 2789325.8517429293), (548755.2454390752, 2789324.5319732297), (548755.1408118709, 2789322.815191394), (548755.6705181532, 2789321.178207932), (548763.0886010075, 2789308.846794)] at index 179925 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(548815.186359901, 2789384.7666867673), (548806.2689406172, 2789374.29216163), (548804.9718949563, 2789373.6230729595), (548803.5731997166, 2789373.208310579), (548800.9341870233, 2789373.1545077316), (548798.4329672891, 2789373.9981620996), (548772.1393867874, 2789397.0029523727), (548769.7692439903, 2789397.8138631755), (548767.2802569681, 2789398.059593738), (548764.9241347633, 2789397.774271116), (548762.6805713219, 2789397.002116473), (548760.6704044673, 2789395.7546383603), (548744.2207727093, 2789384.5443314193), (548742.3383655688, 2789384.1832025154), (548740.4243043057, 2789384.2206089464), (548738.5491012617, 2789384.656804449), (548736.1369923175, 2789385.9326605895), (548734.216118212, 2789387.863626009), (548727.1440965043, 2789399.2218252583)] at index 179926 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(561879.5223026634, 2794581.5944794333), (561931.9025452067, 2794604.070773734), (562028.5950615385, 2794645.00035312)] at index 179927 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(562008.5034456612, 2794930.8916532975), (561971.0642049802, 2795023.3531153263), (561950.1063395293, 2795074.639934173)] at index 179928 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(545447.551250146, 2812842.1519552274), (545447.7651110663, 2812829.484194744)] at index 179929 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(545460.6629113122, 2812833.547701426), (545447.7651110663, 2812829.484194744)] at index 179930 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(544243.4177328047, 2812186.8528855788), (544248.2753731406, 2812186.702794652), (544253.0749776788, 2812185.8548632027), (544257.705857071, 2812184.3308737464), (544262.0773244612, 2812182.1858961005), (544266.108858478, 2812179.441812043), (544269.6996792444, 2812176.164731746), (544272.8394750105, 2812172.4321376043)] at index 179931 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(544272.8394750105, 2812172.4321376043), (544271.8619600909, 2812176.1054221797), (544270.2014347231, 2812179.5328294616), (544267.928730377, 2812182.581707464), (544265.1045126006, 2812185.152592187), (544261.8497467291, 2812187.1572923665), (544258.2753417351, 2812188.5075835157), (544254.512172455, 2812189.159602196), (544250.6910405471, 2812189.0916322498), (544246.9426380692, 2812188.3151784856), (544243.4177328047, 2812186.8528855788)] at index 179932 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(544115.5965874515, 2812127.751891405), (544190.0712521739, 2812161.916041879), (544243.4177328047, 2812186.8528855788)] at index 179933 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(544105.4361466998, 2812150.275867209), (544095.6110016003, 2812144.219420439), (544093.7229247559, 2812143.4601967065), (544091.6923519226, 2812143.220974632), (544089.6800721564, 2812143.535504003), (544087.9680937023, 2812144.2718254505), (544086.4961526995, 2812145.4075932344), (544085.3549725717, 2812146.876662394), (544069.318562989, 2812182.62565234)] at index 179934 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(545387.4778076131, 2812093.146289893), (545387.4278452791, 2812096.025319172), (545386.8450556969, 2812098.8582510366), (545385.7399073313, 2812101.523308719), (545384.1528872745, 2812103.943112387)] at index 179935 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(545422.7257367338, 2812170.206592105), (545421.4343196, 2812112.031336244), (545421.4005041546, 2812110.1375951176), (545420.9038802512, 2812108.3087305995), (545419.9742414097, 2812106.655581983), (545418.3405207469, 2812105.044345873), (545416.3127727964, 2812103.974394633), (545414.051521658, 2812103.557010065), (545384.1528872745, 2812103.943112387), (545351.196395325, 2812104.5514977816), (545348.6340936109, 2812103.9448516364), (545346.3456281449, 2812102.6525532748), (545344.7119731444, 2812101.019178849), (545343.53208014, 2812099.021901133), (545339.6894417036, 2812093.4055556245)] at index 179936 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(545232.2797053611, 2812170.537812606), (545244.7193071005, 2812170.52437867), (545256.6158788173, 2812170.509124906)] at index 179937 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(545313.9476233326, 2812083.7951095584), (545289.4178785173, 2812093.4572818787)] at index 179938 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(555243.5569419565, 2798051.2742586043), (555245.5780110891, 2798051.8583694086), (555249.2047285638, 2798048.7614732543), (555255.3463370649, 2798048.576212718), (555264.7511318877, 2798052.9445797196)] at index 179939 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(555345.1274558315, 2798111.455757872), (555348.0355667794, 2798111.755602655), (555352.9579066415, 2798109.394919121), (555358.4121346634, 2798109.893463547), (555363.4778750598, 2798111.8410865264)] at index 179940 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(555390.2841874348, 2798136.8339407216), (555388.8984531517, 2798128.622555166), (555387.3791681257, 2798121.0639770012), (555384.1155824967, 2798111.715356634), (555375.5449921098, 2798102.7879146356)] at index 179941 will not be rasterized.
+  warnings.warn(
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/rasterio/features.py:336: ShapeSkipWarning: Invalid or empty shape [(553368.0715933633, 2797140.407201021), (553370.0447699057, 2797140.4260741943), (553371.4941763817, 2797140.5093198395), (553374.0904412495, 2797138.26053438), (553394.1528593951, 2797138.849251035), (553396.0247485904, 2797139.0227601975)] at index 179942 will not be rasterized.
+  warnings.warn(
+FATAL: land derivation did not converge: {'barrierCells': 0, 'seedCells': 2706, 'area_0': np.float64(69412.0), 'area_1': np.float64(69412.0), 'area_2': np.float64(69412.0), 'area_3': np.float64(69412.0), 'area_4': np.float64(69412.0), 'area_5': np.float64(69412.0)}
+compile_exit=1
+--- validate ---
+FAIL: world manifest missing - the APK would not contain a country
+validate_exit=1
+=== bundle contents ===
+total 8
+drwxr-xr-x 2 runner runner 4096 Oct 12 13:52 .
+drwxr-xr-x 5 runner runner 4096 Oct 12 13:52 ..
+4.0K	android/assets/world/
