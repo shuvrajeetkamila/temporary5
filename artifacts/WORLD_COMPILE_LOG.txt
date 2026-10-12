@@ -72,3 +72,46 @@ total 8
 drwxr-xr-x 2 runner runner 4096 Oct 12 13:52 .
 drwxr-xr-x 5 runner runner 4096 Oct 12 13:52 ..
 4.0K	android/assets/world/
+=== world bundle self-sufficiency ===
+--- fetch sources ---
+[1/2] SRTM 1 arc-second elevation tiles (public domain)
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N24/N24E050.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N24/N24E051.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N24/N24E052.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E050.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E051.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E052.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N26/N26E050.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N26/N26E051.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N26/N26E052.hgt.gz
+[2/2] OpenStreetMap Qatar extract
+  trying openstreetmap.fr: https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf
+  probe   http=206 bytes=64 magic=0000000e0a094f53
+  fetch   https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf
+  ok      qatar-latest.osm.pbf (24.5 MB)
+wrote /home/runner/work/temporary5/temporary5/data/geodata/SOURCES.json with 10 sources
+fetch_exit=0
+--- compile ---
+[1] OpenStreetMap extraction
+  parsing relations (boundaries)
+  boundary relations: 18 (admin levels 2/4/6)
+  parsing ways/nodes
+  ways visited: 410312
+  national boundary assembled from relation 305095 (Qatar)
+Traceback (most recent call last):
+  File "/home/runner/work/temporary5/temporary5/tools/build_world.py", line 1603, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/runner/work/temporary5/temporary5/tools/build_world.py", line 711, in main
+    national = project_geometry(national_wgs)
+               ^^^^^^^^^^^^^^^^
+NameError: name 'project_geometry' is not defined
+compile_exit=1
+--- validate ---
+FAIL: world manifest missing - the APK would not contain a country
+validate_exit=1
+=== bundle contents ===
+total 8
+drwxr-xr-x 2 runner runner 4096 Oct 12 13:59 .
+drwxr-xr-x 5 runner runner 4096 Oct 12 13:59 ..
+4.0K	android/assets/world/
