@@ -42,6 +42,16 @@ jobs:
           python -m pip install --upgrade pip 2>&1 | tail -1 | tee -a run.log
           python -m pip install -r tools/requirements.txt 2>&1 | tail -3 | tee -a run.log
 
+      - name: Record provenance of this run
+        if: always()
+        run: |
+          {
+            echo "head_sha=$(git rev-parse HEAD)"
+            echo "head_subject=$(git log -1 --format=%s)"
+            echo "tool_build_world_sha256=$(sha256sum tools/build_world.py | cut -d' ' -f1)"
+            echo "tool_fetch_sources_sha256=$(sha256sum tools/fetch_sources.py | cut -d' ' -f1)"
+          } | tee -a run.log
+
       - name: Probe source hosts
         run: |
           for url in "https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf" \
@@ -95,6 +105,7 @@ jobs:
         run: |
           mkdir -p artifacts
           cp run.log artifacts/DATA_RUN_LOG.txt 2>/dev/null || echo "no run.log" > artifacts/DATA_RUN_LOG.txt
+          { echo "=== full run log ==="; cat artifacts/DATA_RUN_LOG.txt; } >> artifacts/DATA_STATUS.txt
           if grep -q "WORLD_VALIDATION=PASSED" run.log 2>/dev/null; then
             echo "status=PASSED" > artifacts/DATA_STATUS.txt
           else

@@ -43,6 +43,20 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: tools/requirements.txt
+
+      # The source extracts are immutable inputs pinned by the manifest (SRTM tiles and a dated OSM
+      # extract are never re-generated), so caching them saves ~30 MB of download per run.
+      - name: Cache raw geodata sources
+        uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: world-raw-sources-${{ hashFiles('tools/fetch_sources.py') }}-v1
+
       - name: Restore compiled world bundle from the data run
         if: github.event_name == 'workflow_dispatch' && inputs.data_run_id != ''
         uses: actions/download-artifact@v4
@@ -51,6 +65,30 @@ jobs:
           run-id: ${{ inputs.data_run_id }}
           github-token: ${{ github.token }}
           path: .
+
+      - name: Compile the country bundle (only when it is absent)
+        if: always()
+        run: |
+          set +e
+          echo "=== world bundle self-sufficiency ==="
+          if [ -f android/assets/world/manifest.json ]; then
+            echo "bundle already present: $(du -sh android/assets/world | cut -f1)"
+            exit 0
+          fi
+          python3 -m pip install --quiet --upgrade pip
+          python3 -m pip install --quiet -r tools/requirements.txt
+          echo "--- fetch sources ---"
+          python3 tools/fetch_sources.py 2>&1 | tail -25
+          echo "fetch_exit=${PIPESTATUS[0]}"
+          echo "--- compile ---"
+          python3 tools/build_world.py --stage all 2>&1 | tail -45
+          echo "compile_exit=${PIPESTATUS[0]}"
+          echo "--- validate ---"
+          python3 tools/validate_world.py 2>&1 | tail -12
+          echo "validate_exit=${PIPESTATUS[0]}"
+          echo "=== bundle contents ==="
+          ls -la android/assets/world/ 2>&1 | head -20
+          du -sh android/assets/world/ 2>&1
 
       - name: Confirm world bundle present (packaged-country startup depends on it)
         if: always()
@@ -166,6 +204,9 @@ jobs:
           git config user.name "qatar-ci"
           git config user.email "ci@users.noreply.github.com"
           git add -A artifacts/ || true
+          # The compiled country bundle is a build product of this repository that the APK must
+          # contain, so it travels with the evidence commit.
+          git add android/assets/world data/geodata || true
           git commit -m "CI evidence for ${GITHUB_SHA} [skip ci]" || echo "no evidence changes"
           for i in 1 2 3; do
             git fetch origin "${GITHUB_REF_NAME}" || true
