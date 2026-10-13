@@ -74,10 +74,12 @@ final class MeshersTest {
         MeshData land = mesher.mesh(0, 0, 1600, 1600, true);
         assertFalse(land.isEmpty(), "the land mesh has geometry");
 
-        // The fixture's eastern third is water, so some cells are deliberately skipped.
-        int waterCells = 5 * 16; // columns 11..15 of every row
+        // Columns 0..10 are land and 11..15 are water. A cell is drawn only when all four of its
+        // corners are land, so 10 cell-columns x 15 cell-rows = 150 land cells, two triangles each.
+        int waterCells = 5 * 16;
         int expectedCells = 16 * 16 - waterCells;
-        assertTrue(land.triangleCount() > 300, "a 1.6 km square at 100 m cells is a few hundred triangles");
+        assertEquals(300, land.triangleCount(),
+                "land is 10 x 15 cells of two triangles, water cells are skipped");
         assertTrue(land.triangleCount() <= expectedCells * 2,
                 "no more triangles than land cells allow: " + land.triangleCount());
 
@@ -118,8 +120,14 @@ final class MeshersTest {
         assertFalse(chunkB.isEmpty());
         float[] boundsA = chunkA.bounds();
         float[] boundsB = chunkB.bounds();
-        assertTrue(boundsA[3] <= 520.0f, "chunk A stays inside its rectangle");
-        assertTrue(boundsB[0] >= 480.0f, "chunk B starts where chunk A ends (overlap is bounded)");
+        // Each chunk carries one cell of margin so its edge is continuous with its neighbour: it must
+        // cover its own rectangle (not fall short, which would leave a visible hole) and must not
+        // extend beyond one extra cell.
+        assertTrue(boundsA[0] <= 0.0f && boundsA[3] >= 500.0f,
+                "chunk A covers its own rectangle: " + java.util.Arrays.toString(boundsA));
+        assertTrue(boundsA[3] <= 700.0f, "chunk A does not extend more than a cell past its edge");
+        assertTrue(boundsB[0] <= 500.0f, "chunk B starts at or before its own rectangle");
+        assertTrue(boundsB[3] >= 1000.0f, "chunk B covers its rectangle");
     }
 
     @Test

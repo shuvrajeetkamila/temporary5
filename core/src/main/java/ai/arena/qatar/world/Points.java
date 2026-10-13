@@ -99,7 +99,9 @@ public final class Points {
         // Widen the search box until something turns up: a spawn point may be many kilometres away
         // in the open desert, but scanning the whole country every frame would be absurd.
         double[] best = {-1, Double.MAX_VALUE};
-        double radius = Math.max(cellHint(), maxRangeM);
+        // Start with a sensible box, but never search further than the caller allows: the widening is
+        // about not scanning the country for a nearby point, not about exceeding the stated range.
+        double radius = Math.min(Math.max(cellHint(), 100.0), maxRangeM);
         for (int attempt = 0; attempt < 12; attempt++) {
             final double searchRadius = radius;
             index.query(east - searchRadius, north - searchRadius, east + searchRadius,
@@ -120,8 +122,8 @@ public final class Points {
                 return (int) best[0];
             }
             radius *= 4;
-            if (radius > 400_000) {
-                break;
+            if (radius > maxRangeM) {
+                break;                      // nothing within range can appear further out
             }
         }
         return best[0] >= 0 ? (int) best[0] : -1;

@@ -102,7 +102,14 @@ public final class FeatureIndex {
         return originNorth;
     }
 
-    /** Visits every indexed feature whose bounding box overlaps the query rectangle. */
+    /**
+     * Visits every indexed feature whose bounding box overlaps the query rectangle.
+     *
+     * <p>A feature that spans several cells is indexed in each of them, so a large query can report the
+     * same feature more than once. That is the right trade for the per-frame callers (they want a short
+     * candidate list fast and do their own precise test), and {@link #collect} deduplicates for callers
+     * that need each feature exactly once.
+     */
     public void query(double minEast, double minNorth, double maxEast, double maxNorth, Visitor visitor) {
         int c0 = column(minEast);
         int c1 = column(maxEast);
@@ -121,11 +128,14 @@ public final class FeatureIndex {
         }
     }
 
-    /** Convenience for tests and tools: the candidate id list for a rectangle. */
+    /** Convenience for tests and tools: the candidate id list for a rectangle, each id once. */
     public int[] collect(double minEast, double minNorth, double maxEast, double maxNorth) {
         java.util.ArrayList<Integer> found = new java.util.ArrayList<>();
+        java.util.HashSet<Integer> seen = new java.util.HashSet<>();
         query(minEast, minNorth, maxEast, maxNorth, id -> {
-            found.add(id);
+            if (seen.add(id)) {
+                found.add(id);
+            }
             return true;
         });
         int[] out = new int[found.size()];
