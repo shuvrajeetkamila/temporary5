@@ -77,7 +77,7 @@
   "strings": {
     "file": "strings.bin.gz",
     "count": 16780,
-    "sha256": "56ab4efe0af99e2991484e4e665656aa86a0dba092f89eb847450b5718e996cd"
+    "sha256": "a5c38e9d380e633c65d5787d8c0a69555dc007dff789de96eaf9a875778ed548"
   },
   "islands": [
     {
@@ -1172,12 +1172,12 @@
     "landusePolygons": 5784,
     "waterPolygons": 1130,
     "barriers": 421,
-    "pois": 2254,
+    "pois": 784,
     "spawnPoints": {
-      "car": 59,
-      "helicopter": 0,
-      "boat": 43,
-      "aeroplane": 1916
+      "car": 279,
+      "helicopter": 6,
+      "boat": 51,
+      "aeroplane": 30
     }
   },
   "gameBundles": {
@@ -1203,8 +1203,8 @@
     },
     "pois": {
       "file": "pois.bin.gz",
-      "records": 2254,
-      "sha256": "6456d43d523049d4c2751db31fb4f69cd61796d0ebb86af01ec957a60f0b0036"
+      "records": 784,
+      "sha256": "3ecec74a0d48e9281726bd946d96821d0099a64c1454bb1e683c30fc68abfda8"
     }
   },
   "terrain_l0": {
@@ -1221,6 +1221,6 @@
     "2": 9,
     "3": 6
   },
-  "generatedUtc": "2026-10-13T15:10:11Z",
-  "gameCompilerSha256": "cd62a8318f40b02840f82fb2a4e0b035289e0509d2c8f9363fa9b6fdf2d84be0"
+  "generatedUtc": "2026-10-13T15:42:06Z",
+  "gameCompilerSha256": "97c62d01cf7c1560919d8fb35ef589ff9b19ff1e752c60300831bcb04690860e"
 }
