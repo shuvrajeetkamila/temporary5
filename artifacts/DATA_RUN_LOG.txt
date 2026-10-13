@@ -2,8 +2,8 @@ Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.11.17/x64/li
 Installing collected packages: urllib3, pyparsing, numpy, idna, click, charset_normalizer, certifi, attrs, shapely, scipy, requests, pyproj, cligj, click-plugins, affine, rasterio, osmium
 
 Successfully installed affine-3.0.1 attrs-26.1.0 certifi-2026.7.22 charset_normalizer-3.5.2 click-8.5.0 click-plugins-1.1.1.2 cligj-0.7.2 idna-3.20 numpy-2.4.6 osmium-4.2.0 pyparsing-3.3.3 pyproj-3.7.2 rasterio-1.4.4 requests-2.34.2 scipy-1.17.1 shapely-2.2.0 urllib3-2.8.0
-head_sha=d86113733ed0f909cbb6443fda0adc5fc0f95474
-head_subject=New game: compile the real country into 3D geometry
+head_sha=2e00622367eaa08d2766df2f0eb2796ef6522712
+head_subject=Draw the country: chunk streaming, the one GL class, the map raster and teleport
 tool_build_world_sha256=8bd9968bdc2562c8dc73fbb807688a4493d5a7abafe2e6493717b9db099d51fe
 tool_fetch_sources_sha256=5be8f297bdf6015d5429d22ce04a9726daa0fd3166baf64ac2eb83d2f8671270
 PASS  no unresolved function names in the compiler (found: [])
@@ -37,7 +37,7 @@ PASS  road classes map to integer material/geometry ids
 WORLD SELF-TEST PASSED
 selftest_exit=0
 probe: https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf -> 206 size=512 redirect=
-probe: https://download.bbbike.org/osm/bbbike/Qatar/Qatar.osm.pbf -> 000 size=0 redirect=CURLFAIL
+probe: https://download.bbbike.org/osm/bbbike/Qatar/Qatar.osm.pbf -> 404 size=2236 redirect=
 probe: https://download.geofabrik.de/asia/gcc-states-latest.osm.pbf -> 307 size=270 redirect=https://download.geofabrik.de/asia/gcc-states-261012.osm.pbf
 probe: https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E051.hgt.gz -> 206 size=512 redirect=
 [1/2] SRTM 1 arc-second elevation tiles (public domain)
@@ -218,8 +218,24 @@ PASS  OpenStreetMap attribution present in the manifest
 WORLD COVERAGE VALIDATION PASSED
 WORLD_VALIDATION=PASSED
 == game world: stage 2 ==
-stage 1 manifest missing; run tools/build_world.py first
-game_compile_exit=2
+  parsing relations (boundaries)
+  boundary relations: 18 (admin levels 2/4/6)
+  parsing ways/nodes
+  ways visited: 410293
+  national boundary assembled from relation 305095 (Qatar)
+  packing buildings (real footprints)
+Traceback (most recent call last):
+  File "/home/runner/work/temporary5/temporary5/tools/game_world.py", line 665, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/runner/work/temporary5/temporary5/tools/game_world.py", line 564, in main
+    buildings_payload, building_stats = pack_buildings(build_buildings(data, strings), strings)
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/temporary5/temporary5/tools/game_world.py", line 411, in build_buildings
+    for feature in data.buildings:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'tuple' object has no attribute 'buildings'
+game_compile_exit=1
 PASS  material_l1.bin.gz digest matches the manifest
 PASS  terrain_l1.bin.gz digest matches the manifest
 PASS  attribution is present
@@ -230,15 +246,15 @@ PASS  no undefined names in tools/ (0 found)
 GAME WORLD CONTRACTS PASSED
 missing assets/world/manifest.json
 total 11940
-drwxr-xr-x 2 runner runner    4096 Oct 13 12:54 .
-drwxr-xr-x 5 runner runner    4096 Oct 13 12:54 ..
--rw-r--r-- 1 runner runner      65 Oct 13 13:02 COMPILER_SHA256
--rw-r--r-- 1 runner runner 2112817 Oct 13 13:02 buildings.bin.gz
--rw-r--r-- 1 runner runner  125625 Oct 13 13:02 coast.bin.gz
--rw-r--r-- 1 runner runner   21430 Oct 13 13:02 manifest.json
--rw-r--r-- 1 runner runner   87483 Oct 13 13:02 material_l1.bin.gz
--rw-r--r-- 1 runner runner 8763013 Oct 13 13:02 roads.bin.gz
--rw-r--r-- 1 runner runner  106004 Oct 13 13:02 strings.bin.gz
--rw-r--r-- 1 runner runner  103521 Oct 13 13:02 terrain_l0.bin.gz
--rw-r--r-- 1 runner runner  876807 Oct 13 13:02 terrain_l1.bin.gz
+drwxr-xr-x 2 runner runner    4096 Oct 13 14:45 .
+drwxr-xr-x 5 runner runner    4096 Oct 13 14:45 ..
+-rw-r--r-- 1 runner runner      65 Oct 13 14:52 COMPILER_SHA256
+-rw-r--r-- 1 runner runner 2112817 Oct 13 14:52 buildings.bin.gz
+-rw-r--r-- 1 runner runner  125625 Oct 13 14:52 coast.bin.gz
+-rw-r--r-- 1 runner runner   21430 Oct 13 14:52 manifest.json
+-rw-r--r-- 1 runner runner   87483 Oct 13 14:52 material_l1.bin.gz
+-rw-r--r-- 1 runner runner 8763013 Oct 13 14:52 roads.bin.gz
+-rw-r--r-- 1 runner runner  106004 Oct 13 14:52 strings.bin.gz
+-rw-r--r-- 1 runner runner  103521 Oct 13 14:52 terrain_l0.bin.gz
+-rw-r--r-- 1 runner runner  876807 Oct 13 14:52 terrain_l1.bin.gz
 12M	android/assets/world/
