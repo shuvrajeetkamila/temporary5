@@ -1,0 +1,50 @@
+{
+  "buildings": {
+    "records": 186993,
+    "named": 2137,
+    "roofHistogram": {
+      "0": 186418,
+      "1": 560,
+      "2": 9,
+      "3": 6
+    }
+  },
+  "landuse": {
+    "records": 5784,
+    "classHistogram": {
+      "13": 2479,
+      "12": 1797,
+      "7": 760,
+      "5": 747,
+      "4": 1
+    }
+  },
+  "water": {
+    "records": 1130,
+    "classHistogram": {
+      "16": 1130
+    }
+  },
+  "barriers": {
+    "records": 421,
+    "kindHistogram": {
+      "1": 278,
+      "0": 143
+    }
+  },
+  "pois": {
+    "records": 2254,
+    "kindHistogram": {
+      "8": 236,
+      "0": 59,
+      "2": 43,
+      "3": 1916
+    }
+  },
+  "spawnPoints": {
+    "car": 59,
+    "helicopter": 0,
+    "boat": 43,
+    "aeroplane": 1916
+  }
+}

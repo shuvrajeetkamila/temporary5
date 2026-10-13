@@ -22,6 +22,7 @@ import argparse
 import gzip
 import hashlib
 import json
+import re
 import struct
 from pathlib import Path
 
@@ -191,6 +192,20 @@ def main() -> int:
         spawns = manifest.get("stats", {}).get("spawnPoints", {})
         check(spawns.get("car", 0) > 0 and spawns.get("aeroplane", 0) > 0,
               f"manifest reports spawn points ({spawns})")
+
+    # The stage 2 compiler once ran to completion over real Oman/Qatar data before failing on a tuple
+    # that was never unpacked, and the fixture path could not see it. These are the cheap static guards
+    # that would have caught it in seconds instead of at the end of a twenty-minute data run.
+    compiler = Path("tools/game_world.py")
+    if compiler.exists():
+        source = compiler.read_text()
+        single_target = re.search(r"^\s*\w+\s*=\s*bw\.extract_osm\(", source, re.M) is not None
+        check(not single_target,
+              "stage 2 unpacks extract_osm's (national boundary, data) result")
+        check(re.search(r"^\s*\w+,\s*\w+\s*=\s*bw\.extract_osm\(", source, re.M) is not None,
+              "stage 2 uses the same extraction contract as stage 1")
+        check("game_compile_exit" not in source,
+              "stage 2 does not decide its own exit code (the pipeline does)")
 
     print()
     print(f"{CHECKS - len(FAILURES)}/{CHECKS} checks passed")
