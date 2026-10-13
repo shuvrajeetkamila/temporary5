@@ -33,18 +33,19 @@
     }
   },
   "pois": {
-    "records": 2254,
+    "records": 784,
     "kindHistogram": {
-      "8": 236,
-      "0": 59,
-      "2": 43,
-      "3": 1916
+      "8": 418,
+      "0": 279,
+      "2": 51,
+      "1": 6,
+      "3": 30
     }
   },
   "spawnPoints": {
-    "car": 59,
-    "helicopter": 0,
-    "boat": 43,
-    "aeroplane": 1916
+    "car": 279,
+    "helicopter": 6,
+    "boat": 51,
+    "aeroplane": 30
   }
 }
