@@ -1,6 +1,7 @@
 package ai.arena.qatar.game;
 
 import ai.arena.qatar.vehicle.Surface;
+import ai.arena.qatar.world.Barriers;
 import ai.arena.qatar.world.Buildings;
 import ai.arena.qatar.world.FeatureIndex;
 import ai.arena.qatar.world.GridTerrainSampler;
@@ -16,14 +17,23 @@ import ai.arena.qatar.world.WorldData;
  */
 public final class WorldSurface implements Surface {
 
+    /** Half-thickness of a wall, a fence or a hedge for collision purposes, in metres. */
+    public static final double BARRIER_HALF_WIDTH_M = 0.4;
+    /** Lower than this a barrier is a kerb or a low wall, and a person steps over it. */
+    public static final double MIN_BLOCKING_HEIGHT_M = 0.6;
+
     private final GridTerrainSampler sampler;
     private final Buildings buildings;
     private final FeatureIndex buildingIndex;
+    private final Barriers barriers;
+    private final FeatureIndex barrierIndex;
 
     public WorldSurface(GridTerrainSampler sampler, WorldData world) {
         this.sampler = sampler;
         this.buildings = world.buildings;
         this.buildingIndex = world.buildingIndex;
+        this.barriers = world.barriers;
+        this.barrierIndex = world.barrierIndex;
     }
 
     @Override
@@ -73,6 +83,49 @@ public final class WorldSurface implements Surface {
                     hit[0] = true;
                     return false;
                 });
+        if (hit[0] || barriers == null || barrierIndex == null) {
+            return hit[0];
+        }
+
+        // Barriers: the walls, fences and hedges that make a compound a compound. They are lines with a
+        // height, so the question is whether the line passes close enough to walk into and is tall
+        // enough to matter -- a gate is a way through, and a kerb is a step.
+        double aboveGround = altitudeM - sampler.height(localEastM, localNorthM);
+        barrierIndex.query(localEastM - 4, localNorthM - 4, localEastM + 4, localNorthM + 4, id -> {
+            if (barriers.kind[id] == Barriers.KIND_GATE
+                    || barriers.heightM[id] < MIN_BLOCKING_HEIGHT_M
+                    || aboveGround > barriers.heightM[id]) {
+                return true;
+            }
+            int start = barriers.lineStart[id];
+            int points = barriers.lineLength[id];
+            for (int i = 0; i + 1 < points; i++) {
+                double ax = barriers.xz[(start + i) * 2];
+                double az = barriers.xz[(start + i) * 2 + 1];
+                double bx = barriers.xz[(start + i + 1) * 2];
+                double bz = barriers.xz[(start + i + 1) * 2 + 1];
+                if (distanceToSegment(localEastM, localNorthM, ax, az, bx, bz)
+                        < BARRIER_HALF_WIDTH_M) {
+                    hit[0] = true;
+                    return false;
+                }
+            }
+            return true;
+        });
         return hit[0];
+    }
+
+    /** Distance from a point to a line segment, in metres. */
+    private static double distanceToSegment(double px, double pz, double ax, double az, double bx,
+                                            double bz) {
+        double dx = bx - ax;
+        double dz = bz - az;
+        double lengthSquared = dx * dx + dz * dz;
+        if (lengthSquared < 1e-9) {
+            return Math.hypot(px - ax, pz - az);
+        }
+        double t = ((px - ax) * dx + (pz - az) * dz) / lengthSquared;
+        t = t < 0 ? 0 : (t > 1 ? 1 : t);
+        return Math.hypot(px - (ax + t * dx), pz - (az + t * dz));
     }
 }

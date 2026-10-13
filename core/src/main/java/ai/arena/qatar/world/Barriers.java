@@ -73,10 +73,13 @@ public final class Barriers {
             nameIndex[line] = reader.readUnsignedShort();
 
             lineStart[line] = vertex;
-            float minE = east;
-            float maxE = east;
-            float minN = north;
-            float maxN = north;
+            // Initialised inside the loop, after the origin is subtracted. Seeded from the absolute
+            // first vertex instead, the box mixed EPSG metres with bundle metres: east 553,100 to 100.
+            // Every chunk test then said "not here", so no barrier in the whole country was ever drawn.
+            float minE = Float.MAX_VALUE;
+            float maxE = -Float.MAX_VALUE;
+            float minN = Float.MAX_VALUE;
+            float maxN = -Float.MAX_VALUE;
             for (int i = 0; i < points; i++) {
                 if (i > 0) {
                     east += reader.readInt() / 100.0f;
