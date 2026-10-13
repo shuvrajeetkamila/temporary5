@@ -45,6 +45,13 @@ public final class TerrainMesher {
      */
     public MeshData mesh(double minEast, double minNorth, double maxEast, double maxNorth, boolean land) {
         MeshData mesh = new MeshData();
+        meshInto(mesh, minEast, minNorth, maxEast, maxNorth, land);
+        return mesh;
+    }
+
+    /** Meshes straight into a caller-provided mesh (chunk assembly), avoiding a temporary buffer. */
+    public void meshInto(MeshData mesh, double minEast, double minNorth, double maxEast, double maxNorth,
+                         boolean land) {
         double cell = terrain.cellM;
 
         // The rectangle is in bundle space (metres from the manifest grid origin) and the terrain grid
@@ -55,7 +62,7 @@ public final class TerrainMesher {
         int row0 = clamp((int) Math.floor(minNorth / cell) - 1, 0, terrain.rows - 1);
         int row1 = clamp((int) Math.ceil(maxNorth / cell) + 1, 0, terrain.rows - 1);
         if (col1 <= col0 || row1 <= row0) {
-            return mesh;
+            return;
         }
 
         double originEast = terrain.originEast;
@@ -92,7 +99,7 @@ public final class TerrainMesher {
                     mesh.addQuad(a, d, c, b);
                 }
             }
-            return mesh;
+            return;
         }
 
         // Water: a plane at sea level over every cell that touches water, drawn double sided by the
@@ -118,7 +125,6 @@ public final class TerrainMesher {
                 mesh.addQuad(a, d, c, b);
             }
         }
-        return mesh;
     }
 
     private boolean terrainCellIsWater(int col, int row) {

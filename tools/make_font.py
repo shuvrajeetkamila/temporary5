@@ -52,8 +52,12 @@ def build(ttf: Path, out_base: Path, size_px: int, padding: int = 1) -> dict:
         w, h = max(0, right - left), max(0, bottom - top)
         advance = font.getlength(ch)
         if w == 0 or h == 0:
-            glyphs.append({"id": code, "w": 0, "h": 0, "adv": advance, "img": None,
-                           "xoff": 0, "yoff": 0})
+            # A character can have an advance but no ink: space is the obvious one. It still needs an
+            # entry in the .fnt, because that is where libGDX reads the advance from -- without it,
+            # "Where is the metro" renders as "Whereisthemetro". A 1x1 transparent pixel carries it.
+            if advance > 0:
+                glyphs.append({"id": code, "w": 1, "h": 1, "adv": advance,
+                               "img": Image.new("L", (1, 1), 0), "xoff": 0, "yoff": 0})
             continue
         glyph_img = Image.new("L", (w, h), 0)
         draw = ImageDraw.Draw(glyph_img)
