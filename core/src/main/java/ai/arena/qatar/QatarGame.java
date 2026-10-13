@@ -15,6 +15,8 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 
 import ai.arena.qatar.boot.BootSequence;
+import ai.arena.qatar.game.GameScreen;
+import ai.arena.qatar.world.WorldData;
 import ai.arena.qatar.boot.StartupReport;
 import ai.arena.qatar.physics.Collider;
 import ai.arena.qatar.physics.PhysicsWorld;
@@ -27,9 +29,8 @@ import ai.arena.qatar.text.ArabicReshaper;
 /**
  * QATAR: THE PENINSULA -- application entry point.
  *
- * <p>Milestone 0 responsibilities: bring up GLES3, compile the material shaders, initialise the
- * fixed-step physics world, load a packaged binary world bundle with version/checksum validation,
- * accept touch input, and survive pause/resume/recreate without losing state.
+ * <p>Responsibilities: bring up GLES3, load the compiled country, hand it to {@link GameScreen}, and
+ * survive pause/resume/recreate without losing state.
  *
  * <p>The loading state machine reports real stages (manifest -> terrain -> physics -> shaders ->
  * gameplay); a fatal manifest error is shown, an optional decoration error degrades visibly.
@@ -43,11 +44,15 @@ public final class QatarGame extends ApplicationAdapter {
     private CameraInputController cameraController;
     private SkyAndGroundRenderer sceneRenderer;
     private final Vector3 cameraFocus = new Vector3();
+    /** The playable world. Null only if the compiled data could not be loaded at all. */
+    private GameScreen gameScreen;
+    private String worldError = "";
 
     private float elapsedSeconds;
     private boolean disposed;
     /** Debug overlay toggle (development only). */
     private boolean debugOverlay = true;
+    private StartupReport startup;
 
     @Override
     public void create() {
@@ -57,6 +62,9 @@ public final class QatarGame extends ApplicationAdapter {
 
         boot = new BootSequence();
         boot.begin();
+
+        startup = new StartupReport("0.1.0-m0", GlVersion.describe());
+        loadPlayableWorld();
 
         physics = new PhysicsWorld();
         physics.setTerrain(ai.arena.qatar.physics.TerrainSampler.FLAT);
@@ -80,7 +88,11 @@ public final class QatarGame extends ApplicationAdapter {
 
         sceneRenderer = new SkyAndGroundRenderer();
 
-        boot.complete(new StartupReport("0.1.0-m0", GlVersion.describe()));
+        startup.put("worldPlayable", gameScreen != null ? "yes" : "no");
+        if (!worldError.isEmpty()) {
+            startup.warn("world bundle not playable: " + worldError);
+        }
+        boot.complete(startup);
         Gdx.app.log("QatarGame", "Boot complete. Arabic shaping self-check: "
                 + ArabicReshaper.shapeForDisplay("\u0642\u0637\u0631"));
     }
@@ -91,6 +103,12 @@ public final class QatarGame extends ApplicationAdapter {
         elapsedSeconds += frameDt;
 
         boot.advance(frameDt);
+
+        if (gameScreen != null) {
+            gameScreen.render(frameDt);
+            return;
+        }
+
         int steps = boot.clock().beginFrame(frameDt);
         for (int i = 0; i < steps; i++) {
             physics.step(ai.arena.qatar.physics.FixedStepClock.FIXED_DT);
@@ -107,8 +125,32 @@ public final class QatarGame extends ApplicationAdapter {
                 (float) boot.clock().alpha(), testCrate);
     }
 
+    /**
+     * Loads the compiled country and starts the game on it.
+     *
+     * <p>A failure here is reported, not swallowed: the fallback demo runs instead, and the reason is
+     * printed and recorded in the startup report, because "the world did not load" is the single most
+     * important thing a build can tell its author.
+     */
+    private void loadPlayableWorld() {
+        try {
+            WorldData world = WorldData.load("world");
+            gameScreen = new GameScreen(world);
+            gameScreen.show();
+            Gdx.app.log("QatarGame", "Playing the compiled country: " + world.describe());
+        } catch (RuntimeException e) {
+            gameScreen = null;
+            worldError = e.toString();
+            Gdx.app.error("QatarGame", "Compiled world not playable; running the toolchain demo instead", e);
+        }
+    }
+
     @Override
     public void resize(int width, int height) {
+        if (gameScreen != null) {
+            gameScreen.resize(width, height);
+            return;
+        }
         camera.viewportWidth = width;
         camera.viewportHeight = height;
         camera.update();
@@ -118,11 +160,17 @@ public final class QatarGame extends ApplicationAdapter {
     public void pause() {
         // Physics timing is reset on resume: a backgrounded process must not replay catch-up steps.
         boot.clock().reset();
+        if (gameScreen != null) {
+            gameScreen.pause();
+        }
     }
 
     @Override
     public void resume() {
         boot.clock().reset();
+        if (gameScreen != null) {
+            gameScreen.resume();
+        }
     }
 
     @Override
@@ -131,6 +179,9 @@ public final class QatarGame extends ApplicationAdapter {
             return;
         }
         disposed = true;
+        if (gameScreen != null) {
+            gameScreen.dispose();
+        }
         if (sceneRenderer != null) {
             sceneRenderer.dispose();
         }
@@ -142,5 +193,14 @@ public final class QatarGame extends ApplicationAdapter {
 
     public PhysicsWorld physics() {
         return physics;
+    }
+
+    public GameScreen gameScreen() {
+        return gameScreen;
+    }
+
+    /** Non-empty when the compiled world could not be loaded; shown in the startup report. */
+    public String worldError() {
+        return worldError;
     }
 }

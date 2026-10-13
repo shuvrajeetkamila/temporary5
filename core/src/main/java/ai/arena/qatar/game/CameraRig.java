@@ -24,6 +24,8 @@ public final class CameraRig {
     public static final double FLY_BOOST = 400.0;
     /** Steepest ground the camera will walk up, as a normal.y threshold (~35 degrees). */
     public static final double WALK_SLOPE_LIMIT = 0.82;
+    /** Vertical rate of a flying machine at normal throttle, in metres per second. */
+    public static final double CLIMB_SPEED = 25.0;
 
     public enum Mode {
         /** On foot: follows the terrain, cannot enter water deeper than a wade. */
@@ -39,6 +41,13 @@ public final class CameraRig {
     public double pitchDegrees = -8.0;
     public Mode mode = Mode.WALK;
     public boolean sprinting;
+    /**
+     * Multiplies horizontal speed. A camera can walk at 1.5 m/s and a jet can cross the country at
+     * 250 m/s through the same rig, which keeps one tested movement path for every locomotion type.
+     */
+    public double speedScale = 1.0;
+    /** Vertical input for flying machines: +1 climbs, -1 descends, 0 holds altitude. */
+    public double climbInput;
 
     private final TerrainSampler terrain;
     private boolean onGround = true;
@@ -77,18 +86,24 @@ public final class CameraRig {
         dz /= length;
 
         if (mode == Mode.FLY) {
-            double speed = FLY_SPEED * (sprinting ? FLY_BOOST / FLY_SPEED : 1.0);
+            double speed = FLY_SPEED * speedScale * (sprinting ? FLY_BOOST / FLY_SPEED : 1.0);
             east += dx * speed * dt;
             north += dz * speed * dt;
             height = Math.max(terrainHeight(east, north) + 1.0, height);
             pitchDegrees = clamp(pitchDegrees, -89.0, 89.0);
             // While flying, height is driven by look direction: pitch up and the camera climbs.
             height += Math.sin(Math.toRadians(pitchDegrees)) * speed * dt * 0.8;
+            if (climbInput != 0) {
+                // Collective/throttle: climb control is deliberately independent of cruising speed, so
+                // a fast aircraft does not lurch vertically whenever it accelerates.
+                height += climbInput * CLIMB_SPEED * Math.max(1.0, speedScale) * dt;
+                height = Math.max(terrainHeight(east, north) + 1.0, height);
+            }
             onGround = false;
             return;
         }
 
-        double speed = (sprinting ? SPRINT_SPEED : WALK_SPEED) * dt;
+        double speed = (sprinting ? SPRINT_SPEED : WALK_SPEED) * speedScale * dt;
         double targetEast = east + dx * speed;
         double targetNorth = north + dz * speed;
 
