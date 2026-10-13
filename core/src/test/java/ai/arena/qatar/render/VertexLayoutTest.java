@@ -138,8 +138,8 @@ final class VertexLayoutTest {
         assertFalse(water.isEmpty(), "no water was meshed");
 
         int landMaterials = 0;
-        landMaterials += check(land, VertexFormat.SURFACE_LAND, true);
-        check(water, VertexFormat.SURFACE_WATER, false);
+        landMaterials += check(land, new int[]{VertexFormat.SURFACE_LAND}, true);
+        check(water, new int[]{VertexFormat.SURFACE_WATER}, false);
 
         Buildings buildings = Buildings.parse(BundleReader.open("buildings",
                 Files.readAllBytes(fixture.resolve(manifest.buildings.file)), manifest.buildings.sha256),
@@ -150,7 +150,8 @@ final class VertexLayoutTest {
             rings[i] = i;
         }
         new BuildingMesher(buildings, terrain).mesh(0, 0, 1600, 1600, city, rings, rings.length);
-        check(city, VertexFormat.SURFACE_WALL, false);
+        // A building is walls and a roof, and both are written by the same mesher.
+        check(city, new int[]{VertexFormat.SURFACE_WALL, VertexFormat.SURFACE_ROOF}, false);
 
         Roads roads = Roads.parse(BundleReader.open("roads",
                 Files.readAllBytes(fixture.resolve(manifest.roads.file)), manifest.roads.sha256),
@@ -160,13 +161,14 @@ final class VertexLayoutTest {
         for (int line = 0; line < roads.count; line++) {
             roadMesher.addRoad(line, asphalt);
         }
-        check(asphalt, VertexFormat.SURFACE_ROAD, false);
+        // Roads are asphalt with paint on them.
+        check(asphalt, new int[]{VertexFormat.SURFACE_ROAD, VertexFormat.SURFACE_MARKING}, false);
 
         assertTrue(landMaterials > 0, "no land vertex named its material");
     }
 
-    /** Asserts one mesh's vertices decode to {@code surface} and returns how many carried a material. */
-    private static int check(MeshData mesh, int surface, boolean expectMaterial) {
+    /** Asserts one mesh's vertices decode to one of {@code surfaces}, and counts named materials. */
+    private static int check(MeshData mesh, int[] surfaces, boolean expectMaterial) {
         float[] v = mesh.vertices();
         assertTrue(v.length >= mesh.vertexCount() * MeshData.FLOATS_PER_VERTEX,
                 "the vertex array is shorter than its own stride");
@@ -174,8 +176,13 @@ final class VertexLayoutTest {
         for (int i = 0; i < mesh.vertexCount(); i++) {
             int base = i * MeshData.FLOATS_PER_VERTEX;
             float type = v[base + 6];
-            assertEquals(surface, (int) (type + 0.5f),
-                    "a vertex of this mesh is not a " + surface + " surface (got " + type + ")");
+            int decoded = (int) (type + 0.5f);
+            boolean known = false;
+            for (int surface : surfaces) {
+                known |= decoded == surface;
+            }
+            assertTrue(known, "a vertex of this mesh decodes to surface " + decoded
+                    + ", which is not one of the surfaces this mesh makes");
             float tint = v[base + 9];
             assertTrue(tint >= 0.05f && tint <= 2.0f,
                     "the tint is outside what tintFactor() clamps: " + tint);

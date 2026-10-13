@@ -83,16 +83,22 @@ final class BodyMesherTest {
         double glassZ = meanZ(mesh, BodyMesher.MATERIAL_GLASS);
         assertTrue(glassZ < 0, "the cabin is in front of the driver: " + glassZ);
 
-        // Four wheels, each touching the ground, front pair and rear pair the same distance out.
-        int touching = 0;
+        // Four wheels, each touching the ground: sixteen contact points, and the two axles exactly one
+        // wheelbase apart -- the same number the physics drives on.
+        java.util.Set<String> contacts = new java.util.HashSet<>();
         float[] v = mesh.vertices();
+        double frontZ = Double.NEGATIVE_INFINITY;
+        double rearZ = Double.POSITIVE_INFINITY;
         for (int i = 0; i < mesh.vertexCount(); i++) {
             int base = i * MeshData.FLOATS_PER_VERTEX;
             if ((int) (v[base + 10] + 0.5f) == BodyMesher.MATERIAL_TYRE && Math.abs(v[base + 1]) < 0.01f) {
-                touching++;
+                contacts.add(String.format(java.util.Locale.ROOT, "%.3f,%.3f", v[base], v[base + 2]));
+                frontZ = Math.max(frontZ, v[base + 2]);
+                rearZ = Math.min(rearZ, v[base + 2]);
             }
         }
-        assertEquals(16, touching, "the car does not sit on four wheels");
+        assertEquals(16, contacts.size(), "the car does not sit on four wheels: " + contacts);
+        assertEquals(2.79 + 0.66, frontZ - rearZ, 0.01, "the axles are not a wheelbase apart");
     }
 
     @Test
@@ -101,7 +107,10 @@ final class BodyMesherTest {
         MeshData mesh = BodyMesher.mesh(BodyMesher.Body.PLANE);
         float[] b = mesh.bounds();
         assertEquals(11.00, b[3] - b[0], TOLERANCE, "the wing is not a Cessna's 11 m");
-        assertEquals(8.28, b[5] - b[2], TOLERANCE, "the fuselage is not 8.28 m long");
+        // The fuselage, not the propeller: the disc stands ahead of the nose exactly as it does on the
+        // real aeroplane, so the length is measured on the fuselage's own paint.
+        assertEquals(8.28, spanZ(mesh, BodyMesher.MATERIAL_AIRCRAFT)[0], TOLERANCE,
+                "the fuselage is not 8.28 m long");
         assertTrue(b[4] > 2.4, "the fin does not stand up: " + b[4]);
         assertEquals(0.0, b[1], 0.001, "the aeroplane does not stand on its gear");
         assertEquals(0.0, b[0] + b[3], 0.001, "the two wings are not the same length");
@@ -159,7 +168,9 @@ final class BodyMesherTest {
     void boatFloats() {
         MeshData mesh = BodyMesher.mesh(BodyMesher.Body.BOAT);
         float[] b = mesh.bounds();
-        assertEquals(6.50, b[5] - b[2], TOLERANCE, "the hull is not 6.50 m long");
+        // The hull, not the outboard hanging off the stern.
+        assertEquals(6.50, spanZ(mesh, BodyMesher.MATERIAL_HULL)[0], TOLERANCE,
+                "the hull is not 6.50 m long");
         assertEquals(2.10, b[3] - b[0], TOLERANCE, "the beam is not 2.10 m");
         assertTrue(b[1] < -0.30, "nothing of the hull is under the waterline: " + b[1]);
         assertTrue(b[4] > 1.8, "the cabin does not stand above the deck: " + b[4]);
@@ -195,6 +206,27 @@ final class BodyMesherTest {
         assertTrue(fragment.contains("SURFACE_BODY = " + VertexFormat.SURFACE_BODY + ";"),
                 "the shader and VertexFormat disagree about the body surface code");
         assertTrue(fragment.contains("bodyColour"), "the shader never paints a body");
+    }
+
+    /**
+     * Forward span, in metres, of the vertices painted with one material: {length, minZ, maxZ}. Used
+     * wherever the whole mesh is longer than the part being measured -- a propeller, an outboard.
+     */
+    private static double[] spanZ(MeshData mesh, int material) {
+        float[] v = mesh.vertices();
+        double min = Double.POSITIVE_INFINITY;
+        double max = Double.NEGATIVE_INFINITY;
+        int count = 0;
+        for (int i = 0; i < mesh.vertexCount(); i++) {
+            int base = i * MeshData.FLOATS_PER_VERTEX;
+            if ((int) (v[base + 10] + 0.5f) == material) {
+                min = Math.min(min, v[base + 2]);
+                max = Math.max(max, v[base + 2]);
+                count++;
+            }
+        }
+        assertTrue(count > 0, "no part of the body is painted " + material);
+        return new double[]{max - min, min, max};
     }
 
     /** Mean forward position of the vertices carrying one material, for "which end is this on" checks. */

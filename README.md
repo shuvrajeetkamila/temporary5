@@ -8,11 +8,16 @@ you can walk, drive, fly and sail through.
 
 | Milestone | State |
 |---|---|
-| **Step 1 — the whole country in 3D** | World compiler done (OpenStreetMap + SRTM → terrain, land mask, surface materials, roads, buildings, land use, water, barriers, spawn points). Loaders, spatial indexes and the mesh generators (terrain, water, building extrusion with real footprints, road ribbons) are implemented and covered by JVM tests. In-progress: the GL renderer that draws those meshes on screen. |
-| **Step 2 — human, car, aeroplane, helicopter, boat + interactable map** | Physics core (fixed 60 Hz stepping, force/torque rigid bodies, terrain collision, sleeping, CCD) is already in place from the foundation work; vehicles and the character controller are next. |
-| **Step 3 — windows, bodies, assets** | Not started: the world currently draws as untextured but correctly-shaped geometry. |
-| **Step 4 — minimap, HUD, press-to-teleport map** | Not started: the world data needed for it (road network + spawn points + islands + municipalities) is compiled and indexed. |
-| **Step 5 — the installable APK** | Pipeline in place (compile gate → world data → unit tests → APK validation → release). The last published APK is the previous project's; the next one will be this game. |
+| **Step 1 — the whole country in 3D** | Done. The compiler builds the real country in CI — 186,993 building footprints, 179,943 road ways, 5,784 land-use polygons, 1,130 water polygons, 421 barriers, 2,254 points of interest, 11,502 km² of land — and the game streams it as 500 m chunks of 3D geometry with a floating origin. |
+| **Step 2 — human, car, aeroplane, helicopter, boat, interactable map** | Done. Five bodies with real physics (a 1.62 t car on a 2.79 m wheelbase, an 11 m wing that stalls and recovers, rotor thrust with collective lag, Froude-number hull resistance), switched from the HUD and driven through the compiled terrain. Buildings are solid: a walker refuses the step, a car stops at the wall. |
+| **Step 3 — windows, bodies, assets** | Partly done, and honest about the rest. Walls band their glazing procedurally in metres from the compiled heights, roads are drawn with painted lane markings, barriers extrude with the buildings — and the player now has a body: a person, a car, an aeroplane, a helicopter and a boat, built in metres from the dimensions of the real machines and painted per part from a palette in the shader. Still open: doors, roof clutter, kerbs, palms, and moving parts (wheels that turn, rotors that spin). |
+| **Step 4 — minimap, buttons, press-to-teleport map** | Done. A minimap in the top-right, a button for every locomotion type, and the map is interactable: pressing it opens the big map, which zooms about the fingers, and touching a place teleports the whole stable of vehicles there — to a road or a named place, never into the sea. |
+| **Step 5 — the installable APK** | Done and green in CI: debug-signed, `arm64-v8a`/`armeabi-v7a`/`x86_64`, no INTERNET permission, with the country inside it. Published on the rolling release `v0.1.0-m0` with its byte count and SHA-256. What remains is what only a device can answer: the shaders have never been compiled by a real driver. |
+
+Honest limits, so nobody has to find them the hard way: the first on-device run is also the first time the
+GLSL is compiled (there is no GPU in CI), there is no sound, buildings collide as boxes rather than as
+their drawn ring, and the world stops being drawn beyond the streaming radius around the player. See
+`docs/PLAN.md` for the running list.
 
 ## How it works
 
