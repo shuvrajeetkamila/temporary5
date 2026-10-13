@@ -9,7 +9,7 @@ import ai.arena.qatar.world.WorldOrigin;
 
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.utils.Disposable;
-import com.badlogic.gdx.utils.LongSet;
+import com.badlogic.gdx.utils.LongMap;
 
 /**
  * Draws the whole country by streaming chunks around the player.
@@ -44,8 +44,8 @@ public final class GameWorldRenderer implements Disposable {
     private final ChunkMeshCache cache;
     private final WorldRenderer renderer;
 
-    private final LongSet uploaded = new LongSet();
-    private final LongSet liveKeys = new LongSet();
+    private final LongMap<Boolean> uploaded = new LongMap<>();
+    private final LongMap<Boolean> liveKeys = new LongMap<>();
 
     private float elapsed;
     private float lastDelta = 0.016f;
@@ -88,7 +88,7 @@ public final class GameWorldRenderer implements Disposable {
             ChunkMesh mesh = mesher.mesh(entry.chunkX, entry.chunkZ, detail);
             cache.put(entry.chunkX, entry.chunkZ, mesh);
             renderer.upload(entry.key(), mesh);
-            uploaded.add(entry.key());
+            uploaded.put(entry.key(), Boolean.TRUE);
             uploadedChunks++;
         }
         releaseDepartedChunks();
@@ -101,14 +101,15 @@ public final class GameWorldRenderer implements Disposable {
         }
         liveKeys.clear();
         for (ChunkMeshCache.Entry entry : cache.resident()) {
-            liveKeys.add(entry.key());
+            liveKeys.put(entry.key(), Boolean.TRUE);
         }
-        LongSet.LongSetIterator iterator = uploaded.iterator();
+        // Collect first, release second: the map must not be modified while it is being walked.
+        LongMap.Keys iterator = uploaded.keys();
         long[] gone = new long[uploaded.size];
         int count = 0;
         while (iterator.hasNext) {
             long key = iterator.next();
-            if (!liveKeys.contains(key)) {
+            if (!liveKeys.containsKey(key)) {
                 gone[count++] = key;
             }
         }

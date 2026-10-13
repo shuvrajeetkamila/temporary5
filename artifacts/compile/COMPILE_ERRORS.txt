@@ -1,0 +1,8 @@
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/hud/HudRenderer.java:249: error: incompatible types: Texture cannot be converted to TextureRegion
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:207: error: incompatible types: possible lossy conversion from double to float
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:311: error: incompatible types: possible lossy conversion from double to float
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:312: error: incompatible types: possible lossy conversion from double to float
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:360: error: incompatible types: possible lossy conversion from double to float
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:361: error: incompatible types: possible lossy conversion from double to float
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:501: error: incompatible types: possible lossy conversion from double to float
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:502: error: incompatible types: possible lossy conversion from double to float

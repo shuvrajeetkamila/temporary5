@@ -50,7 +50,7 @@ public final class ChunkMeshCache {
         }
 
         public long key() {
-            return key(chunkX, chunkZ);
+            return ChunkMeshCache.key(chunkX, chunkZ);
         }
     }
 
