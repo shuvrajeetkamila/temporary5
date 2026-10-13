@@ -17,7 +17,11 @@ on:
     paths:
       - 'tools/**'
       - '.github/workflows/data.yml'
-      - 'data/geodata/**'
+# Deliberately NOT data/geodata/**: this workflow publishes its own provenance there, and a push trigger
+# on that directory makes every run start the next one. Five full country compiles were queued that way
+# before it was noticed -- each one re-downloading the sources, recompiling the country and rewriting the
+# same evidence files. The compiler and its workflow are what is worth recompiling for; a refreshed OSM
+# extract does not need a run of its own, because the next run fetches it anyway.
 
 permissions:
   contents: write
@@ -26,6 +30,10 @@ permissions:
 jobs:
   compile-world:
     name: Fetch sources and compile the country bundle
+    # Belt and braces: evidence commits are pushed through the contents API, and GitHub honours a
+    # "[skip ci]" in the head commit only for pushes it can see. This run's own publish step writes
+    # "World data evidence [skip ci]", so an evidence commit must never start another run.
+    if: github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]')
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
