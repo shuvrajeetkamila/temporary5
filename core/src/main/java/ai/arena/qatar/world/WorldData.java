@@ -123,13 +123,16 @@ public final class WorldData {
                         source.read(manifest.strings.file), manifest.strings.sha256))
                 : StringTable.empty();
 
-        TerrainGrid terrainL1 = TerrainGrid.parse(source.read(manifest.terrainL1.file),
+        // The terrain and material grids are gzip members like every other bundle: verify the file
+        // against the manifest, inflate it, and only then read the QTT1/QTM1 header. Reading the
+        // compressed bytes as if they were the grid is a crash at startup, not a subtle wrong answer.
+        TerrainGrid terrainL1 = TerrainGrid.parse(payload(manifest.terrainL1, source),
                 manifest.originEast, manifest.originNorth, "QTT1");
         TerrainGrid terrainL0 = manifest.terrainL0.present()
-                ? TerrainGrid.parse(source.read(manifest.terrainL0.file),
+                ? TerrainGrid.parse(payload(manifest.terrainL0, source),
                         manifest.originEast, manifest.originNorth, "QTT1")
                 : terrainL1;
-        MaterialGrid materials = MaterialGrid.parse(source.read(manifest.materials.file),
+        MaterialGrid materials = MaterialGrid.parse(payload(manifest.materials, source),
                 manifest.originEast, manifest.originNorth);
 
         Roads roads = manifest.roads.present()
@@ -160,6 +163,19 @@ public final class WorldData {
         long millis = (System.nanoTime() - started) / 1_000_000L;
         return new WorldData(manifest, strings, terrainL1, terrainL0, materials, roads, buildings,
                 landuse, water, barriers, points, millis);
+    }
+
+    /** Verifies a bundle file against the manifest and returns its inflated payload. */
+    private static byte[] payload(GameManifest.Bundle bundle, BundleSource source) {
+        byte[] compressed = source.read(bundle.file);
+        if (bundle.sha256 != null && !bundle.sha256.isEmpty()) {
+            String actual = BundleReader.sha256(compressed);
+            if (!actual.equalsIgnoreCase(bundle.sha256)) {
+                throw new IllegalStateException(bundle.file + ": SHA-256 mismatch (expected "
+                        + bundle.sha256 + ", got " + actual + ")");
+            }
+        }
+        return BundleReader.inflate(bundle.file, compressed);
     }
 
     /** Human readable summary for the loading screen and the startup report. */
