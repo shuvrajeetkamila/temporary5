@@ -49,8 +49,16 @@ have a self-centring stick that commands attitude and returns to trim.
 **Terrain contact (done).** The bodies refuse to move over terrain that has not streamed in, which is what
 stops a fast aeroplane from flying through an unloaded chunk.
 
-**Remaining for step 2:** the collision shapes for vehicles against buildings and barriers, and the
-in-cockpit feel on a real device.
+**Walls (done).** Buildings are solid from the ground to their compiled roof height, tested at the
+altitude the body is at, so a walker and a car are stopped by a wall and a helicopter above a tower is
+not. The walker refuses the step; the car tests its own nose. The footprint is treated as a box, which
+is written down in the code as the limit of the test: a courtyard is walkable through its bounding box.
+
+**Evidence.** `VehicleDynamicsTest`, `BuildingCollisionTest` and `MapTeleportTest` run in the compile
+gate: 78 tests, 0 failures, on the commit that added the walls.
+
+**Remaining for step 2:** collision against barriers and against other vehicles, and the in-cockpit feel
+on a real device.
 
 ## Step 3 — detail assets
 
@@ -66,6 +74,13 @@ that one texture, so they cannot disagree. `MapView` does pan/zoom about the fin
 nearest road vertex, never the middle of the sea. The HUD draws a button for every locomotion type, and
 taps are exact arithmetic on the same raster.
 
+**Tested.** `MapTeleportTest` holds the promises to the compiled geometry: pixels round trip to within a
+cell, water is water, a tap beside a primary road lands on that road, every tap over the whole raster
+lands inside the country, every locomotion type has a start, and zoom holds the point under the fingers
+still. It also caught two real bugs: inland water was outlined but never filled (so the raster believed a
+lake was dry land), and a tap in the water with no harbour or road in reach resolved to the tapped point —
+which is to say, into the sea. Water is filled now, and such a tap is moved to the nearest shore.
+
 ## Step 5 — the APK
 
 Debug-signed APK, built and validated in CI (entry list, dex count, ABI coverage, bundle presence,
@@ -77,8 +92,12 @@ playable world; the remaining risk is what only a device can tell us (see open i
 
 1. ~~Fix the spawn points.~~ Done: the country now compiles 279 car, 6 helicopter, 51 boat and 30
    aeroplane spawn points, and `validate_game_world.py` passes 57/57 against the committed bundles.
-2. Verify the shaders on a device, then fix whatever the driver says.
-3. Vehicle collision shapes (buildings, barriers, other vehicles) on top of the five bodies.
-4. Detail assets (step 3): window bands, road markings, the visible human and vehicle bodies.
-5. Bilingual pass over every label, including the loading screen.
+2. Verify the shaders on a device, then fix whatever the driver says. This is the one thing no amount of
+   local work can do: there is no GPU here, so the GLSL is compiled for the first time on a phone.
+3. ~~Buildings are solid.~~ Done, with tests. Still open from step 2: barriers as collision, collisions
+   between vehicles, and a camera that can be looked around while driving.
+4. Detail assets (step 3): the visible bodies for the human and the four vehicles (the camera is
+   first-person today, so nothing of the player is on screen), road markings and kerbs, doors and
+   roof clutter, palms.
+5. Bilingual pass over every label, including the loading screen and the new button set.
 6. Final report: APK link, bytes, SHA-256, run id, honest limitations.

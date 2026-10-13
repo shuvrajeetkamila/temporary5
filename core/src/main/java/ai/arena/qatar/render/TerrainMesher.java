@@ -145,8 +145,11 @@ public final class TerrainMesher {
         float u = (float) ((east - originEast) / 25.0);
         float v = (float) ((north - originNorth) / 25.0);
         float tint = surfaceTint(material, slope[0], slope[1], slope[2]);
-        return mesh.addVertex((float) (east - originEast), (float) height + LAND_LIFT,
-                (float) (north - originNorth), slope[0], slope[1], slope[2], SURFACE_LAND, u, v, tint);
+        // The material id travels with the vertex: the shader's own palette says sabkha is pale grey
+        // and mangrove is dark green, and only the id can tell it so.
+        return mesh.addVertexMaterial((float) (east - originEast), (float) height + LAND_LIFT,
+                (float) (north - originNorth), slope[0], slope[1], slope[2], SURFACE_LAND, u, v, tint,
+                material);
     }
 
     private int addWaterVertex(MeshData mesh, int col, int row, double originEast, double originNorth,

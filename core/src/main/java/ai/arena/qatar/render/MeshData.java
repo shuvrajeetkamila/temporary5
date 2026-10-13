@@ -3,22 +3,25 @@ package ai.arena.qatar.render;
 /**
  * CPU-side triangle soup produced by the meshers, ready to be uploaded to one GPU mesh.
  *
- * <p>This class deliberately depends on nothing but the JDK: all the geometry generation (terrain
- * grids, building extrusions, road ribbons) can therefore be unit tested in CI without a GL context,
- * which is the only way to prove that "the whole country becomes 3D" before it is ever drawn.
+ * <p>Deliberately plain: nothing here is libGDX, so the geometry generation -- terrain grids, building
+ * extrusions, road ribbons -- can be asserted exactly in CI with no GL context at all.
  *
  * <p>Vertex layout, matching the shader's attributes:
  * <pre>
  *   position : 3 x float   local metres
  *   normal   : 3 x float   unit
- *   aux      : 4 x ubyte   surfaceType, u, v, tint (all normalised 0..1)
+ *   aux      : 4 x float   surfaceType, u, v, tint
+ *   material : 1 x float   compiled material id, 0 when the surface has none
  * </pre>
+ * Eleven floats, and the GPU layout must agree with that exactly: the vertex stride comes from
+ * {@link VertexFormat}, so a mismatch here would feed the driver a different story about where each
+ * vertex starts. {@code VertexLayoutTest} holds the two together.
  * A chunk with more than {@link #MAX_VERTICES} vertices must be split into several parts, because the
  * index buffer uses unsigned shorts: 65,536 vertices is a hard limit of the format, not a preference.
  */
 public final class MeshData {
 
-    public static final int FLOATS_PER_VERTEX = 10;
+    public static final int FLOATS_PER_VERTEX = 11;
     public static final int MAX_VERTICES = 65_000;
 
     private float[] vertices;
@@ -73,6 +76,18 @@ public final class MeshData {
     /** Adds a vertex and returns its index. */
     public int addVertex(float x, float y, float z, float nx, float ny, float nz, float surfaceType,
                          float u, float v, float tint) {
+        return addVertexMaterial(x, y, z, nx, ny, nz, surfaceType, u, v, tint, 0f);
+    }
+
+    /**
+     * Adds a vertex that also names its compiled material.
+     *
+     * <p>Land needs it: the material id is what says whether this square metre is dune sand, sabkha,
+     * tidal mud or mangrove, and a tint cannot say it -- it can only shade a colour somebody else
+     * chose. It stays out of the four auxiliary floats so nothing has to share a channel.
+     */
+    public int addVertexMaterial(float x, float y, float z, float nx, float ny, float nz,
+                                 float surfaceType, float u, float v, float tint, float materialId) {
         if (vertexCount >= MAX_VERTICES) {
             throw new IllegalStateException("mesh is full: split the chunk before adding more vertices");
         }
@@ -92,6 +107,7 @@ public final class MeshData {
         vertices[offset + 7] = u;
         vertices[offset + 8] = v;
         vertices[offset + 9] = tint;
+        vertices[offset + 10] = materialId;
         vertexCount++;
 
         minX = Math.min(minX, x);
