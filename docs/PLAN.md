@@ -97,8 +97,18 @@ They are drawn in third person: the **VIEW** button swings the camera onto a boo
 `PlayerController` keeps the camera's own orbit on top of it. In first person nothing of the player is
 drawn, which is honest -- there is nothing to see -- and the button is one press away.
 
+**The bodies move.** A part that turns is geometry centred on its own pivot, placed by translating to
+that pivot first and rotating second, so a wheel rolls on its axle instead of orbiting the car. The rates
+are the machines' own: a car wheel at v/r (rolling without slipping), an aeroplane engine idling at 700 rpm
+and turning 2,400 at full power, a rotor head governed near 330 rpm with a tail rotor 2.5 times as fast.
+The car's running gear is now published by the mesher and held to `CarBody` by the test -- the same
+0.33 m wheels, 1.57 m track and 2.79 m wheelbase -- because the old hardcoded 1.86 m track put the tyres
+12 cm outside the bodywork. `BodyMesherTest` checks the shapes as shapes: dimensions against the published
+figures, symmetry about the centreline, which end is the front, the hull bottom under the waterline, the
+rotor clear above the cabin and below the fin, and every part's pivot holding still through a whole turn.
+
 Still to add: doors and roof clutter on the buildings, kerbs, palms, window bands that vary by building
-type, and moving parts on the bodies (wheels that turn, a rotor that spins).
+type, and a walking animation for the person, whose legs are still two static boxes.
 
 ## Step 4 — minimap, buttons, zoomable map, tap to travel
 
@@ -130,7 +140,9 @@ playable world; the remaining risk is what only a device can tell us (see open i
 
 1. ~~Fix the spawn points.~~ Done: the country now compiles 279 car, 6 helicopter, 51 boat and 30
    aeroplane spawn points, and `validate_game_world.py` passes 57/57 against the committed bundles.
-2. **Verify the shaders on a device**, then fix whatever the driver says. This is the one thing no amount
+2. **Verify the shaders on a device**, then fix whatever the driver says. Note that the newest APK is
+   the one to test: the release is rolling and keeps only the newest build, and `docs/FINAL_REPORT.md` is
+   re-checked against it whenever a code commit changes it. This is the one thing no amount
    of local work can do: there is no GPU here, so the GLSL is compiled for the first time on a phone. The
    vertex layout and the shader's decoding of surface types and material ids were both wrong until
    `VertexLayoutTest` pinned them together; a device may well find the next one.
@@ -138,8 +150,9 @@ playable world; the remaining risk is what only a device can tell us (see open i
    step 2: collisions between vehicles, and profiling the streaming on a real phone (the warm-up builds up
    to 24 chunks per frame, and a dense urban chunk is heavy).
 4. Detail assets (step 3): ~~the visible bodies for the human and the four vehicles~~ done, with tests,
-   and drawn through the new VIEW button. Still open: doors and roof clutter, kerbs, palms, and moving
-   parts — wheels that turn, a propeller and a rotor that spin.
+   and drawn through the new VIEW button. ~~Moving parts — wheels that turn, a propeller and a rotor that
+   spin~~ done: the wheels roll at v/r, the propeller idles and winds up, the rotors spin at governed head
+   speed. Still open: doors and roof clutter, kerbs, palms, and a walking animation.
 5. Bilingual pass: done for every control (English above, Arabic below, shaped by `ArabicReshaper`) and
    for the map hint. The status line is still English-only.
 6. ~~Final report.~~ Written: `docs/FINAL_REPORT.md` — APK link, bytes, SHA-256, run ids, and the eight

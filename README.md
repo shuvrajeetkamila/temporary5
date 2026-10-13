@@ -24,7 +24,7 @@ their drawn ring, and the world stops being drawn beyond the streaming radius ar
 Download and install on an Android phone (6.0+):
 
 **[Qatar-The-Peninsula-v0.1.0-m0.apk](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk)** —
-18,994,222 bytes, SHA-256 `340d8eb46260c6f63ecf49cea9fcf178ab87d6c47303163d5936eac586809dc7`
+18,997,238 bytes, SHA-256 `c4f097246d73897956088b031c55701386342ac128ba1129a3f640c6048e561c`
 (the sidecar `.sha256` is next to it). Debug-signed, so Android will ask you to allow installation from
 this source. No network permission: the country is inside the package.
 

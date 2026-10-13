@@ -9,13 +9,13 @@ repository, a CI run, or a byte count that can be re-derived.
 | | |
 |---|---|
 | **APK** | [`Qatar-The-Peninsula-v0.1.0-m0.apk`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk) |
-| **Bytes** | 18,994,222 |
-| **SHA-256** | `340d8eb46260c6f63ecf49cea9fcf178ab87d6c47303163d5936eac586809dc7` |
+| **Bytes** | 18,997,238 |
+| **SHA-256** | `c4f097246d73897956088b031c55701386342ac128ba1129a3f640c6048e561c` |
 | **Sidecar** | [`…apk.sha256`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256) |
 | **Release** | https://github.com/shuvrajeetkamila/temporary5/releases/tag/v0.1.0-m0 (rolling: each green run republishes it) |
-| **Built from** | commit `ab7698c`, branch `arena/4eb37624-temporary5` |
-| **CI runs for that commit** | Build APK [`38442359734`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38442359734) success · Compile gate [`38442359802`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38442359802) success · Protect the project [`38442359832`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38442359832) success |
-| **Tests at that commit** | 94 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_STATUS.txt`, evidence commit `2210b8b`) |
+| **Built from** | commit `c2e4f13`, branch `arena/4eb37624-temporary5` |
+| **CI runs for that commit** | Build APK [`38446565143`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38446565143) success · Compile gate [`38446565061`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38446565061) success · Protect the project [`38446565328`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38446565328) success |
+| **Tests at that commit** | 95 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_STATUS.txt`, evidence commit `9067a9d`) |
 | **Package** | `ai.arena.qatar.peninsula`, versionName `0.1.0-m0`, debug-signed, `minSdk 26`, `targetSdk 34` |
 | **ABIs** | `arm64-v8a`, `armeabi-v7a`, `x86_64` |
 | **Permissions** | none: no `INTERNET`, nothing to phone home to. The country is inside the APK. |
@@ -82,7 +82,7 @@ The map is interactable: buildings and barriers are solid at the altitude the bo
 chest height is stopped by a wall; an aircraft above its top is not), terrain that has not streamed in
 is not walked onto, and taps on the map move the player.
 
-Evidence: `VehicleDynamicsTest`, `BuildingCollisionTest`, `BarrierCollisionTest` — part of the 94 passing
+Evidence: `VehicleDynamicsTest`, `BuildingCollisionTest`, `BarrierCollisionTest` — part of the 95 passing
 tests.
 
 ## 3. Detail assets
@@ -93,12 +93,18 @@ tests.
 * The player has a body: a person, a car, an aeroplane, a helicopter and a boat, in metres, from the
   published dimensions of the real machines, painted per part from a palette in the shader (car paint,
   glass, tyre, aircraft white, helicopter green, boat hull, teak deck, cloth, skin, steel, rotor).
+* The bodies move. The parts that should turn do, and at the rates the machines turn at: the car's four
+  wheels roll at v/r on the same 0.33 m radius, 1.57 m track and 2.79 m wheelbase the physics steers on,
+  the aeroplane's propeller idles at 700 rpm and turns 2,400 at full power, and the helicopter's rotor
+  head is governed near 330 rpm under a tail rotor turning 2.5 times as fast. Every part is built centred
+  on its own pivot and placed by translating to that pivot *before* rotating, so a wheel rolls on its
+  axle instead of orbiting the car. The angle is visual only: nothing in the simulation reads it.
 * Land is painted from its compiled material id — sabkha, mangrove, tidal mud, dune sand, urban pad —
   with per-vertex shading from a tint the meshers compute.
 
-What is not there: doors, roof clutter, kerbs, palms, and moving parts (the wheels do not turn, the
-propeller and rotor do not spin). The bodies are boxy by construction: silhouettes and dimensions are
-right, folds and curves are not.
+What is not there: doors, roof clutter, kerbs and palms; a walking animation (the person's legs are
+static boxes, and the body is drawn only in the third-person view); and curves -- the bodies are boxes by
+construction, so silhouettes and dimensions are right and folds are not.
 
 ## 4. Minimap, buttons, zoomable map, tap to travel
 
@@ -133,7 +139,8 @@ signature, zip integrity.
    24 chunks per frame in the first seconds, and the resident window is sized for a 6 km view.
 7. Terrain is SRTM-derived and smoothed at 100 m: the shapes of dunes are right, individual dune crests
    are not. Building heights are OSM's, which are sometimes a floor count converted to metres.
-8. The bodies are boxes, and locomotion is discrete: the player is one kind of thing at a time.
+8. The bodies are boxes, the person's legs do not swing, the body is drawn only in the third-person
+   view, and locomotion is discrete: the player is one kind of thing at a time.
 9. Aeroplane spawn points are the weakest of the compiled picks: they are real mapped aprons, but the
    first one sits 640 m from the nearest road, so the game does not *start* there — the start uses a car
    spawn and the aeroplane is reached from the HUD, which places it correctly on land every time. Heading
@@ -156,7 +163,7 @@ signature, zip integrity.
 
 ```bash
 git clone https://github.com/shuvrajeetkamila/temporary5 && cd temporary5
-git checkout ab7698c
+git checkout c2e4f13
 # world data (downloads OSM + SRTM, compiles the country, validates it):
 python3 tools/fetch_sources.py && python3 tools/build_world.py && python3 tools/game_world.py
 python3 tools/validate_game_world.py --world android/assets/world     # 57/57
