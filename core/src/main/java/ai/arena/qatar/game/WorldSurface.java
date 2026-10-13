@@ -1,7 +1,10 @@
 package ai.arena.qatar.game;
 
 import ai.arena.qatar.vehicle.Surface;
+import ai.arena.qatar.world.Buildings;
+import ai.arena.qatar.world.FeatureIndex;
 import ai.arena.qatar.world.GridTerrainSampler;
+import ai.arena.qatar.world.WorldData;
 
 /**
  * The {@link Surface} the vehicle bodies see, backed by the streaming collision terrain.
@@ -14,9 +17,13 @@ import ai.arena.qatar.world.GridTerrainSampler;
 public final class WorldSurface implements Surface {
 
     private final GridTerrainSampler sampler;
+    private final Buildings buildings;
+    private final FeatureIndex buildingIndex;
 
-    public WorldSurface(GridTerrainSampler sampler) {
+    public WorldSurface(GridTerrainSampler sampler, WorldData world) {
         this.sampler = sampler;
+        this.buildings = world.buildings;
+        this.buildingIndex = world.buildingIndex;
     }
 
     @Override
@@ -38,5 +45,34 @@ public final class WorldSurface implements Surface {
     @Override
     public boolean collisionLoaded(double localEastM, double localNorthM) {
         return sampler.isCollisionLoaded(localEastM, localNorthM);
+    }
+
+    /**
+     * Buildings are solid from the ground up to their compiled roof height, which is exactly what the
+     * bundle stores. Footprints are boxes here, not the ring the mesh draws: a courtyard is walkable
+     * through its bounding box, which is the honest limit of a box test and is stated rather than hidden.
+     */
+    @Override
+    public boolean solidAt(double localEastM, double localNorthM, double altitudeM) {
+        if (buildings == null || buildingIndex == null) {
+            return false;
+        }
+        double roofLimit = altitudeM - sampler.height(localEastM, localNorthM);
+        boolean[] hit = {false};
+        buildingIndex.query(localEastM - 0.05, localNorthM - 0.05, localEastM + 0.05, localNorthM + 0.05,
+                id -> {
+                    if (roofLimit >= buildings.heightM[id]) {
+                        return true;                       // standing above this roof
+                    }
+                    if (localEastM < buildings.bounds[id * 4]
+                            || localEastM > buildings.bounds[id * 4 + 2]
+                            || localNorthM < buildings.bounds[id * 4 + 1]
+                            || localNorthM > buildings.bounds[id * 4 + 3]) {
+                        return true;                       // bounding box says no
+                    }
+                    hit[0] = true;
+                    return false;
+                });
+        return hit[0];
     }
 }

@@ -26,6 +26,14 @@ public interface Surface {
     /** False when the collision mesh covering this position has not streamed in. */
     boolean collisionLoaded(double localEastM, double localNorthM);
 
+    /**
+     * True when a building occupies this position at this altitude, so a walker or a driver is stopped
+     * by it. Flying bodies can ignore it today; the altitude is passed so they do not have to later.
+     */
+    default boolean solidAt(double localEastM, double localNorthM, double altitudeM) {
+        return false;
+    }
+
     /** The material record at a position; the one call most bodies actually want. */
     default SurfaceMaterial materialAt(double localEastM, double localNorthM) {
         return MaterialRegistry.get(materialId(localEastM, localNorthM));

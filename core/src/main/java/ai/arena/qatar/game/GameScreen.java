@@ -105,7 +105,7 @@ public final class GameScreen extends InputAdapter implements Disposable {
         controller = new PlayerController(rig);
         // From here on the vehicles move through the real terrain: heights, materials and depths all
         // come from the compiled country, and a kerb is a step the walker has to be able to take.
-        controller.setSurface(new WorldSurface(sampler));
+        controller.setSurface(new WorldSurface(sampler, world));
         // Start looking north-west across the bay rather than into the sand: a first impression of a
         // capital city is the skyline across the water.
         rig.yawDegrees = 305.0;

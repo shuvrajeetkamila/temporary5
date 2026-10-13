@@ -34,6 +34,8 @@ public final class CarBody extends VehicleBody {
     public static final double LATERAL_GRIP_FRACTION = 0.95;
     /** The steepest slope the car will drive up (about 30 degrees). */
     public static final double SLOPE_LIMIT = 0.58;
+    /** Length of the car, used for the nose test against walls. */
+    public static final double CAR_LENGTH_M = 4.6;
     /** Water deeper than this stops the engine rather than slowing the car. */
     public static final double STALL_DEPTH_M = 0.7;
 
@@ -146,7 +148,11 @@ public final class CarBody extends VehicleBody {
             double aheadGround = surface.groundHeightM(x + moveE, z + moveN);
             double rise = aheadGround - ground;
             boolean tooSteep = rise / distance > SLOPE_LIMIT || rise > 0.55;
-            if (tooSteep) {
+            // The nose of the car, not its middle: a car stops at a wall before driving into it.
+            double noseE = state.eastM + forwardE * CAR_LENGTH_M * 0.5;
+            double noseN = state.northM + forwardN * CAR_LENGTH_M * 0.5;
+            boolean wall = surface.solidAt(noseE, noseN, ground + WHEEL_RADIUS_M + 0.2);
+            if (tooSteep || wall) {
                 // A wall, a kerb the car cannot take at speed, or a dune face: stop, do not climb it.
                 state.blocked = true;
                 state.speedMS = Math.min(Math.abs(state.speedMS), 2.0) * sign(previous);

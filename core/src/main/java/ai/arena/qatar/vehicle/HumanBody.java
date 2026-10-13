@@ -110,7 +110,8 @@ public final class HumanBody extends VehicleBody {
             double aheadDepth = surface.waterDepthM(x + moveE, z + moveN);
             boolean tooTall = aheadGround - state.heightM > STEP_UP_M;
             boolean tooDeep = aheadDepth > WADE_DEPTH_M;
-            if (tooTall || tooDeep) {
+            boolean tooSolid = surface.solidAt(x + moveE, z + moveN, Math.max(aheadGround, state.heightM));
+            if (tooTall || tooDeep || tooSolid) {
                 state.blocked = true;
                 state.speedMS = 0;
                 moveE = 0;
