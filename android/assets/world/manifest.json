@@ -1,1171 +1,1226 @@
 {
- "format": 1,
- "worldEpoch": 20261012,
- "crs": "EPSG:32639",
- "crsName": "WGS 84 / UTM zone 39N",
- "grid": {
-  "originEast": 431000.0,
-  "originNorth": 2681000.0,
-  "widthM": 259000.0,
-  "heightM": 268000.0
- },
- "levels": [
-  {
-   "name": "l0",
-   "cellM": 300.0,
-   "cols": 864,
-   "rows": 894,
-   "file": "terrain_l0.bin.gz",
-   "sha256": "b88282c5766072b2bf45c4187869b8f869a7ce1208a07f22098971810312bd46"
-  },
-  {
-   "name": "l1",
-   "cellM": 100.0,
-   "cols": 2590,
-   "rows": 2680,
-   "file": "terrain_l1.bin.gz",
-   "sha256": "22c532d0ebdf5c0d4596fae6819ae3187376bc328a7cc06cf6e1809e909bb810"
-  }
- ],
- "materials": {
-  "file": "material_l1.bin.gz",
-  "cellM": 100.0,
-  "cols": 2590,
-  "rows": 2680,
-  "sha256": "b69bae6b810586f85030b9c4e30b3353a66798fc072a4a6b3b7a170e08bb1456"
- },
- "roads": {
-  "file": "roads.bin.gz",
-  "count": 179943,
-  "byClass": {
-   "2": 1423,
-   "3": 2265,
-   "4": 3681,
-   "7": 38095,
-   "8": 45939,
-   "5": 7270,
-   "16": 1485,
-   "6": 13300,
-   "10": 15854,
-   "15": 1903,
-   "12": 14994,
-   "19": 1621,
-   "17": 1746,
-   "1": 899,
-   "9": 889,
-   "22": 1202,
-   "18": 2068,
-   "11": 23451,
-   "21": 449,
-   "14": 380,
-   "13": 1017,
-   "23": 1,
-   "20": 11
-  },
-  "sha256": "a8bb620ee9822491f9ce922f7128c0373499af6f4956eba5f1fcebb42c5caee6"
- },
- "buildings": {
-  "file": "buildings.bin.gz",
-  "count": 186993,
-  "sha256": "10bf1007d1d2ff3131ea138dc48ccdb42e04053928e8d321d9f92c229c4bdb11"
- },
- "coast": {
-  "file": "coast.bin.gz",
-  "rings": 320,
-  "sha256": "c7bafaba508cfec0002647cc91f3d462c09c4a8f6de2f0c7d6d2fb64c69b17ee"
- },
- "strings": {
-  "file": "strings.bin.gz",
-  "count": 16780,
-  "sha256": "3b7a64fcc384b48448f0e8e5ba870768716d44e4c1a7929f7f8c4ab861cd1ad6"
- },
- "islands": [
-  {
-   "id": "osm-w1039580371",
-   "name": "Al Safliya Island",
-   "nameAr": "جزيرة السافليه",
-   "areaM2": 1220395.8,
-   "east": 557957.09,
-   "north": 2803177.03
-  },
-  {
-   "id": "osm-w1093365407",
-   "name": "فشت الديبل",
-   "nameAr": "فشت الديبل",
-   "areaM2": 22890078.1,
-   "east": 494739.21,
-   "north": 2903855.84
-  },
-  {
-   "id": "island-2",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 70700000.0,
-   "east": 530050.0,
-   "north": 2720750.0
-  },
-  {
-   "id": "island-18",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 1430000.0,
-   "east": 556050.0,
-   "north": 2805850.0
-  },
-  {
-   "id": "island-67",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 1420000.0,
-   "east": 527750.0,
-   "north": 2892150.0
-  },
-  {
-   "id": "island-41",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 1270000.0,
-   "east": 483050.0,
-   "north": 2834350.0
-  },
-  {
-   "id": "island-46",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 920000.0,
-   "east": 641550.0,
-   "north": 2840450.0
-  },
-  {
-   "id": "island-36",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 660000.0,
-   "east": 553150.0,
-   "north": 2812650.0
-  },
-  {
-   "id": "island-17",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 650000.0,
-   "east": 558150.0,
-   "north": 2803350.0
-  },
-  {
-   "id": "island-56",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 560000.0,
-   "east": 560250.0,
-   "north": 2866950.0
-  },
-  {
-   "id": "island-22",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 470000.0,
-   "east": 552850.0,
-   "north": 2806350.0
-  },
-  {
-   "id": "island-12",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 420000.0,
-   "east": 559250.0,
-   "north": 2761450.0
-  },
-  {
-   "id": "island-5",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 370000.0,
-   "east": 537950.0,
-   "north": 2718750.0
-  },
-  {
-   "id": "island-30",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 330000.0,
-   "east": 557050.0,
-   "north": 2810050.0
-  },
-  {
-   "id": "island-63",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 300000.0,
-   "east": 554450.0,
-   "north": 2868550.0
-  },
-  {
-   "id": "island-7",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 270000.0,
-   "east": 535450.0,
-   "north": 2722750.0
-  },
-  {
-   "id": "island-9",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 270000.0,
-   "east": 535750.0,
-   "north": 2724350.0
-  },
-  {
-   "id": "island-15",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 270000.0,
-   "east": 562150.0,
-   "north": 2774150.0
-  },
-  {
-   "id": "island-13",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 240000.0,
-   "east": 564250.0,
-   "north": 2768450.0
-  },
-  {
-   "id": "island-8",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 230000.0,
-   "east": 534950.0,
-   "north": 2723450.0
-  },
-  {
-   "id": "island-32",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 230000.0,
-   "east": 552750.0,
-   "north": 2810850.0
-  },
-  {
-   "id": "island-6",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 190000.0,
-   "east": 534750.0,
-   "north": 2721750.0
-  },
-  {
-   "id": "island-11",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 190000.0,
-   "east": 560250.0,
-   "north": 2761350.0
-  },
-  {
-   "id": "island-20",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 190000.0,
-   "east": 554050.0,
-   "north": 2806150.0
-  },
-  {
-   "id": "island-34",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 180000.0,
-   "east": 551550.0,
-   "north": 2811650.0
-  },
-  {
-   "id": "island-47",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 180000.0,
-   "east": 555450.0,
-   "north": 2840650.0
-  },
-  {
-   "id": "island-14",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 170000.0,
-   "east": 560350.0,
-   "north": 2772150.0
-  },
-  {
-   "id": "island-42",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 170000.0,
-   "east": 484050.0,
-   "north": 2835550.0
-  },
-  {
-   "id": "island-49",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 150000.0,
-   "east": 556450.0,
-   "north": 2850550.0
-  },
-  {
-   "id": "island-57",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 150000.0,
-   "east": 559150.0,
-   "north": 2867050.0
-  },
-  {
-   "id": "island-62",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 150000.0,
-   "east": 559750.0,
-   "north": 2868050.0
-  },
-  {
-   "id": "island-50",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 140000.0,
-   "east": 556950.0,
-   "north": 2850450.0
-  },
-  {
-   "id": "island-55",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 130000.0,
-   "east": 564950.0,
-   "north": 2864250.0
-  },
-  {
-   "id": "island-25",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 90000.0,
-   "east": 554750.0,
-   "north": 2806650.0
-  },
-  {
-   "id": "island-33",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 90000.0,
-   "east": 552150.0,
-   "north": 2811250.0
-  },
-  {
-   "id": "island-35",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 90000.0,
-   "east": 552150.0,
-   "north": 2811850.0
-  },
-  {
-   "id": "island-40",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 90000.0,
-   "east": 549950.0,
-   "north": 2826650.0
-  },
-  {
-   "id": "island-4",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 80000.0,
-   "east": 535650.0,
-   "north": 2717150.0
-  },
-  {
-   "id": "island-10",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 80000.0,
-   "east": 529350.0,
-   "north": 2728250.0
-  },
-  {
-   "id": "island-52",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 80000.0,
-   "east": 563650.0,
-   "north": 2863650.0
-  },
-  {
-   "id": "island-31",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 70000.0,
-   "east": 551850.0,
-   "north": 2810750.0
-  },
-  {
-   "id": "island-43",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 70000.0,
-   "east": 484550.0,
-   "north": 2836050.0
-  },
-  {
-   "id": "island-48",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 70000.0,
-   "east": 554350.0,
-   "north": 2847450.0
-  },
-  {
-   "id": "island-28",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 60000.0,
-   "east": 552850.0,
-   "north": 2809050.0
-  },
-  {
-   "id": "island-38",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 50000.0,
-   "east": 559150.0,
-   "north": 2818050.0
-  },
-  {
-   "id": "island-44",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 50000.0,
-   "east": 484150.0,
-   "north": 2836450.0
-  },
-  {
-   "id": "island-39",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 40000.0,
-   "east": 558750.0,
-   "north": 2818350.0
-  },
-  {
-   "id": "island-16",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 30000.0,
-   "east": 555250.0,
-   "north": 2798350.0
-  },
-  {
-   "id": "island-37",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 30000.0,
-   "east": 552050.0,
-   "north": 2812650.0
-  },
-  {
-   "id": "island-66",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 30000.0,
-   "east": 529250.0,
-   "north": 2891150.0
-  },
-  {
-   "id": "island-68",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 30000.0,
-   "east": 521850.0,
-   "north": 2895250.0
-  },
-  {
-   "id": "island-3",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 20000.0,
-   "east": 535250.0,
-   "north": 2716650.0
-  },
-  {
-   "id": "island-27",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 20000.0,
-   "east": 553250.0,
-   "north": 2808550.0
-  },
-  {
-   "id": "island-51",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 20000.0,
-   "east": 558650.0,
-   "north": 2850250.0
-  },
-  {
-   "id": "island-53",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 20000.0,
-   "east": 564350.0,
-   "north": 2863850.0
-  },
-  {
-   "id": "island-58",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 20000.0,
-   "east": 559650.0,
-   "north": 2867550.0
-  },
-  {
-   "id": "island-65",
-   "name": "",
-   "nameAr": "",
-   "areaM2": 20000.0,
-   "east": 538050.0,
-   "north": 2878450.0
-  }
- ],
- "municipalities": [
-  {
-   "id": "QA-US",
-   "name": "Umm Salal",
-   "nameAr": "أم صلال",
-   "east": 540916.37,
-   "north": 2810810.63,
-   "nameIdx": 164,
-   "nameArIdx": 165,
-   "areaKm2": 317.64
-  },
-  {
-   "id": "QA-KH",
-   "name": "Al Khor and Al Thakhira",
-   "nameAr": "الخور والذخيرة",
-   "east": 550485.66,
-   "north": 2840756.14,
-   "nameIdx": 26,
-   "nameArIdx": 27,
-   "areaKm2": 1606.71
-  },
-  {
-   "id": "QA-SH",
-   "name": "Al Shahaniya",
-   "nameAr": "الشحانية",
-   "east": 522848.11,
-   "north": 2806130.66,
-   "nameIdx": 126,
-   "nameArIdx": 5,
-   "areaKm2": 3305.15
-  },
-  {
-   "id": "QA-RA",
-   "name": "Al Rayyan",
-   "nameAr": "الريان",
-   "east": 543752.37,
-   "north": 2797863.51,
-   "nameIdx": 6,
-   "nameArIdx": 7,
-   "areaKm2": 2449.21
-  },
-  {
-   "id": "QA-DA",
-   "name": "Doha",
-   "nameAr": "الدوحة",
-   "east": 552997.52,
-   "north": 2796680.07,
-   "nameIdx": 8,
-   "nameArIdx": 9,
-   "areaKm2": 210.06
-  },
-  {
-   "id": "QA-MS",
-   "name": "Ash Shamal",
-   "nameAr": "الشمال",
-   "east": 520458.63,
-   "north": 2890041.8,
-   "nameIdx": 129,
-   "nameArIdx": 130,
-   "areaKm2": 860.2
-  },
-  {
-   "id": "QA-WA",
-   "name": "Al Wakrah",
-   "nameAr": "الوكرة",
-   "east": 555438.2,
-   "north": 2764550.08,
-   "nameIdx": 120,
-   "nameArIdx": 121,
-   "areaKm2": 2547.0
-  },
-  {
-   "id": "QA-ZA",
-   "name": "Al-Daayen",
-   "nameAr": "الضعاين",
-   "east": 552263.95,
-   "north": 2811876.72,
-   "nameIdx": 151,
-   "nameArIdx": 152,
-   "areaKm2": 278.7
-  }
- ],
- "checkpoints": [
-  {
-   "group": "SOUTH_AND_BORDER",
-   "id": "ABU_SAMRA",
-   "east": 485060.89,
-   "north": 2737385.47,
-   "nameIdx": 220,
-   "nameArIdx": 65535,
-   "source": "osm-place"
-  },
-  {
-   "group": "SOUTH_AND_BORDER",
-   "id": "MESAIEED",
-   "east": 555438.2,
-   "north": 2764550.08,
-   "nameIdx": 120,
-   "nameArIdx": 121,
-   "source": "osm-place"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "DOHA",
-   "east": 552997.52,
-   "north": 2796680.07,
-   "nameIdx": 8,
-   "nameArIdx": 9,
-   "source": "osm-place"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "DOHA_INTERNATIONAL_AIRPORT",
-   "east": 557164.89,
-   "north": 2794908.59,
-   "nameIdx": 47,
-   "nameArIdx": 48,
-   "source": "osm-place"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "DOHA_CORNICHE",
-   "east": 551909.1,
-   "north": 2799176.04,
-   "nameIdx": 249,
-   "nameArIdx": 250,
-   "source": "osm-area"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "WEST_BAY",
-   "east": 553643.29,
-   "north": 2800809.47,
-   "nameIdx": 197,
-   "nameArIdx": 198,
-   "source": "osm-place"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "SOUQ_WAQIF",
-   "east": 553642.85,
-   "north": 2796987.8,
-   "nameIdx": 227,
-   "nameArIdx": 228,
-   "source": "osm-place"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "MSHEIREB",
-   "east": 553285.67,
-   "north": 2796282.02,
-   "nameIdx": 49,
-   "nameArIdx": 50,
-   "source": "osm-place"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "AL_RAYYAN",
-   "east": 543752.37,
-   "north": 2797863.51,
-   "nameIdx": 6,
-   "nameArIdx": 7,
-   "source": "osm-place"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "EDUCATION_CITY",
-   "east": 543906.61,
-   "north": 2800180.12,
-   "nameIdx": 155,
-   "nameArIdx": 65535,
-   "source": "osm-place"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "ASPIRE_ZONE",
-   "east": 545077.08,
-   "north": 2793838.83,
-   "nameIdx": 251,
-   "nameArIdx": 65535,
-   "source": "osm-area"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "LUSAIL",
-   "east": 552263.95,
-   "north": 2811876.72,
-   "nameIdx": 151,
-   "nameArIdx": 152,
-   "source": "osm-place"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "AL_DAAYEN",
-   "east": 544038.63,
-   "north": 2821559.37,
-   "nameIdx": 246,
-   "nameArIdx": 15,
-   "source": "osm-place"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "UMM_SALAL",
-   "east": 532792.31,
-   "north": 2819216.56,
-   "nameIdx": 0,
-   "nameArIdx": 1,
-   "source": "osm-place"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "AL_KHOR",
-   "east": 550485.66,
-   "north": 2840756.14,
-   "nameIdx": 26,
-   "nameArIdx": 27,
-   "source": "osm-place"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "AL_THAKHIRA",
-   "east": 554497.81,
-   "north": 2846420.78,
-   "nameIdx": 145,
-   "nameArIdx": 146,
-   "source": "osm-place"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "RAS_LAFFAN",
-   "east": 553403.31,
-   "north": 2864458.57,
-   "nameIdx": 143,
-   "nameArIdx": 144,
-   "source": "osm-place"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "FUWAIRIT",
-   "east": 537257.22,
-   "north": 2878505.27,
-   "nameIdx": 124,
-   "nameArIdx": 125,
-   "source": "osm-place"
-  },
-  {
-   "group": "WEST_AND_NORTHWEST",
-   "id": "DUKHAN",
-   "east": 478641.97,
-   "north": 2811345.84,
-   "nameIdx": 195,
-   "nameArIdx": 196,
-   "source": "osm-place"
-  },
-  {
-   "group": "WEST_AND_NORTHWEST",
-   "id": "ZEKREET",
-   "east": 484603.13,
-   "north": 2818656.88,
-   "nameIdx": 162,
-   "nameArIdx": 163,
-   "source": "osm-place"
-  },
-  {
-   "group": "WEST_AND_NORTHWEST",
-   "id": "AL_SHAHANIYA",
-   "east": 522848.11,
-   "north": 2806130.66,
-   "nameIdx": 126,
-   "nameArIdx": 5,
-   "source": "osm-place"
-  },
-  {
-   "group": "WEST_AND_NORTHWEST",
-   "id": "AL_ZUBARAH",
-   "east": 502581.15,
-   "north": 2873406.68,
-   "nameIdx": 252,
-   "nameArIdx": 253,
-   "source": "osm-area"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "AL_RUWAIS",
-   "east": 520458.63,
-   "north": 2890041.8,
-   "nameIdx": 129,
-   "nameArIdx": 130,
-   "source": "osm-place"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "MADINAT_ASH_SHAMAL",
-   "east": 521563.39,
-   "north": 2888801.33,
-   "nameIdx": 221,
-   "nameArIdx": 222,
-   "source": "osm-place"
-  },
-  {
-   "group": "SOUTH_AND_BORDER",
-   "id": "AL_WAKRAH",
-   "east": 560602.7,
-   "north": 2782430.11,
-   "nameIdx": 12,
-   "nameArIdx": 13,
-   "source": "osm-place"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "AL_SADD",
-   "east": 550363.72,
-   "north": 2796703.22,
-   "nameIdx": 82,
-   "nameArIdx": 83,
-   "source": "osm-place"
-  },
-  {
-   "group": "ISLANDS_AND_WATER",
-   "id": "HALUL_ISLAND",
-   "east": 557957.09,
-   "north": 2803177.03,
-   "nameIdx": 254,
-   "nameArIdx": 65535,
-   "source": "osm-coastline-island"
-  },
-  {
-   "group": "ISLANDS_AND_WATER",
-   "id": "SHAROUH_ISLAND",
-   "east": 557957.09,
-   "north": 2803177.03,
-   "nameIdx": 254,
-   "nameArIdx": 65535,
-   "source": "osm-coastline-island"
-  }
- ],
- "checkpointReport": [
-  {
-   "group": "SOUTH_AND_BORDER",
-   "id": "ABU_SAMRA",
-   "status": "FOUND",
-   "east": 485060.89,
-   "north": 2737385.47,
-   "name": "Abu Samra"
-  },
-  {
-   "group": "SOUTH_AND_BORDER",
-   "id": "KHOR_AL_ADAID",
-   "status": "MISSING"
-  },
-  {
-   "group": "SOUTH_AND_BORDER",
-   "id": "MESAIEED",
-   "status": "FOUND",
-   "east": 555438.2,
-   "north": 2764550.08,
-   "name": "Mesaieed"
-  },
-  {
-   "group": "SOUTH_AND_BORDER",
-   "id": "HAMAD_PORT",
-   "status": "MISSING"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "DOHA",
-   "status": "FOUND",
-   "east": 552997.52,
-   "north": 2796680.07,
-   "name": "Doha"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "HAMAD_INTERNATIONAL_AIRPORT",
-   "status": "MISSING"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "DOHA_INTERNATIONAL_AIRPORT",
-   "status": "FOUND",
-   "east": 557164.89,
-   "north": 2794908.59,
-   "name": "Doha International Airport"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "DOHA_CORNICHE",
-   "status": "FOUND",
-   "east": 551909.1,
-   "north": 2799176.04,
-   "name": "Corniche"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "WEST_BAY",
-   "status": "FOUND",
-   "east": 553643.29,
-   "north": 2800809.47,
-   "name": "West Bay"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "SOUQ_WAQIF",
-   "status": "FOUND",
-   "east": 553642.85,
-   "north": 2796987.8,
-   "name": "Souq Waqif"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "MSHEIREB",
-   "status": "FOUND",
-   "east": 553285.67,
-   "north": 2796282.02,
-   "name": "Mushaireb"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "AL_RAYYAN",
-   "status": "FOUND",
-   "east": 543752.37,
-   "north": 2797863.51,
-   "name": "Al Rayyan"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "EDUCATION_CITY",
-   "status": "FOUND",
-   "east": 543906.61,
-   "north": 2800180.12,
-   "name": "Education City"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "ASPIRE_ZONE",
-   "status": "FOUND",
-   "east": 545077.08,
-   "north": 2793838.83,
-   "name": "Aspire"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "LUSAIL",
-   "status": "FOUND",
-   "east": 552263.95,
-   "north": 2811876.72,
-   "name": "Lusail"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "AL_DAAYEN",
-   "status": "FOUND",
-   "east": 544038.63,
-   "north": 2821559.37,
-   "name": "Al Daayen"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "UMM_SALAL",
-   "status": "FOUND",
-   "east": 532792.31,
-   "north": 2819216.56,
-   "name": "Umm Salal"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "AL_KHOR",
-   "status": "FOUND",
-   "east": 550485.66,
-   "north": 2840756.14,
-   "name": "Al Khor"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "AL_THAKHIRA",
-   "status": "FOUND",
-   "east": 554497.81,
-   "north": 2846420.78,
-   "name": "Al Dhakira"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "RAS_LAFFAN",
-   "status": "FOUND",
-   "east": 553403.31,
-   "north": 2864458.57,
-   "name": "Ras Laffan"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "FUWAIRIT",
-   "status": "FOUND",
-   "east": 537257.22,
-   "north": 2878505.27,
-   "name": "Fuwayrit"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "THE_PEARL",
-   "status": "MISSING"
-  },
-  {
-   "group": "WEST_AND_NORTHWEST",
-   "id": "DUKHAN",
-   "status": "FOUND",
-   "east": 478641.97,
-   "north": 2811345.84,
-   "name": "Dukhan"
-  },
-  {
-   "group": "WEST_AND_NORTHWEST",
-   "id": "ZEKREET",
-   "status": "FOUND",
-   "east": 484603.13,
-   "north": 2818656.88,
-   "name": "Zekreet"
-  },
-  {
-   "group": "WEST_AND_NORTHWEST",
-   "id": "AL_SHAHANIYA",
-   "status": "FOUND",
-   "east": 522848.11,
-   "north": 2806130.66,
-   "name": "Al-Shahaniya"
-  },
-  {
-   "group": "WEST_AND_NORTHWEST",
-   "id": "AL_ZUBARAH",
-   "status": "FOUND",
-   "east": 502581.15,
-   "north": 2873406.68,
-   "name": "Al Zubarah Archaeological Site"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "AL_RUWAIS",
-   "status": "FOUND",
-   "east": 520458.63,
-   "north": 2890041.8,
-   "name": "Al Ruwais"
-  },
-  {
-   "group": "NORTH_AND_NORTHEAST",
-   "id": "MADINAT_ASH_SHAMAL",
-   "status": "FOUND",
-   "east": 521563.39,
-   "north": 2888801.33,
-   "name": "Madinat ash Shamal"
-  },
-  {
-   "group": "SOUTH_AND_BORDER",
-   "id": "AL_WAKRAH",
-   "status": "FOUND",
-   "east": 560602.7,
-   "north": 2782430.11,
-   "name": "Al Wakrah"
-  },
-  {
-   "group": "CENTRAL_AND_CAPITAL",
-   "id": "AL_SADD",
-   "status": "FOUND",
-   "east": 550363.72,
-   "north": 2796703.22,
-   "name": "Al Sadd"
-  },
-  {
-   "group": "ISLANDS_AND_WATER",
-   "id": "HALUL_ISLAND",
-   "status": "FOUND",
-   "east": 557957.09,
-   "north": 2803177.03,
-   "name": "unnamed island"
-  },
-  {
-   "group": "ISLANDS_AND_WATER",
-   "id": "SHAROUH_ISLAND",
-   "status": "FOUND",
-   "east": 557957.09,
-   "north": 2803177.03,
-   "name": "unnamed island"
-  }
- ],
- "attribution": [
-  "(c) OpenStreetMap contributors, ODbL 1.0 -- coastline, boundaries, roads, buildings, land use",
-  "SRTM 1 arc-second elevation (NASA/USGS, public domain)"
- ],
- "stats": {
-  "landCells": 1150250,
-  "landAreaKm2": 11502.5,
-  "landComponents": 68,
-  "islandFaces": 56,
-  "islandCount": 57,
-  "mainlandKm2": 11418.13,
-  "largestIslandKm2": 70.7,
-  "materialHistogram": {
-   "5": 919497,
-   "6": 4409,
-   "7": 18249,
-   "8": 11854,
-   "9": 61942,
-   "12": 30381,
-   "13": 70297,
-   "15": 37677,
-   "16": 5786894
-  },
-  "roadsByClass": {
-   "2": 1423,
-   "3": 2265,
-   "4": 3681,
-   "7": 38095,
-   "8": 45939,
-   "5": 7270,
-   "16": 1485,
-   "6": 13300,
-   "10": 15854,
-   "15": 1903,
-   "12": 14994,
-   "19": 1621,
-   "17": 1746,
-   "1": 899,
-   "9": 889,
-   "22": 1202,
-   "18": 2068,
-   "11": 23451,
-   "21": 449,
-   "14": 380,
-   "13": 1017,
-   "23": 1,
-   "20": 11
-  }
- }
+  "format": 2,
+  "worldEpoch": 20261012,
+  "crs": "EPSG:32639",
+  "crsName": "WGS 84 / UTM zone 39N",
+  "grid": {
+    "originEast": 431000.0,
+    "originNorth": 2681000.0,
+    "widthM": 259000.0,
+    "heightM": 268000.0
+  },
+  "levels": [
+    {
+      "name": "l0",
+      "cellM": 300.0,
+      "cols": 864,
+      "rows": 894,
+      "file": "terrain_l0.bin.gz",
+      "sha256": "b88282c5766072b2bf45c4187869b8f869a7ce1208a07f22098971810312bd46"
+    },
+    {
+      "name": "l1",
+      "cellM": 100.0,
+      "cols": 2590,
+      "rows": 2680,
+      "file": "terrain_l1.bin.gz",
+      "sha256": "22c532d0ebdf5c0d4596fae6819ae3187376bc328a7cc06cf6e1809e909bb810"
+    }
+  ],
+  "materials": {
+    "file": "material_l1.bin.gz",
+    "cellM": 100.0,
+    "cols": 2590,
+    "rows": 2680,
+    "sha256": "b69bae6b810586f85030b9c4e30b3353a66798fc072a4a6b3b7a170e08bb1456"
+  },
+  "roads": {
+    "file": "roads.bin.gz",
+    "count": 179943,
+    "byClass": {
+      "2": 1423,
+      "3": 2265,
+      "4": 3681,
+      "7": 38095,
+      "8": 45939,
+      "5": 7270,
+      "16": 1485,
+      "6": 13300,
+      "10": 15854,
+      "15": 1903,
+      "12": 14994,
+      "19": 1621,
+      "17": 1746,
+      "1": 899,
+      "9": 889,
+      "22": 1202,
+      "18": 2068,
+      "11": 23451,
+      "21": 449,
+      "14": 380,
+      "13": 1017,
+      "23": 1,
+      "20": 11
+    },
+    "sha256": "a8bb620ee9822491f9ce922f7128c0373499af6f4956eba5f1fcebb42c5caee6"
+  },
+  "buildings": {
+    "file": "buildings.bin.gz",
+    "count": 186993,
+    "sha256": "10bf1007d1d2ff3131ea138dc48ccdb42e04053928e8d321d9f92c229c4bdb11"
+  },
+  "coast": {
+    "file": "coast.bin.gz",
+    "rings": 320,
+    "sha256": "c7bafaba508cfec0002647cc91f3d462c09c4a8f6de2f0c7d6d2fb64c69b17ee"
+  },
+  "strings": {
+    "file": "strings.bin.gz",
+    "count": 16780,
+    "sha256": "56ab4efe0af99e2991484e4e665656aa86a0dba092f89eb847450b5718e996cd"
+  },
+  "islands": [
+    {
+      "id": "osm-w1039580371",
+      "name": "Al Safliya Island",
+      "nameAr": "جزيرة السافليه",
+      "areaM2": 1220395.8,
+      "east": 557957.09,
+      "north": 2803177.03
+    },
+    {
+      "id": "osm-w1093365407",
+      "name": "فشت الديبل",
+      "nameAr": "فشت الديبل",
+      "areaM2": 22890078.1,
+      "east": 494739.21,
+      "north": 2903855.84
+    },
+    {
+      "id": "island-2",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 70700000.0,
+      "east": 530050.0,
+      "north": 2720750.0
+    },
+    {
+      "id": "island-18",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 1430000.0,
+      "east": 556050.0,
+      "north": 2805850.0
+    },
+    {
+      "id": "island-67",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 1420000.0,
+      "east": 527750.0,
+      "north": 2892150.0
+    },
+    {
+      "id": "island-41",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 1270000.0,
+      "east": 483050.0,
+      "north": 2834350.0
+    },
+    {
+      "id": "island-46",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 920000.0,
+      "east": 641550.0,
+      "north": 2840450.0
+    },
+    {
+      "id": "island-36",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 660000.0,
+      "east": 553150.0,
+      "north": 2812650.0
+    },
+    {
+      "id": "island-17",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 650000.0,
+      "east": 558150.0,
+      "north": 2803350.0
+    },
+    {
+      "id": "island-56",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 560000.0,
+      "east": 560250.0,
+      "north": 2866950.0
+    },
+    {
+      "id": "island-22",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 470000.0,
+      "east": 552850.0,
+      "north": 2806350.0
+    },
+    {
+      "id": "island-12",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 420000.0,
+      "east": 559250.0,
+      "north": 2761450.0
+    },
+    {
+      "id": "island-5",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 370000.0,
+      "east": 537950.0,
+      "north": 2718750.0
+    },
+    {
+      "id": "island-30",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 330000.0,
+      "east": 557050.0,
+      "north": 2810050.0
+    },
+    {
+      "id": "island-63",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 300000.0,
+      "east": 554450.0,
+      "north": 2868550.0
+    },
+    {
+      "id": "island-7",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 270000.0,
+      "east": 535450.0,
+      "north": 2722750.0
+    },
+    {
+      "id": "island-9",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 270000.0,
+      "east": 535750.0,
+      "north": 2724350.0
+    },
+    {
+      "id": "island-15",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 270000.0,
+      "east": 562150.0,
+      "north": 2774150.0
+    },
+    {
+      "id": "island-13",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 240000.0,
+      "east": 564250.0,
+      "north": 2768450.0
+    },
+    {
+      "id": "island-8",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 230000.0,
+      "east": 534950.0,
+      "north": 2723450.0
+    },
+    {
+      "id": "island-32",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 230000.0,
+      "east": 552750.0,
+      "north": 2810850.0
+    },
+    {
+      "id": "island-6",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 190000.0,
+      "east": 534750.0,
+      "north": 2721750.0
+    },
+    {
+      "id": "island-11",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 190000.0,
+      "east": 560250.0,
+      "north": 2761350.0
+    },
+    {
+      "id": "island-20",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 190000.0,
+      "east": 554050.0,
+      "north": 2806150.0
+    },
+    {
+      "id": "island-34",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 180000.0,
+      "east": 551550.0,
+      "north": 2811650.0
+    },
+    {
+      "id": "island-47",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 180000.0,
+      "east": 555450.0,
+      "north": 2840650.0
+    },
+    {
+      "id": "island-14",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 170000.0,
+      "east": 560350.0,
+      "north": 2772150.0
+    },
+    {
+      "id": "island-42",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 170000.0,
+      "east": 484050.0,
+      "north": 2835550.0
+    },
+    {
+      "id": "island-49",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 150000.0,
+      "east": 556450.0,
+      "north": 2850550.0
+    },
+    {
+      "id": "island-57",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 150000.0,
+      "east": 559150.0,
+      "north": 2867050.0
+    },
+    {
+      "id": "island-62",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 150000.0,
+      "east": 559750.0,
+      "north": 2868050.0
+    },
+    {
+      "id": "island-50",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 140000.0,
+      "east": 556950.0,
+      "north": 2850450.0
+    },
+    {
+      "id": "island-55",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 130000.0,
+      "east": 564950.0,
+      "north": 2864250.0
+    },
+    {
+      "id": "island-25",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 90000.0,
+      "east": 554750.0,
+      "north": 2806650.0
+    },
+    {
+      "id": "island-33",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 90000.0,
+      "east": 552150.0,
+      "north": 2811250.0
+    },
+    {
+      "id": "island-35",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 90000.0,
+      "east": 552150.0,
+      "north": 2811850.0
+    },
+    {
+      "id": "island-40",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 90000.0,
+      "east": 549950.0,
+      "north": 2826650.0
+    },
+    {
+      "id": "island-4",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 80000.0,
+      "east": 535650.0,
+      "north": 2717150.0
+    },
+    {
+      "id": "island-10",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 80000.0,
+      "east": 529350.0,
+      "north": 2728250.0
+    },
+    {
+      "id": "island-52",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 80000.0,
+      "east": 563650.0,
+      "north": 2863650.0
+    },
+    {
+      "id": "island-31",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 70000.0,
+      "east": 551850.0,
+      "north": 2810750.0
+    },
+    {
+      "id": "island-43",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 70000.0,
+      "east": 484550.0,
+      "north": 2836050.0
+    },
+    {
+      "id": "island-48",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 70000.0,
+      "east": 554350.0,
+      "north": 2847450.0
+    },
+    {
+      "id": "island-28",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 60000.0,
+      "east": 552850.0,
+      "north": 2809050.0
+    },
+    {
+      "id": "island-38",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 50000.0,
+      "east": 559150.0,
+      "north": 2818050.0
+    },
+    {
+      "id": "island-44",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 50000.0,
+      "east": 484150.0,
+      "north": 2836450.0
+    },
+    {
+      "id": "island-39",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 40000.0,
+      "east": 558750.0,
+      "north": 2818350.0
+    },
+    {
+      "id": "island-16",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 30000.0,
+      "east": 555250.0,
+      "north": 2798350.0
+    },
+    {
+      "id": "island-37",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 30000.0,
+      "east": 552050.0,
+      "north": 2812650.0
+    },
+    {
+      "id": "island-66",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 30000.0,
+      "east": 529250.0,
+      "north": 2891150.0
+    },
+    {
+      "id": "island-68",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 30000.0,
+      "east": 521850.0,
+      "north": 2895250.0
+    },
+    {
+      "id": "island-3",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 20000.0,
+      "east": 535250.0,
+      "north": 2716650.0
+    },
+    {
+      "id": "island-27",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 20000.0,
+      "east": 553250.0,
+      "north": 2808550.0
+    },
+    {
+      "id": "island-51",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 20000.0,
+      "east": 558650.0,
+      "north": 2850250.0
+    },
+    {
+      "id": "island-53",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 20000.0,
+      "east": 564350.0,
+      "north": 2863850.0
+    },
+    {
+      "id": "island-58",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 20000.0,
+      "east": 559650.0,
+      "north": 2867550.0
+    },
+    {
+      "id": "island-65",
+      "name": "",
+      "nameAr": "",
+      "areaM2": 20000.0,
+      "east": 538050.0,
+      "north": 2878450.0
+    }
+  ],
+  "municipalities": [
+    {
+      "id": "QA-US",
+      "name": "Umm Salal",
+      "nameAr": "أم صلال",
+      "east": 540916.37,
+      "north": 2810810.63,
+      "nameIdx": 164,
+      "nameArIdx": 165,
+      "areaKm2": 317.64
+    },
+    {
+      "id": "QA-KH",
+      "name": "Al Khor and Al Thakhira",
+      "nameAr": "الخور والذخيرة",
+      "east": 550485.66,
+      "north": 2840756.14,
+      "nameIdx": 26,
+      "nameArIdx": 27,
+      "areaKm2": 1606.71
+    },
+    {
+      "id": "QA-SH",
+      "name": "Al Shahaniya",
+      "nameAr": "الشحانية",
+      "east": 522848.11,
+      "north": 2806130.66,
+      "nameIdx": 126,
+      "nameArIdx": 5,
+      "areaKm2": 3305.15
+    },
+    {
+      "id": "QA-RA",
+      "name": "Al Rayyan",
+      "nameAr": "الريان",
+      "east": 543752.37,
+      "north": 2797863.51,
+      "nameIdx": 6,
+      "nameArIdx": 7,
+      "areaKm2": 2449.21
+    },
+    {
+      "id": "QA-DA",
+      "name": "Doha",
+      "nameAr": "الدوحة",
+      "east": 552997.52,
+      "north": 2796680.07,
+      "nameIdx": 8,
+      "nameArIdx": 9,
+      "areaKm2": 210.06
+    },
+    {
+      "id": "QA-MS",
+      "name": "Ash Shamal",
+      "nameAr": "الشمال",
+      "east": 520458.63,
+      "north": 2890041.8,
+      "nameIdx": 129,
+      "nameArIdx": 130,
+      "areaKm2": 860.2
+    },
+    {
+      "id": "QA-WA",
+      "name": "Al Wakrah",
+      "nameAr": "الوكرة",
+      "east": 555438.2,
+      "north": 2764550.08,
+      "nameIdx": 120,
+      "nameArIdx": 121,
+      "areaKm2": 2547.0
+    },
+    {
+      "id": "QA-ZA",
+      "name": "Al-Daayen",
+      "nameAr": "الضعاين",
+      "east": 552263.95,
+      "north": 2811876.72,
+      "nameIdx": 151,
+      "nameArIdx": 152,
+      "areaKm2": 278.7
+    }
+  ],
+  "checkpoints": [
+    {
+      "group": "SOUTH_AND_BORDER",
+      "id": "ABU_SAMRA",
+      "east": 485060.89,
+      "north": 2737385.47,
+      "nameIdx": 220,
+      "nameArIdx": 65535,
+      "source": "osm-place"
+    },
+    {
+      "group": "SOUTH_AND_BORDER",
+      "id": "MESAIEED",
+      "east": 555438.2,
+      "north": 2764550.08,
+      "nameIdx": 120,
+      "nameArIdx": 121,
+      "source": "osm-place"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "DOHA",
+      "east": 552997.52,
+      "north": 2796680.07,
+      "nameIdx": 8,
+      "nameArIdx": 9,
+      "source": "osm-place"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "DOHA_INTERNATIONAL_AIRPORT",
+      "east": 557164.89,
+      "north": 2794908.59,
+      "nameIdx": 47,
+      "nameArIdx": 48,
+      "source": "osm-place"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "DOHA_CORNICHE",
+      "east": 551909.1,
+      "north": 2799176.04,
+      "nameIdx": 249,
+      "nameArIdx": 250,
+      "source": "osm-area"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "WEST_BAY",
+      "east": 553643.29,
+      "north": 2800809.47,
+      "nameIdx": 197,
+      "nameArIdx": 198,
+      "source": "osm-place"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "SOUQ_WAQIF",
+      "east": 553642.85,
+      "north": 2796987.8,
+      "nameIdx": 227,
+      "nameArIdx": 228,
+      "source": "osm-place"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "MSHEIREB",
+      "east": 553285.67,
+      "north": 2796282.02,
+      "nameIdx": 49,
+      "nameArIdx": 50,
+      "source": "osm-place"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "AL_RAYYAN",
+      "east": 543752.37,
+      "north": 2797863.51,
+      "nameIdx": 6,
+      "nameArIdx": 7,
+      "source": "osm-place"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "EDUCATION_CITY",
+      "east": 543906.61,
+      "north": 2800180.12,
+      "nameIdx": 155,
+      "nameArIdx": 65535,
+      "source": "osm-place"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "ASPIRE_ZONE",
+      "east": 545077.08,
+      "north": 2793838.83,
+      "nameIdx": 251,
+      "nameArIdx": 65535,
+      "source": "osm-area"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "LUSAIL",
+      "east": 552263.95,
+      "north": 2811876.72,
+      "nameIdx": 151,
+      "nameArIdx": 152,
+      "source": "osm-place"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "AL_DAAYEN",
+      "east": 544038.63,
+      "north": 2821559.37,
+      "nameIdx": 246,
+      "nameArIdx": 15,
+      "source": "osm-place"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "UMM_SALAL",
+      "east": 532792.31,
+      "north": 2819216.56,
+      "nameIdx": 0,
+      "nameArIdx": 1,
+      "source": "osm-place"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "AL_KHOR",
+      "east": 550485.66,
+      "north": 2840756.14,
+      "nameIdx": 26,
+      "nameArIdx": 27,
+      "source": "osm-place"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "AL_THAKHIRA",
+      "east": 554497.81,
+      "north": 2846420.78,
+      "nameIdx": 145,
+      "nameArIdx": 146,
+      "source": "osm-place"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "RAS_LAFFAN",
+      "east": 553403.31,
+      "north": 2864458.57,
+      "nameIdx": 143,
+      "nameArIdx": 144,
+      "source": "osm-place"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "FUWAIRIT",
+      "east": 537257.22,
+      "north": 2878505.27,
+      "nameIdx": 124,
+      "nameArIdx": 125,
+      "source": "osm-place"
+    },
+    {
+      "group": "WEST_AND_NORTHWEST",
+      "id": "DUKHAN",
+      "east": 478641.97,
+      "north": 2811345.84,
+      "nameIdx": 195,
+      "nameArIdx": 196,
+      "source": "osm-place"
+    },
+    {
+      "group": "WEST_AND_NORTHWEST",
+      "id": "ZEKREET",
+      "east": 484603.13,
+      "north": 2818656.88,
+      "nameIdx": 162,
+      "nameArIdx": 163,
+      "source": "osm-place"
+    },
+    {
+      "group": "WEST_AND_NORTHWEST",
+      "id": "AL_SHAHANIYA",
+      "east": 522848.11,
+      "north": 2806130.66,
+      "nameIdx": 126,
+      "nameArIdx": 5,
+      "source": "osm-place"
+    },
+    {
+      "group": "WEST_AND_NORTHWEST",
+      "id": "AL_ZUBARAH",
+      "east": 502581.15,
+      "north": 2873406.68,
+      "nameIdx": 252,
+      "nameArIdx": 253,
+      "source": "osm-area"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "AL_RUWAIS",
+      "east": 520458.63,
+      "north": 2890041.8,
+      "nameIdx": 129,
+      "nameArIdx": 130,
+      "source": "osm-place"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "MADINAT_ASH_SHAMAL",
+      "east": 521563.39,
+      "north": 2888801.33,
+      "nameIdx": 221,
+      "nameArIdx": 222,
+      "source": "osm-place"
+    },
+    {
+      "group": "SOUTH_AND_BORDER",
+      "id": "AL_WAKRAH",
+      "east": 560602.7,
+      "north": 2782430.11,
+      "nameIdx": 12,
+      "nameArIdx": 13,
+      "source": "osm-place"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "AL_SADD",
+      "east": 550363.72,
+      "north": 2796703.22,
+      "nameIdx": 82,
+      "nameArIdx": 83,
+      "source": "osm-place"
+    },
+    {
+      "group": "ISLANDS_AND_WATER",
+      "id": "HALUL_ISLAND",
+      "east": 557957.09,
+      "north": 2803177.03,
+      "nameIdx": 254,
+      "nameArIdx": 65535,
+      "source": "osm-coastline-island"
+    },
+    {
+      "group": "ISLANDS_AND_WATER",
+      "id": "SHAROUH_ISLAND",
+      "east": 557957.09,
+      "north": 2803177.03,
+      "nameIdx": 254,
+      "nameArIdx": 65535,
+      "source": "osm-coastline-island"
+    }
+  ],
+  "checkpointReport": [
+    {
+      "group": "SOUTH_AND_BORDER",
+      "id": "ABU_SAMRA",
+      "status": "FOUND",
+      "east": 485060.89,
+      "north": 2737385.47,
+      "name": "Abu Samra"
+    },
+    {
+      "group": "SOUTH_AND_BORDER",
+      "id": "KHOR_AL_ADAID",
+      "status": "MISSING"
+    },
+    {
+      "group": "SOUTH_AND_BORDER",
+      "id": "MESAIEED",
+      "status": "FOUND",
+      "east": 555438.2,
+      "north": 2764550.08,
+      "name": "Mesaieed"
+    },
+    {
+      "group": "SOUTH_AND_BORDER",
+      "id": "HAMAD_PORT",
+      "status": "MISSING"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "DOHA",
+      "status": "FOUND",
+      "east": 552997.52,
+      "north": 2796680.07,
+      "name": "Doha"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "HAMAD_INTERNATIONAL_AIRPORT",
+      "status": "MISSING"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "DOHA_INTERNATIONAL_AIRPORT",
+      "status": "FOUND",
+      "east": 557164.89,
+      "north": 2794908.59,
+      "name": "Doha International Airport"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "DOHA_CORNICHE",
+      "status": "FOUND",
+      "east": 551909.1,
+      "north": 2799176.04,
+      "name": "Corniche"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "WEST_BAY",
+      "status": "FOUND",
+      "east": 553643.29,
+      "north": 2800809.47,
+      "name": "West Bay"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "SOUQ_WAQIF",
+      "status": "FOUND",
+      "east": 553642.85,
+      "north": 2796987.8,
+      "name": "Souq Waqif"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "MSHEIREB",
+      "status": "FOUND",
+      "east": 553285.67,
+      "north": 2796282.02,
+      "name": "Mushaireb"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "AL_RAYYAN",
+      "status": "FOUND",
+      "east": 543752.37,
+      "north": 2797863.51,
+      "name": "Al Rayyan"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "EDUCATION_CITY",
+      "status": "FOUND",
+      "east": 543906.61,
+      "north": 2800180.12,
+      "name": "Education City"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "ASPIRE_ZONE",
+      "status": "FOUND",
+      "east": 545077.08,
+      "north": 2793838.83,
+      "name": "Aspire"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "LUSAIL",
+      "status": "FOUND",
+      "east": 552263.95,
+      "north": 2811876.72,
+      "name": "Lusail"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "AL_DAAYEN",
+      "status": "FOUND",
+      "east": 544038.63,
+      "north": 2821559.37,
+      "name": "Al Daayen"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "UMM_SALAL",
+      "status": "FOUND",
+      "east": 532792.31,
+      "north": 2819216.56,
+      "name": "Umm Salal"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "AL_KHOR",
+      "status": "FOUND",
+      "east": 550485.66,
+      "north": 2840756.14,
+      "name": "Al Khor"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "AL_THAKHIRA",
+      "status": "FOUND",
+      "east": 554497.81,
+      "north": 2846420.78,
+      "name": "Al Dhakira"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "RAS_LAFFAN",
+      "status": "FOUND",
+      "east": 553403.31,
+      "north": 2864458.57,
+      "name": "Ras Laffan"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "FUWAIRIT",
+      "status": "FOUND",
+      "east": 537257.22,
+      "north": 2878505.27,
+      "name": "Fuwayrit"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "THE_PEARL",
+      "status": "MISSING"
+    },
+    {
+      "group": "WEST_AND_NORTHWEST",
+      "id": "DUKHAN",
+      "status": "FOUND",
+      "east": 478641.97,
+      "north": 2811345.84,
+      "name": "Dukhan"
+    },
+    {
+      "group": "WEST_AND_NORTHWEST",
+      "id": "ZEKREET",
+      "status": "FOUND",
+      "east": 484603.13,
+      "north": 2818656.88,
+      "name": "Zekreet"
+    },
+    {
+      "group": "WEST_AND_NORTHWEST",
+      "id": "AL_SHAHANIYA",
+      "status": "FOUND",
+      "east": 522848.11,
+      "north": 2806130.66,
+      "name": "Al-Shahaniya"
+    },
+    {
+      "group": "WEST_AND_NORTHWEST",
+      "id": "AL_ZUBARAH",
+      "status": "FOUND",
+      "east": 502581.15,
+      "north": 2873406.68,
+      "name": "Al Zubarah Archaeological Site"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "AL_RUWAIS",
+      "status": "FOUND",
+      "east": 520458.63,
+      "north": 2890041.8,
+      "name": "Al Ruwais"
+    },
+    {
+      "group": "NORTH_AND_NORTHEAST",
+      "id": "MADINAT_ASH_SHAMAL",
+      "status": "FOUND",
+      "east": 521563.39,
+      "north": 2888801.33,
+      "name": "Madinat ash Shamal"
+    },
+    {
+      "group": "SOUTH_AND_BORDER",
+      "id": "AL_WAKRAH",
+      "status": "FOUND",
+      "east": 560602.7,
+      "north": 2782430.11,
+      "name": "Al Wakrah"
+    },
+    {
+      "group": "CENTRAL_AND_CAPITAL",
+      "id": "AL_SADD",
+      "status": "FOUND",
+      "east": 550363.72,
+      "north": 2796703.22,
+      "name": "Al Sadd"
+    },
+    {
+      "group": "ISLANDS_AND_WATER",
+      "id": "HALUL_ISLAND",
+      "status": "FOUND",
+      "east": 557957.09,
+      "north": 2803177.03,
+      "name": "unnamed island"
+    },
+    {
+      "group": "ISLANDS_AND_WATER",
+      "id": "SHAROUH_ISLAND",
+      "status": "FOUND",
+      "east": 557957.09,
+      "north": 2803177.03,
+      "name": "unnamed island"
+    }
+  ],
+  "attribution": [
+    "(c) OpenStreetMap contributors, ODbL 1.0 -- coastline, boundaries, roads, buildings, land use",
+    "SRTM 1 arc-second elevation (NASA/USGS, public domain)"
+  ],
+  "stats": {
+    "landCells": 1150250,
+    "landAreaKm2": 11502.5,
+    "landComponents": 68,
+    "islandFaces": 56,
+    "islandCount": 57,
+    "mainlandKm2": 11418.13,
+    "largestIslandKm2": 70.7,
+    "materialHistogram": {
+      "5": 919497,
+      "6": 4409,
+      "7": 18249,
+      "8": 11854,
+      "9": 61942,
+      "12": 30381,
+      "13": 70297,
+      "15": 37677,
+      "16": 5786894
+    },
+    "roadsByClass": {
+      "2": 1423,
+      "3": 2265,
+      "4": 3681,
+      "7": 38095,
+      "8": 45939,
+      "5": 7270,
+      "16": 1485,
+      "6": 13300,
+      "10": 15854,
+      "15": 1903,
+      "12": 14994,
+      "19": 1621,
+      "17": 1746,
+      "1": 899,
+      "9": 889,
+      "22": 1202,
+      "18": 2068,
+      "11": 23451,
+      "21": 449,
+      "14": 380,
+      "13": 1017,
+      "23": 1,
+      "20": 11
+    },
+    "buildings": 186993,
+    "buildingNames": 2137,
+    "landusePolygons": 5784,
+    "waterPolygons": 1130,
+    "barriers": 421,
+    "pois": 2254,
+    "spawnPoints": {
+      "car": 59,
+      "helicopter": 0,
+      "boat": 43,
+      "aeroplane": 1916
+    }
+  },
+  "gameBundles": {
+    "buildings": {
+      "file": "buildings.bin.gz",
+      "records": 186993,
+      "sha256": "ca042d31783137dc61e37c5728fa98eca32db3a8ea1cbcc264abd1421300dad0"
+    },
+    "landuse": {
+      "file": "landuse.bin.gz",
+      "records": 5784,
+      "sha256": "448f8480c5c1eae837f392701e27223b7f34ffbaa37ddc92747d8069446844b1"
+    },
+    "water": {
+      "file": "water.bin.gz",
+      "records": 1130,
+      "sha256": "c44d522b664d8a2d3aca3bab3941b742ee2e952f5a071aee426e70c1ec457fa5"
+    },
+    "barriers": {
+      "file": "barriers.bin.gz",
+      "records": 421,
+      "sha256": "6c1285c24810876574a19aa372a5ad08510999b0320a97fc7a49cb5b512a75b1"
+    },
+    "pois": {
+      "file": "pois.bin.gz",
+      "records": 2254,
+      "sha256": "6456d43d523049d4c2751db31fb4f69cd61796d0ebb86af01ec957a60f0b0036"
+    }
+  },
+  "terrain_l0": {
+    "file": "terrain_l0.bin.gz",
+    "sha256": "b88282c5766072b2bf45c4187869b8f869a7ce1208a07f22098971810312bd46"
+  },
+  "terrain_l1": {
+    "file": "terrain_l1.bin.gz",
+    "sha256": "22c532d0ebdf5c0d4596fae6819ae3187376bc328a7cc06cf6e1809e909bb810"
+  },
+  "roofHistogram": {
+    "0": 186418,
+    "1": 560,
+    "2": 9,
+    "3": 6
+  },
+  "generatedUtc": "2026-10-13T15:03:49Z",
+  "gameCompilerSha256": "cd62a8318f40b02840f82fb2a4e0b035289e0509d2c8f9363fa9b6fdf2d84be0"
 }

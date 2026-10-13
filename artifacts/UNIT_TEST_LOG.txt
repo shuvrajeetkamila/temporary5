@@ -1,39 +1,481 @@
-To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
 Daemon will be stopped at the end of the build 
 
-> Task :core:compileJava FAILED
-/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/hud/HudRenderer.java:249: error: incompatible types: Texture cannot be converted to TextureRegion
-        batch.draw(white, x0, y0 - thickness * 0.5f, 0f, thickness * 0.5f, length, thickness, 1f, 1f,
-                   ^
-/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:207: error: incompatible types: possible lossy conversion from double to float
-            hud.drawStick(moveAnchor.x, moveAnchor.y, moveCurrent.x, moveCurrent.y, moveRadius);
+> Task :core:compileJava
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/WorldData.java:112: error: method open in class BundleReader cannot be applied to given types;
+                ? Roads.parse(BundleReader.open("roads", readBytes(assetDir, manifest.roads),
+                                          ^
+  required: String,byte[],String,String
+  found:    String,byte[],String
+  reason: actual and formal argument lists differ in length
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/WorldData.java:116: error: method open in class BundleReader cannot be applied to given types;
+                ? Buildings.parse(BundleReader.open("buildings", readBytes(assetDir, manifest.buildings),
+                                              ^
+  required: String,byte[],String,String
+  found:    String,byte[],String
+  reason: actual and formal argument lists differ in length
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/WorldData.java:120: error: method open in class BundleReader cannot be applied to given types;
+                ? Areas.parse(BundleReader.open("landuse", readBytes(assetDir, manifest.landuse),
+                                          ^
+  required: String,byte[],String,String
+  found:    String,byte[],String
+  reason: actual and formal argument lists differ in length
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/WorldData.java:124: error: method open in class BundleReader cannot be applied to given types;
+                ? Areas.parse(BundleReader.open("water", readBytes(assetDir, manifest.water),
+                                          ^
+  required: String,byte[],String,String
+  found:    String,byte[],String
+  reason: actual and formal argument lists differ in length
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/WorldData.java:128: error: method open in class BundleReader cannot be applied to given types;
+                ? Barriers.parse(BundleReader.open("barriers", readBytes(assetDir, manifest.barriers),
+                                             ^
+  required: String,byte[],String,String
+  found:    String,byte[],String
+  reason: actual and formal argument lists differ in length
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/WorldData.java:132: error: method open in class BundleReader cannot be applied to given types;
+                ? Points.parse(BundleReader.open("pois", readBytes(assetDir, manifest.pois),
+                                           ^
+  required: String,byte[],String,String
+  found:    String,byte[],String
+  reason: actual and formal argument lists differ in length
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/WorldData.java:157: error: method open in class BundleReader cannot be applied to given types;
+        BundleReader reader = BundleReader.open("strings", raw, manifest.strings.sha256);
+                                          ^
+  required: String,byte[],String,String
+  found:    String,byte[],String
+  reason: actual and formal argument lists differ in length
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:74: error: cannot find symbol
+        BundleReader.Header header = reader.header("QTR1");
+                    ^
+  symbol:   class Header
+  location: class BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:74: error: cannot find symbol
+        BundleReader.Header header = reader.header("QTR1");
+                                           ^
+  symbol:   method header(String)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:82: error: cannot find symbol
+            byte roadClass = (byte) reader.readUnsignedByte();
+                                          ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:83: error: cannot find symbol
+            byte flags = (byte) reader.readUnsignedByte();
+                                      ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:84: error: cannot find symbol
+            byte lanes = (byte) reader.readUnsignedByte();
+                                      ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:85: error: cannot find symbol
+            byte speed5 = (byte) reader.readUnsignedByte();
+                                       ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:86: error: cannot find symbol
+            reader.skip(2 + 2 + 2);                            // width, name, arabic name
+                  ^
+  symbol:   method skip(int)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:87: error: cannot find symbol
+            int points = reader.readUnsignedShort();
+                               ^
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:90: error: cannot find symbol
+            reader.skip(points * 8);
+                  ^
+  symbol:   method skip(int)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:106: error: cannot find symbol
+        reader.seek(20);
+              ^
+  symbol:   method seek(int)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:109: error: cannot find symbol
+            roadClass[line] = (byte) reader.readUnsignedByte();
+                                           ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:110: error: cannot find symbol
+            flags[line] = (byte) reader.readUnsignedByte();
+                                       ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:111: error: cannot find symbol
+            lanes[line] = (byte) reader.readUnsignedByte();
+                                       ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:112: error: cannot find symbol
+            speedKph[line] = reader.readUnsignedByte() * 5;
+                                   ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:113: error: cannot find symbol
+            widthM[line] = reader.readUnsignedShort() / 10.0f;
+                                 ^
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:114: error: cannot find symbol
+            nameIndex[line] = reader.readUnsignedShort();
                                     ^
-/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:311: error: incompatible types: possible lossy conversion from double to float
-            float dx = x - lookLast.x;
-                         ^
-/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:312: error: incompatible types: possible lossy conversion from double to float
-            float dy = y - lookLast.y;
-                         ^
-/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:360: error: incompatible types: possible lossy conversion from double to float
-        float dx = moveCurrent.x - moveAnchor.x;
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:115: error: cannot find symbol
+            nameArIndex[line] = reader.readUnsignedShort();
+                                      ^
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:116: error: cannot find symbol
+            int points = reader.readUnsignedShort();
+                               ^
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:124: error: cannot find symbol
+                float east = reader.readInt() / 100.0f;
+                                   ^
+  symbol:   method readInt()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Roads.java:125: error: cannot find symbol
+                float north = reader.readInt() / 100.0f;
+                                    ^
+  symbol:   method readInt()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Areas.java:47: error: cannot find symbol
+        BundleReader.Header header = reader.header(magic);
+                    ^
+  symbol:   class Header
+  location: class BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Areas.java:47: error: cannot find symbol
+        BundleReader.Header header = reader.header(magic);
+                                           ^
+  symbol:   method header(String)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Areas.java:52: error: cannot find symbol
+            reader.skip(8);                                     // absolute first vertex
+                  ^
+  symbol:   method skip(int)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Areas.java:53: error: cannot find symbol
+            int points = reader.readUnsignedShort();
+                               ^
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Areas.java:54: error: cannot find symbol
+            reader.skip(6);                                     // class, kind, flags, padding, name
+                  ^
+  symbol:   method skip(int)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Areas.java:57: error: cannot find symbol
+            reader.skip((points - 1) * 8);
+                  ^
+  symbol:   method skip(int)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Areas.java:68: error: cannot find symbol
+        reader.seek(20);
+              ^
+  symbol:   method seek(int)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Areas.java:71: error: cannot find symbol
+            double east = reader.readInt() / 100.0;
+                                ^
+  symbol:   method readInt()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Areas.java:72: error: cannot find symbol
+            double north = reader.readInt() / 100.0;
                                  ^
-/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:361: error: incompatible types: possible lossy conversion from double to float
-        float dy = moveCurrent.y - moveAnchor.y;
+  symbol:   method readInt()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Areas.java:73: error: cannot find symbol
+            int points = reader.readUnsignedShort();
+                               ^
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Areas.java:74: error: cannot find symbol
+            areaClass[ring] = (byte) reader.readUnsignedByte();
+                                           ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Areas.java:75: error: cannot find symbol
+            kind[ring] = (byte) reader.readUnsignedByte();
+                                      ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Areas.java:76: error: cannot find symbol
+            flags[ring] = (byte) reader.readUnsignedByte();
+                                       ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Areas.java:77: error: cannot find symbol
+            reader.readUnsignedByte();                          // padding
+                  ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Areas.java:78: error: cannot find symbol
+            nameIndex[ring] = reader.readUnsignedShort();
+                                    ^
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Areas.java:87: error: cannot find symbol
+                    east += reader.readInt() / 100.0;
+                                  ^
+  symbol:   method readInt()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Areas.java:88: error: cannot find symbol
+                    north += reader.readInt() / 100.0;
+                                   ^
+  symbol:   method readInt()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Points.java:57: error: cannot find symbol
+        BundleReader.Header header = reader.header("QPO1");
+                    ^
+  symbol:   class Header
+  location: class BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Points.java:57: error: cannot find symbol
+        BundleReader.Header header = reader.header("QPO1");
+                                           ^
+  symbol:   method header(String)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Points.java:66: error: cannot find symbol
+        reader.seek(20);
+              ^
+  symbol:   method seek(int)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Points.java:68: error: cannot find symbol
+            xz[i * 2] = (float) (reader.readInt() / 100.0 - originEast);
+                                       ^
+  symbol:   method readInt()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Points.java:69: error: cannot find symbol
+            xz[i * 2 + 1] = (float) (reader.readInt() / 100.0 - originNorth);
+                                           ^
+  symbol:   method readInt()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Points.java:70: error: cannot find symbol
+            kind[i] = (byte) reader.readUnsignedByte();
+                                   ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Points.java:71: error: cannot find symbol
+            poiClass[i] = (byte) reader.readUnsignedByte();
+                                       ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Points.java:72: error: cannot find symbol
+            flags[i] = (byte) reader.readUnsignedByte();
+                                    ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Points.java:73: error: cannot find symbol
+            reader.readUnsignedByte();                          // padding
+                  ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Points.java:74: error: cannot find symbol
+            nameIndex[i] = reader.readUnsignedShort();
                                  ^
-/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:501: error: incompatible types: possible lossy conversion from double to float
-            float dx = x - mapDragLast.x;
-                         ^
-/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:502: error: incompatible types: possible lossy conversion from double to float
-            float dy = y - mapDragLast.y;
-                         ^
-Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
-8 errors
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791903213154.json
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Points.java:75: error: cannot find symbol
+            facingDeg[i] = reader.readUnsignedShort() / 10.0f;
+                                 ^
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/StringTable.java:59: error: cannot find symbol
+        return parse(reader.payloadBytes());
+                           ^
+  symbol:   method payloadBytes()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:82: error: cannot find symbol
+        BundleReader.Header header = reader.header("QBG1");
+                    ^
+  symbol:   class Header
+  location: class BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:82: error: cannot find symbol
+        BundleReader.Header header = reader.header("QBG1");
+                                           ^
+  symbol:   method header(String)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:89: error: cannot find symbol
+            reader.skip(8);                                   // absolute first vertex
+                  ^
+  symbol:   method skip(int)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:90: error: cannot find symbol
+            int points = reader.readUnsignedShort();
+                               ^
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:91: error: cannot find symbol
+            reader.skip(2 + 2 + 1 + 1 + 1 + 1 + 2);            // height, min height, levels, type, roof, flags, name
+                  ^
+  symbol:   method skip(int)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:94: error: cannot find symbol
+            reader.skip((points - 1) * 8);                     // deltas
+                  ^
+  symbol:   method skip(int)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:108: error: cannot find symbol
+        reader.seek(20);
+              ^
+  symbol:   method seek(int)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:111: error: cannot find symbol
+            double east = reader.readInt() / 100.0;
+                                ^
+  symbol:   method readInt()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:112: error: cannot find symbol
+            double north = reader.readInt() / 100.0;
+                                 ^
+  symbol:   method readInt()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:113: error: cannot find symbol
+            int points = reader.readUnsignedShort();
+                               ^
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:114: error: cannot find symbol
+            heightM[ring] = reader.readUnsignedShort() / 10.0f;
+                                  ^
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:115: error: cannot find symbol
+            minHeightM[ring] = reader.readUnsignedShort() / 10.0f;
+                                     ^
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:116: error: cannot find symbol
+            reader.readUnsignedByte();                         // levels
+                  ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:117: error: cannot find symbol
+            type[ring] = (byte) reader.readUnsignedByte();
+                                      ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:118: error: cannot find symbol
+            roof[ring] = (byte) reader.readUnsignedByte();
+                                      ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:119: error: cannot find symbol
+            flags[ring] = (byte) reader.readUnsignedByte();
+                                       ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:120: error: cannot find symbol
+            nameIndex[ring] = reader.readUnsignedShort();
+                                    ^
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:129: error: cannot find symbol
+                    east += reader.readInt() / 100.0;
+                                  ^
+  symbol:   method readInt()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Buildings.java:130: error: cannot find symbol
+                    north += reader.readInt() / 100.0;
+                                   ^
+  symbol:   method readInt()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Barriers.java:43: error: cannot find symbol
+        BundleReader.Header header = reader.header("QBA1");
+                    ^
+  symbol:   class Header
+  location: class BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Barriers.java:43: error: cannot find symbol
+        BundleReader.Header header = reader.header("QBA1");
+                                           ^
+  symbol:   method header(String)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Barriers.java:48: error: cannot find symbol
+            reader.skip(8);
+                  ^
+  symbol:   method skip(int)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Barriers.java:49: error: cannot find symbol
+            int points = reader.readUnsignedShort();
+                               ^
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Barriers.java:50: error: cannot find symbol
+            reader.skip(6);                                     // kind, flags, height, name
+                  ^
+  symbol:   method skip(int)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Barriers.java:53: error: cannot find symbol
+            reader.skip((points - 1) * 8);
+                  ^
+  symbol:   method skip(int)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Barriers.java:64: error: cannot find symbol
+        reader.seek(20);
+              ^
+  symbol:   method seek(int)
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Barriers.java:67: error: cannot find symbol
+            float east = reader.readInt() / 100.0f;
+                               ^
+  symbol:   method readInt()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Barriers.java:68: error: cannot find symbol
+            float north = reader.readInt() / 100.0f;
+                                ^
+  symbol:   method readInt()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Barriers.java:69: error: cannot find symbol
+            int points = reader.readUnsignedShort();
+                               ^
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Barriers.java:70: error: cannot find symbol
+            kind[line] = (byte) reader.readUnsignedByte();
+                                      ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Barriers.java:71: error: cannot find symbol
+            flags[line] = (byte) reader.readUnsignedByte();
+                                       ^
+  symbol:   method readUnsignedByte()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Barriers.java:72: error: cannot find symbol
+            heightM[line] = reader.readUnsignedShort() / 10.0f;
+                                  ^
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Barriers.java:73: error: cannot find symbol
+            nameIndex[line] = reader.readUnsignedShort();
+                                    ^
+  symbol:   method readUnsignedShort()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Barriers.java:82: error: cannot find symbol
+                    east += reader.readInt() / 100.0f;
+                                  ^
+  symbol:   method readInt()
+  location: variable reader of type BundleReader
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/world/Barriers.java:83: error: cannot find symbol
+                    north += reader.readInt() / 100.0f;
+                                   ^
+  symbol:   method readInt()
+  location: variable reader of type BundleReader
+91 errors
+
+> Task :core:compileJava FAILED
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791903844287.json
 
 FAILURE: Build failed with an exception.
 
 * What went wrong:
 Execution failed for task ':core:compileJava'.
+> Compilation failed; see the compiler error output for details.
+
+* Try:
+> Run with --info option to get more log output.
 --
 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
@@ -53,5 +495,5 @@ Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Com
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 8s
+BUILD FAILED in 21s
 1 actionable task: 1 executed
