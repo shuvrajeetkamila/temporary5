@@ -37,11 +37,13 @@ final class VehicleDynamicsTest {
         input.throttle = 1.0;
         double hundred = 100.0 / 3.6;
         double timeTo100 = -1;
-        double distance = 0;
-        for (double t = 0; t < 40.0; t += DT) {
+        double distanceTo100 = 0;
+        for (double t = 0; t < 90.0; t += DT) {
             double before = state.speedMS;
             car.step(state, input, ASPHALT, DT);
-            distance += 0.5 * (before + state.speedMS) * DT;
+            if (timeTo100 < 0) {
+                distanceTo100 += 0.5 * (before + state.speedMS) * DT;
+            }
             if (timeTo100 < 0 && state.speedMS >= hundred) {
                 timeTo100 = t;
             }
@@ -49,8 +51,12 @@ final class VehicleDynamicsTest {
         assertTrue(timeTo100 > 0, "the car never reached 100 km/h");
         assertTrue(timeTo100 > 6.0 && timeTo100 < 13.0,
                 "0-100 km/h took " + timeTo100 + " s, which is not a 92 kW saloon");
-        assertTrue(distance > 150 && distance < 600,
-                "reaching 100 km/h and holding it for 40 s covered " + distance + " m");
+        assertTrue(distanceTo100 > 80 && distanceTo100 < 250,
+                "reaching 100 km/h covered " + distanceTo100 + " m");
+        // Flat out, a 92 kW, 1620 kg saloon runs out of power around 190 km/h -- not at 250, and not
+        // at 120 either.
+        assertTrue(state.speedMS > 44.0 && state.speedMS < 60.0,
+                "top speed settled at " + state.speedMS * 3.6 + " km/h");
 
         // Braking from 100 km/h, on the same surface.
         VehicleState braking = new VehicleState();
@@ -224,11 +230,22 @@ final class VehicleDynamicsTest {
 
         double stall = plane.stallSpeed(VehicleBody.SEA_LEVEL_DENSITY, 0);
         double lifted = -1;
+        double airborneSince = -1;
+        double peakAltitude = 0;
         boolean earlyLift = false;
-        for (double t = 0; t < 60.0; t += DT) {
-            // Hold the stick back once there is a hint of flying speed, then level off, which is what a
-            // pilot does: rotate, climb out, trim.
-            input.pitch = state.grounded ? (state.speedMS > stall * 0.85 ? 0.45 : 0.0) : 0.0;
+        for (double t = 0; t < 120.0; t += DT) {
+            if (state.grounded) {
+                // Rotate once there is a hint of flying speed. Below it, holding the stick back does
+                // nothing at all, which is the point of the test.
+                input.pitch = state.speedMS > stall * 0.85 ? 0.45 : 0.0;
+            } else {
+                if (airborneSince < 0) {
+                    airborneSince = t;
+                }
+                // Climb out at the attitude a 172 climbs at, then let go of the stick and trim.
+                input.pitch = (t - airborneSince) < 60.0
+                        ? Math.max(-1.0, Math.min(1.0, (14.0 - state.pitchDegrees) / 8.0)) : 0.0;
+            }
             plane.step(state, input, ASPHALT, DT);
             if (!state.grounded && lifted < 0) {
                 lifted = t;
@@ -236,10 +253,14 @@ final class VehicleDynamicsTest {
                     earlyLift = true;
                 }
             }
+            peakAltitude = Math.max(peakAltitude, state.heightM);
         }
         assertFalse(earlyLift, "the aeroplane flew below its stall speed");
-        assertTrue(lifted > 0, "the aeroplane never took off in 60 s");
-        assertTrue(state.heightM > 20.0, "it got airborne but did not climb: " + state.heightM + " m");
+        assertTrue(lifted > 0 && lifted < 30.0,
+                "the aeroplane " + (lifted < 0 ? "never took off in 120 s" : "took " + lifted + " s to lift off"));
+        assertTrue(peakAltitude > 60.0, "it got airborne but barely climbed: " + peakAltitude + " m");
+        assertFalse(state.grounded, "it took off and then landed again");
+        assertFalse(state.stalled, "the climb-out ended in a stall");
         assertTrue(state.speedMS > stall, "climb-out speed is below the stall speed");
     }
 
@@ -257,20 +278,47 @@ final class VehicleDynamicsTest {
         assertTrue(stall > 20.0, "the test needs to start below the stall speed: " + stall);
 
         VehicleInput idle = new VehicleInput();
-        for (double t = 0; t < 10.0; t += DT) {
+        // Half a second in: the wing is stalled, the nose is down and the aeroplane is sinking hard.
+        for (double t = 0; t < 0.5; t += DT) {
             plane.step(state, idle, ASPHALT, DT);
         }
         assertTrue(state.stalled, "20 m/s in level flight should be stalled");
         assertTrue(state.verticalMS < -2.0, "a stalled aeroplane must sink: " + state.verticalMS);
         assertTrue(state.pitchDegrees < 0, "the nose should have dropped: " + state.pitchDegrees);
 
-        for (double t = 0; t < 40.0; t += DT) {
+        // The stall is recovered by trading height for speed, which is what the nose drop buys.
+        double lowest = state.heightM;
+        for (double t = 0; t < 60.0; t += DT) {
             plane.step(state, idle, ASPHALT, DT);
+            lowest = Math.min(lowest, state.heightM);
         }
         assertFalse(state.stalled, "the aeroplane never recovered from the stall");
         assertTrue(state.speedMS > stall * 0.8 && state.speedMS < stall * 2.0,
                 "after recovery the speed is " + state.speedMS + " m/s against a stall speed of " + stall);
         assertTrue(state.verticalMS > -6.0, "it is still diving away: " + state.verticalMS);
+        assertTrue(state.heightM > 5.0, "the stall recovery flew it into the ground");
+        assertTrue(lowest < 290.0, "it never lost any height at all");
+    }
+
+    @Test
+    @DisplayName("an aeroplane at full power settles at its real cruise speed")
+    void aircraftCruise() {
+        AircraftBody plane = new AircraftBody();
+        VehicleState state = new VehicleState();
+        plane.spawn(state, 0, 0, ASPHALT, 90.0);
+        state.grounded = false;
+        state.heightM = 1000.0;
+        state.speedMS = 40.0;
+        VehicleInput input = new VehicleInput();
+        input.throttle = 1.0;
+        for (double t = 0; t < 180.0; t += DT) {
+            plane.step(state, input, ASPHALT, DT);
+        }
+        // A 110 kW light aircraft cruises at about 226 km/h; anything outside this band means the
+        // thrust or the drag polar is wrong, not that the numbers are merely different.
+        assertTrue(state.speedMS > 55.0 && state.speedMS < 72.0,
+                "full power settled at " + state.speedMS * 3.6 + " km/h");
+        assertFalse(state.stalled, "cruising at full power should not be stalled");
     }
 
     @Test

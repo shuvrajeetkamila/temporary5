@@ -28,9 +28,17 @@ public final class AircraftBody extends VehicleBody {
     public static final double ALPHA_STALL_RAD = 0.29;
     public static final double CL_MAX = CL_SLOPE * ALPHA_STALL_RAD;
     public static final double CD0 = 0.031;
+    /** Static thrust of the propeller, newtons: the cap it cannot exceed at low speed. */
     public static final double THRUST_MAX_N = 2250.0;
-    /** Thrust falls off with speed; a fixed-pitch propeller loses roughly half by cruise. */
-    public static final double REFERENCE_CLIMB_SPEED_MS = 60.0;
+    /** 110 kW (160 hp) at the shaft. */
+    public static final double ENGINE_POWER_W = 110_000.0;
+    public static final double PROP_EFFICIENCY = 0.80;
+    /**
+     * The wing's angle of attack while the wheels are carrying the aeroplane. On the runway the wing is
+     * not lifting anything, so it is neither stalled nor draggy -- saturating it there was a real
+     * modelling bug: it capped the ground roll at 65 km/h and the aeroplane never reached rotation speed.
+     */
+    public static final double CL_ROLL = 0.35;
     public static final double GEAR_HEIGHT_M = 0.9;
     public static final double GROUND_WHEELBASE_M = 1.65;
     public static final double ROLLING_COEFFICIENT = 0.03;
@@ -106,17 +114,22 @@ public final class AircraftBody extends VehicleBody {
         double clNeeded = q > 1e-3 ? weight * Math.cos(Math.toRadians(state.rollDegrees)) / (q * WING_AREA_M2)
                 : CL_MAX * 4.0;
         double alphaTrim = clNeeded / CL_SLOPE;
-        boolean stalled = alphaTrim > ALPHA_STALL_RAD;
-        if (!stalled && state.stalled && speed < stallSpeed(density, state.rollDegrees)) {
+        boolean wheelsCarry = state.grounded;
+        boolean stalled = !wheelsCarry && alphaTrim > ALPHA_STALL_RAD;
+        if (!stalled && !wheelsCarry && state.stalled && speed < stallSpeed(density, state.rollDegrees)) {
             stalled = true;                  // recovery takes speed, not just a lower demand
         }
-        double clEffective = stalled ? CL_MAX * 0.72 : Math.min(clNeeded, CL_MAX);
+        double clEffective = wheelsCarry ? CL_ROLL
+                : (stalled ? CL_MAX * 0.72 : Math.min(clNeeded, CL_MAX));
         double liftDeficit = stalled ? clamp(1.0 - clEffective / Math.max(1e-3, clNeeded), 0, 1) : 0;
-        double cd = stalled ? CD0 + 3.0 * INDUCED_K * CL_MAX * CL_MAX
-                : CD0 + INDUCED_K * clEffective * clEffective;
+        double cd = wheelsCarry ? CD0 + INDUCED_K * CL_ROLL * CL_ROLL
+                : (stalled ? CD0 + 3.0 * INDUCED_K * CL_MAX * CL_MAX
+                        : CD0 + INDUCED_K * clEffective * clEffective);
         double drag = q * WING_AREA_M2 * cd;
-        double thrust = throttle * THRUST_MAX_N * Math.max(0.2, density / SEA_LEVEL_DENSITY)
-                * clamp(1.0 - speed / REFERENCE_CLIMB_SPEED_MS, 0.15, 1.0);
+        // Available thrust: a propeller converts shaft power into thrust over speed, so it falls with
+        // speed, but it cannot exceed what the propeller can hold at a standstill.
+        double thrust = throttle * Math.min(THRUST_MAX_N, ENGINE_POWER_W * PROP_EFFICIENCY / Math.max(8.0, speed))
+                * Math.max(0.2, density / SEA_LEVEL_DENSITY);
 
         // ---- attitude ---------------------------------------------------------------------------
         boolean onWheels = state.grounded || state.heightM <= ground + GEAR_HEIGHT_M + 0.02;
@@ -134,7 +147,7 @@ public final class AircraftBody extends VehicleBody {
                 // Hands off, the aeroplane trims itself: it settles at the attitude this speed needs. A
                 // light aircraft is stable in pitch, and a model without that flies nothing like one.
                 targetPitch = approach(state.pitchDegrees,
-                        Math.toDegrees(Math.min(alphaTrim, ALPHA_STALL_RAD)) * 0.7, 6.0 * dt);
+                        Math.toDegrees(Math.min(alphaTrim, ALPHA_STALL_RAD)), 6.0 * dt);
             }
             state.pitchDegrees = clamp(targetPitch, -MAX_PITCH_DEG, MAX_PITCH_DEG);
             state.rollDegrees = clamp(state.rollDegrees + rollInput * AILERON_RATE_DEG_S * dt,
