@@ -1343,21 +1343,21 @@ missing assets/world/manifest.json
 game_validate_exit=2
 === bundle contents ===
 total 16272
-drwxr-xr-x 2 runner runner    4096 Oct 13 15:42 .
-drwxr-xr-x 5 runner runner    4096 Oct 13 15:35 ..
--rw-r--r-- 1 runner runner      65 Oct 13 15:40 COMPILER_SHA256
--rw-r--r-- 1 runner runner   36152 Oct 13 15:42 barriers.bin.gz
--rw-r--r-- 1 runner runner 5576624 Oct 13 15:42 buildings.bin.gz
--rw-r--r-- 1 runner runner  125625 Oct 13 15:40 coast.bin.gz
--rw-r--r-- 1 runner runner  679501 Oct 13 15:42 landuse.bin.gz
--rw-r--r-- 1 runner runner   26159 Oct 13 15:42 manifest.json
--rw-r--r-- 1 runner runner   87485 Oct 13 15:40 material_l1.bin.gz
--rw-r--r-- 1 runner runner    7425 Oct 13 15:42 pois.bin.gz
--rw-r--r-- 1 runner runner 8764140 Oct 13 15:40 roads.bin.gz
--rw-r--r-- 1 runner runner  114292 Oct 13 15:42 strings.bin.gz
--rw-r--r-- 1 runner runner  103521 Oct 13 15:40 terrain_l0.bin.gz
--rw-r--r-- 1 runner runner  876807 Oct 13 15:40 terrain_l1.bin.gz
--rw-r--r-- 1 runner runner  231814 Oct 13 15:42 water.bin.gz
+drwxr-xr-x 2 runner runner    4096 Oct 13 15:48 .
+drwxr-xr-x 5 runner runner    4096 Oct 13 15:41 ..
+-rw-r--r-- 1 runner runner      65 Oct 13 15:46 COMPILER_SHA256
+-rw-r--r-- 1 runner runner   36152 Oct 13 15:48 barriers.bin.gz
+-rw-r--r-- 1 runner runner 5576624 Oct 13 15:48 buildings.bin.gz
+-rw-r--r-- 1 runner runner  125625 Oct 13 15:46 coast.bin.gz
+-rw-r--r-- 1 runner runner  679501 Oct 13 15:48 landuse.bin.gz
+-rw-r--r-- 1 runner runner   26159 Oct 13 15:48 manifest.json
+-rw-r--r-- 1 runner runner   87485 Oct 13 15:46 material_l1.bin.gz
+-rw-r--r-- 1 runner runner    7425 Oct 13 15:48 pois.bin.gz
+-rw-r--r-- 1 runner runner 8764140 Oct 13 15:46 roads.bin.gz
+-rw-r--r-- 1 runner runner  114292 Oct 13 15:48 strings.bin.gz
+-rw-r--r-- 1 runner runner  103521 Oct 13 15:46 terrain_l0.bin.gz
+-rw-r--r-- 1 runner runner  876807 Oct 13 15:46 terrain_l1.bin.gz
+-rw-r--r-- 1 runner runner  231814 Oct 13 15:48 water.bin.gz
 16M	android/assets/world/
 === world bundle self-sufficiency ===
 compiler_hash=da611dc81dd9e9d528016ac7bd0fd6bd320b77bf7bd7add5dfe514e4348ead55
