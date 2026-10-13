@@ -17,8 +17,9 @@ import java.util.List;
 public final class HudLayout {
 
     public enum Id {
-        MODE,          // walk <-> fly
+        MODE,          // walk <-> car, the two ground ways of getting about
         SPRINT,
+        BRAKE,
         LOCO_HUMAN,
         LOCO_CAR,
         LOCO_PLANE,
@@ -192,7 +193,10 @@ public final class HudLayout {
         // Altitude and the map sit on the right, under the minimap.
         add(Id.ALT_UP, screenWidth - pad - bw * 0.7f, pad + bh + gap, bw * 0.7f, bh, "UP", "أعلى");
         add(Id.ALT_DOWN, screenWidth - pad - bw * 0.7f, pad, bw * 0.7f, bh, "DOWN", "أسفل");
-        add(Id.MAP, screenWidth - pad - bw * 0.7f - gap - bw * 1.2f, pad, bw * 1.2f, bh, "MAP", "خريطة");
+        float rightX = screenWidth - pad - bw * 0.7f - gap;
+        add(Id.MAP, rightX - bw * 1.2f, pad, bw * 1.2f, bh, "MAP", "خريطة");
+        // The brake lives beside the map, where a driving thumb can reach it without leaving the stick.
+        add(Id.BRAKE, rightX - bw * 1.2f - gap - bw * 1.2f, pad, bw * 1.2f, bh, "BRAKE", "فرامل");
 
         // The minimap: a square in the top-right corner, with the whole world in it.
         float mapSize = Math.min(screenHeight * 0.30f, screenWidth * 0.22f);

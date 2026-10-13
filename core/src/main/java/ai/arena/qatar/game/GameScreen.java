@@ -103,6 +103,9 @@ public final class GameScreen extends InputAdapter implements Disposable {
         double[] spawn = {0.0, 0.0};
         rig = new CameraRig(sampler, spawn[0], spawn[1]);
         controller = new PlayerController(rig);
+        // From here on the vehicles move through the real terrain: heights, materials and depths all
+        // come from the compiled country, and a kerb is a step the walker has to be able to take.
+        controller.setSurface(new WorldSurface(sampler));
         // Start looking north-west across the bay rather than into the sand: a first impression of a
         // capital city is the skyline across the water.
         rig.yawDegrees = 305.0;
@@ -202,7 +205,7 @@ public final class GameScreen extends InputAdapter implements Disposable {
         layout.setEnabled(Id.MODE, !flying);
         layout.setEnabled(Id.ALT_UP, flying);
         layout.setEnabled(Id.ALT_DOWN, flying);
-        layout.button(Id.MODE).label = rig.mode == CameraRig.Mode.FLY ? "FLY" : "WALK";
+        layout.button(Id.MODE).label = controller.loco() == Loco.CAR ? "WALK" : "DRIVE";
         for (Button button : layout.buttons()) {
             hud.drawButton(button, layout.isHighlighted(button.id));
         }
@@ -317,7 +320,7 @@ public final class GameScreen extends InputAdapter implements Disposable {
         if (pointer == lookPointer) {
             float dx = x - lookLastX;
             float dy = y - lookLastY;
-            rig.look(dx * lookSensitivity, dy * lookSensitivity);
+            controller.look(dx * lookSensitivity, dy * lookSensitivity);
             lookLastX = x;
             lookLastY = y;
             return true;
@@ -384,10 +387,15 @@ public final class GameScreen extends InputAdapter implements Disposable {
     private void fire(Id id, boolean pressed) {
         switch (id) {
             case MODE:
-                rig.setMode(rig.mode == CameraRig.Mode.FLY ? CameraRig.Mode.WALK : CameraRig.Mode.FLY);
+                // One press between the two ground ways of getting about; the flying machines have their
+                // own buttons because they are not a mode of walking.
+                controller.setLoco(controller.loco() == Loco.CAR ? Loco.HUMAN : Loco.CAR);
                 break;
             case SPRINT:
                 controller.sprinting = pressed;
+                break;
+            case BRAKE:
+                controller.braking = pressed;
                 break;
             case LOCO_HUMAN:
                 controller.setLoco(Loco.HUMAN);
@@ -555,6 +563,7 @@ public final class GameScreen extends InputAdapter implements Disposable {
         double localEast = target.east - offsetEastToBundle();
         double localNorth = target.north - offsetNorthToBundle();
         rig.placeAt(localEast, localNorth);
+        controller.placePlayer(localEast, localNorth);
         mapView.centreOnWorld(target.east, target.north);
         String where = target.label == null || target.label.isEmpty() ? "unnamed place" : target.label;
         String how = target.snappedToSpawn ? "spawn" : (target.snappedToRoad ? "road" : "open ground");

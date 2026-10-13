@@ -30,10 +30,27 @@ checked.
 
 ## Step 2 — human, car, aeroplane, helicopter, boat, with physics
 
-The physics core exists (fixed-step clock, solver, materials, terrain sampling) and
-`PlayerController` already models the five locomotion types as speed/height profiles through one tested
-camera rig. What is missing is the bodies: wheels, wings, hull, rotors, and the collision shape for each,
-driven by the same fixed-step solver the tests exercise.
+**Bodies (written, evidence in CI).** Each of the five is now a real body in
+`core/src/main/java/ai/arena/qatar/vehicle/`, integrated at the fixed physics rate:
+
+| Body | What it models | Numbers it is built from |
+|---|---|---|
+| `HumanBody` | walking, running, a 0.42 m step, jumping, wading | 82 kg, 1.5 m/s walk, 6.6 m/s run, 3.1 m/s take-off |
+| `CarBody` | bicycle model, grip budget, power limit, soft-ground bogging | 1620 kg, 92 kW, 2.79 m wheelbase, 0.86 m² CdA |
+| `AircraftBody` | trimmed angle of attack, stall and recovery, ground roll and rotation | 1043 kg, 16.2 m² wing, CL_max 1.51, 2.25 kN thrust |
+| `HelicopterBody` | collective lag, cyclic tilt, rotor damping, tail-rotor yaw | 2200 kg, 5.6 m rotor, 1.9 × weight of thrust |
+| `BoatBody` | heave with buoyancy and planing lift, Froude-number resistance, beaching | 1850 kg, 6.5 m hull, 3 kN of propeller |
+
+`PlayerController` is the seam: it maps the HUD's axes onto each body's own axes, feeds it the world
+through `WorldSurface` (terrain height, compiled material, water depth), and puts the camera where the
+driver, pilot or walker would be. Walking turns the body, driving swings a chase camera, and the aircraft
+have a self-centring stick that commands attitude and returns to trim.
+
+**Terrain contact (done).** The bodies refuse to move over terrain that has not streamed in, which is what
+stops a fast aeroplane from flying through an unloaded chunk.
+
+**Remaining for step 2:** the collision shapes for vehicles against buildings and barriers, and the
+in-cockpit feel on a real device.
 
 ## Step 3 — detail assets
 
@@ -52,14 +69,16 @@ taps are exact arithmetic on the same raster.
 ## Step 5 — the APK
 
 Debug-signed APK, built and validated in CI (entry list, dex count, ABI coverage, bundle presence,
-checksums). The current build does not yet draw the world; that is what step 1's remaining work fixes.
+checksums), published on every green run to the rolling release
+`v0.1.0-m0` so the download link never rots. The build now packages the country and starts in the
+playable world; the remaining risk is what only a device can tell us (see open item 2).
 
 ## Open items, in the order they will be done
 
-1. Fix plane spawn points: the report shows 1,916 of them, which is a per-vertex bug, and no helicopter
-   spawns at all, which is a classification gap.
+1. ~~Fix the spawn points.~~ Done: the country now compiles 279 car, 6 helicopter, 51 boat and 30
+   aeroplane spawn points, and `validate_game_world.py` passes 57/57 against the committed bundles.
 2. Verify the shaders on a device, then fix whatever the driver says.
-3. Physics bodies for the five locomotion types (step 2).
-4. Detail assets (step 3).
+3. Vehicle collision shapes (buildings, barriers, other vehicles) on top of the five bodies.
+4. Detail assets (step 3): window bands, road markings, the visible human and vehicle bodies.
 5. Bilingual pass over every label, including the loading screen.
 6. Final report: APK link, bytes, SHA-256, run id, honest limitations.
