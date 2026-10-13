@@ -231,6 +231,19 @@ public final class HudRenderer implements Disposable {
         drawLeft(small, text, x, y, TEXT_DIM);
     }
 
+    /**
+     * Draws one Arabic line: shaped and put in visual order first, because the renderer lays glyphs out
+     * left to right and unshaped Arabic would come out as disconnected letters in the wrong order.
+     * Hand it a line that is Arabic, or Arabic with numbers in it -- not a mixed English line, which the
+     * reordering would flip end for end.
+     */
+    public void drawStatusArabic(String logicalArabic, float x, float y) {
+        if (!fontsReady) {
+            return;
+        }
+        drawLeft(small, ArabicReshaper.shapeForDisplay(logicalArabic), x, y, TEXT_DIM);
+    }
+
     public float lineHeight() {
         return fontsReady ? small.getLineHeight() : 24f;
     }

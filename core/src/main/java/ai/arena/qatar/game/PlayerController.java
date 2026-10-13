@@ -390,6 +390,23 @@ public final class PlayerController {
         return body().instrument(state());
     }
 
+    /**
+     * The status line in Arabic, in logical order: the HUD shapes and reverses it for a left-to-right
+     * renderer, so this stays written the way an Arabic reader reads it.
+     *
+     * <p>It is a summary rather than a translation of {@link #describe()}: the numbers are the same ones,
+     * in the same order, with Arabic labels in front of them, because a phrase cannot be translated word
+     * for word between languages that put the verb in different places and still sound like a person
+     * wrote it.
+     */
+    public String describeArabic() {
+        VehicleState state = state();
+        String where = state.floating ? "في الماء" : (state.grounded ? "على الأرض" : "في الجو");
+        return String.format(Locale.ROOT,
+                "%s | %s | السرعة %.0f م/ث | الارتفاع %.0f م | الاتجاه %.0f°",
+                loco.labelAr, where, Math.abs(state.speedMS), state.heightM, state.headingDegrees);
+    }
+
     /** Longer line for the debug overlay, including where the machine actually is. */
     public String describeVerbose() {
         VehicleState state = state();

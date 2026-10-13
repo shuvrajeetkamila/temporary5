@@ -1,11 +1,13 @@
 package ai.arena.qatar.game;
 
 import ai.arena.qatar.game.PlayerController.Loco;
+import ai.arena.qatar.hud.Credits;
 import ai.arena.qatar.hud.HudLayout;
 import ai.arena.qatar.hud.HudLayout.Button;
 import ai.arena.qatar.hud.HudLayout.Id;
 import ai.arena.qatar.hud.HudLayout.Rect;
 import ai.arena.qatar.hud.HudRenderer;
+import ai.arena.qatar.hud.HudText;
 import ai.arena.qatar.hud.MapRaster;
 import ai.arena.qatar.hud.MapView;
 import ai.arena.qatar.math.Vec3;
@@ -81,8 +83,16 @@ public final class GameScreen extends InputAdapter implements Disposable {
     private String message = "";
     private float messageSeconds;
 
+    /** How long the launch credit stays in the corner: long enough to be read, short enough to ignore. */
+    private static final float LAUNCH_CREDITS_SECONDS = 12f;
+
     private float statusRefresh;
     private String statusLine = "";
+    private String statusLineArabic = "";
+
+    /** The data credit, printed on the map screen and for the first seconds of a launch. */
+    private String creditsEnglish = "";
+    private float creditsSeconds = LAUNCH_CREDITS_SECONDS;
 
     public GameScreen(WorldData world) {
         this.world = world;
@@ -114,6 +124,8 @@ public final class GameScreen extends InputAdapter implements Disposable {
         worldRenderer = new GameWorldRenderer(world, origin, new ai.arena.qatar.render.WorldRenderer());
         worldRenderer.init();
         worldRenderer.setActor(controller.meshKind());
+
+        creditsEnglish = Credits.english(world.manifest.attribution);
 
         raster = MapRaster.build(world, 2048);
         teleport = new TeleportService(world, raster);
@@ -238,12 +250,31 @@ public final class GameScreen extends InputAdapter implements Disposable {
                     controller.describe(),
                     rig.east + offsetEastToBundle(), rig.north + offsetNorthToBundle(),
                     worldRenderer.describe(), Gdx.graphics.getFramesPerSecond());
+            statusLineArabic = controller.describeArabic();
         }
+        // The status block stacks downwards from the top-left: English, then the same thing in Arabic,
+        // then the map's hint in both. Each Arabic line is shaped on its own, so a mixed line never gets
+        // reordered as a whole.
         float margin = height * 0.02f;
-        hud.drawStatus(statusLine, margin, height - margin);
+        float step = hud.lineHeight() * 1.2f;
+        float lineY = height - margin;
+        hud.drawStatus(statusLine, margin, lineY);
+        lineY -= step;
+        hud.drawStatusArabic(statusLineArabic, margin, lineY);
         if (layout.bigMapVisible()) {
-            hud.drawStatus("Tap a place on the map to travel there  |  اضغط على الخريطة للانتقال",
-                    margin, height - margin - hud.lineHeight() * 1.2f);
+            lineY -= step;
+            hud.drawStatus(HudText.MAP_HINT_EN, margin, lineY);
+            lineY -= step;
+            hud.drawStatusArabic(HudText.MAP_HINT_AR, margin, lineY);
+        }
+        // The data credit, in both languages. On the map screen, which is the picture made from that
+        // data, it stays up; after a launch it fades out of the corner by itself. ODbL asks for the
+        // attribution to reach the player, and an APK that never prints it does not.
+        creditsSeconds = Math.max(0f, creditsSeconds - dt);
+        if (creditsSeconds > 0f || layout.bigMapVisible()) {
+            float creditY = layout.bigMapVisible() ? height * 0.095f : height * 0.05f;
+            hud.drawStatus(creditsEnglish, margin, creditY);
+            hud.drawStatusArabic(Credits.ARABIC, margin, creditY - step);
         }
         if (messageSeconds > 0f && !message.isEmpty()) {
             hud.drawMessage(message, margin, height * 0.18f, false);

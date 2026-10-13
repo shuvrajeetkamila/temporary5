@@ -4,8 +4,8 @@
     {
       "ttf": "assets/source/fonts/Amiri-Regular.ttf",
       "sizePx": 18,
-      "glyphs": 316,
-      "atlas": "512x256",
+      "glyphs": 663,
+      "atlas": "512x512",
       "fnt": "android/assets/fonts/hud_small.fnt",
       "png": "android/assets/fonts/hud_small.png",
       "lineHeight": 33,
@@ -14,8 +14,8 @@
     {
       "ttf": "assets/source/fonts/Amiri-Regular.ttf",
       "sizePx": 30,
-      "glyphs": 316,
-      "atlas": "512x512",
+      "glyphs": 663,
+      "atlas": "512x1024",
       "fnt": "android/assets/fonts/hud_large.fnt",
       "png": "android/assets/fonts/hud_large.png",
       "lineHeight": 54,

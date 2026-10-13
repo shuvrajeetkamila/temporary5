@@ -31,9 +31,29 @@ CHARS += list(range(0x0660, 0x066A))          # Arabic-Indic digits
 CHARS += list(range(0x066A, 0x066E))
 CHARS += list(range(0x0670, 0x0672))
 CHARS += list(range(0x0679, 0x0680))
+CHARS += list(range(0x06A0, 0x0700))          # the rest of the Arabic block: Persian letters (06CC),
+                                              # the marks, and the extended Arabic-Indic digits
+CHARS += list(range(0x0750, 0x0780))          # Arabic Supplement
 CHARS += list(range(0x06D4, 0x06D6))
 CHARS += list(range(0xFB50, 0xFB52))          # alef wasla
 CHARS += list(range(0xFE70, 0xFF00))          # presentation forms A/B
+# Punctuation that is not in ASCII and not Arabic: the copyright sign and degree mark the credits and
+# the instruments use, and the dashes, ellipsis and quotes that arrive in OpenStreetMap names. Every one
+# of these has a real glyph in Amiri; a character the typeface lacks would be a blank on screen, which is
+# why the coverage test checks the shipped font against the strings the game prints.
+CHARS += [0x00A9, 0x00B0, 0x00B1, 0x00B7, 0x00D7, 0x2013, 0x2014, 0x2018, 0x2019, 0x201C, 0x201D,
+          0x2026, 0x2032, 0x2033]
+# Latin letters with diacritics, for the names in the data that are transcribed rather than spelled in
+# Arabic: "Musée", "Wādī", and nine such names in the compiled country. Amiri covers these two ranges
+# completely, which is why they can be added wholesale -- a character the typeface lacks would come out
+# of PIL as the notdef box, and the atlas would claim a glyph that draws as a box on screen.
+CHARS += list(range(0x00C0, 0x0100))          # Latin-1 letters
+CHARS += list(range(0x0100, 0x0180))          # Latin Extended-A
+
+
+# The ranges above overlap (06A0..0700 contains 06D4..06D6, and so on). Duplicates would be packed
+# twice and listed twice in the .fnt, so they are dropped here, keeping the first mention's order.
+CHARS = list(dict.fromkeys(CHARS))
 
 
 def build(ttf: Path, out_base: Path, size_px: int, padding: int = 1) -> dict:
@@ -108,7 +128,9 @@ def build(ttf: Path, out_base: Path, size_px: int, padding: int = 1) -> dict:
         f'common lineHeight={line_height} base={ascent} scaleW={atlas_w} scaleH={atlas_h} pages=1 '
         f'packed=0',
         f'page id=0 file="{png_path.name}"',
-        f'chars count={sum(1 for g in glyphs if g["img"] is not None)}',
+        # Counted, not assumed: three of the glyphs in the list carry neither ink nor advance and are
+        # dropped, and a .fnt that claims more characters than it lists is a lie libGDX has to survive.
+        f'chars count={sum(1 for g, spot in zip(glyphs, placements) if g["img"] is not None and spot is not None)}',
         'kernings count=0',
     ]
     for g, spot in zip(glyphs, placements):
