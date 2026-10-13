@@ -113,6 +113,10 @@ public final class MapRaster {
             int colour = water.kind[ring] == 2 ? Palette.WATER_WADI : Palette.WATER_INLAND;
             int start = water.ringStart[ring];
             int points = water.ringLength[ring];
+            // Fill it, then draw the shoreline on top. An outline alone made an inland lake look like
+            // dry ground -- and the teleport logic reads this same raster to decide whether a tap is in
+            // the water, so a lake that is not painted is a lake the player can be dropped into.
+            fillRing(water.xz, start, points, colour, widthM, heightM);
             for (int i = 0; i < points - 1; i++) {
                 drawLine(water.xz[(start + i) * 2], water.xz[(start + i) * 2 + 1],
                         water.xz[(start + i + 1) * 2], water.xz[(start + i + 1) * 2 + 1],
@@ -146,6 +150,64 @@ public final class MapRaster {
             plot((int) Math.round(x0 + (x1 - x0) * t), (int) Math.round(y0 + (y1 - y0) * t), colour);
         }
     }
+
+    /**
+     * Fills a polygon ring with the even-odd rule, one scanline at a time.
+     *
+     * <p>Map polygons are real shapes -- a bay is not a rectangle -- so the fill has to handle concave
+     * rings. Even-odd crossing counting does that exactly, in one pass per raster row, with no
+     * triangulation to get wrong. Rings in these bundles do not contain holes; an island inside a lake
+     * is its own polygon and is drawn after it.
+     */
+    private void fillRing(float[] xz, int start, int points, int colour, double widthM, double heightM) {
+        if (points < 4 || xz == null) {
+            return;
+        }
+        int minY = Integer.MAX_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        for (int i = 0; i < points; i++) {
+            double y = xz[(start + i) * 2 + 1] / heightM * height;
+            int yi = (int) Math.floor(y);
+            minY = Math.min(minY, yi);
+            maxY = Math.max(maxY, yi);
+        }
+        minY = clamp(minY, 0, height - 1);
+        maxY = clamp(maxY, 0, height - 1);
+        double[] crossings = fillCrossings;
+        if (crossings == null || crossings.length < points) {
+            crossings = new double[points];
+            fillCrossings = crossings;
+        }
+        for (int y = minY; y <= maxY; y++) {
+            double scanNorth = (y + 0.5) * heightM / height;
+            int count = 0;
+            for (int i = 0; i < points; i++) {
+                int j = (i + 1) % points;
+                double ay = xz[(start + i) * 2 + 1];
+                double by = xz[(start + j) * 2 + 1];
+                if ((ay <= scanNorth && by > scanNorth) || (by <= scanNorth && ay > scanNorth)) {
+                    double ax = xz[(start + i) * 2];
+                    double bx = xz[(start + j) * 2];
+                    double t = (scanNorth - ay) / (by - ay);
+                    crossings[count++] = ax + t * (bx - ax);
+                }
+            }
+            if (count < 2) {
+                continue;
+            }
+            java.util.Arrays.sort(crossings, 0, count);
+            for (int k = 0; k + 1 < count; k += 2) {
+                int x0 = (int) Math.floor(crossings[k] / widthM * width);
+                int x1 = (int) Math.ceil(crossings[k + 1] / widthM * width);
+                for (int x = Math.max(0, x0); x <= Math.min(width - 1, x1); x++) {
+                    pixels[y * width + x] = 0xFF000000 | colour;
+                }
+            }
+        }
+    }
+
+    /** Scratch buffer for scanline crossings, reused between rings. */
+    private double[] fillCrossings;
 
     /** Sets a pixel with bounds checking: map drawing must never throw on an edge case. */
     public void plot(int x, int y, int rgb) {

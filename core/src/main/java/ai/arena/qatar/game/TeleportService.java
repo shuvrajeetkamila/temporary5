@@ -32,6 +32,8 @@ public final class TeleportService {
         public double north;
         public boolean snappedToRoad;
         public boolean snappedToSpawn;
+        /** True when the tap was in water and the player was placed on the nearest shore instead. */
+        public boolean snappedToShore;
         public boolean onWater;
         public String label = "";
         public int spawnKind = -1;
@@ -118,7 +120,60 @@ public final class TeleportService {
                 target.onWater = raster != null && raster.isWaterAt(target.east, target.north);
             }
         }
+
+        // Last resort: a tap out in the water with no harbour and no road within reach. The player is
+        // placed on the nearest shore rather than in the sea, which is the one thing a map tap must
+        // never do.
+        if (target.onWater && raster != null) {
+            double[] shore = nearestShore(target.east, target.north);
+            if (shore != null) {
+                target.east = shore[0];
+                target.north = shore[1];
+                target.onWater = false;
+                target.snappedToShore = true;
+                target.label = "";
+            }
+        }
         return target;
+    }
+
+    /**
+     * A pixel of dry land close to the tapped point, found by searching outward in square rings.
+     *
+     * <p>Not the mathematically nearest shore -- a raster ring search is the honest description -- but
+     * the answer is always land, always close, and always the same for the same tap. It runs only for a
+     * tap that lands in water, which is a gesture, not a frame.
+     */
+    private double[] nearestShore(double east, double north) {
+        int centreX = (int) Math.round(raster.u(east, north) * raster.width);
+        int centreY = (int) Math.round(raster.v(east, north) * raster.height);
+        int limit = Math.max(16, raster.width / 8);
+        for (int radius = 0; radius <= limit; radius++) {
+            for (int ring = 0; ring <= radius; ring++) {
+                int[] xs = {centreX - radius, centreX + radius, centreX - radius + ring, centreX + radius - ring};
+                int[] ys = {centreY - radius + ring, centreY + radius - ring, centreY - radius,
+                        centreY + radius};
+                for (int i = 0; i < xs.length; i++) {
+                    int x = xs[i];
+                    int y = ys[i];
+                    if (x < 0 || y < 0 || x >= raster.width || y >= raster.height) {
+                        continue;
+                    }
+                    if (!raster.isWaterAt(worldEast(x), worldNorth(y))) {
+                        return new double[]{worldEast(x), worldNorth(y)};
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private double worldEast(int pixelX) {
+        return raster.eastAt((pixelX + 0.5) / raster.width);
+    }
+
+    private double worldNorth(int pixelY) {
+        return raster.northAt((pixelY + 0.5) / raster.height);
     }
 
     private int nearestSpawn(double east, double north) {

@@ -95,6 +95,10 @@ final class MapTeleportTest {
         boolean boatSpawn = target.snappedToSpawn && target.spawnKind == Points.KIND_BOAT;
         assertTrue(boatSpawn || !target.onWater,
                 "a tap on the lake left the player in the water: " + target);
+        assertTrue(boatSpawn || !raster.isWaterAt(target.east, target.north),
+                "the resolved position is still water: " + target);
+        assertTrue(boatSpawn || target.snappedToRoad || target.snappedToShore,
+                "a water tap resolved to neither a harbour, a road nor a shore: " + target);
         assertTrue(target.east >= -100 && target.east <= world.manifest.widthM + 100
                         && target.north >= -100 && target.north <= world.manifest.heightM + 100,
                 "the resolved position is outside the country: " + target);
