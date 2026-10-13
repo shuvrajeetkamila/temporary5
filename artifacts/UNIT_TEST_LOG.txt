@@ -19,7 +19,29 @@ WorldBundlesTest > buildings keep their real footprint shape, height and type PA
 > Task :core:test FAILED
 gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791906520852.json
 
-FAILURE: Build failed with an exception.
+GeoMathTest > projected distances and bearings match known national geometry PASSED
+
+GeoMathTest > grid convergence is small but non-zero and signed correctly PASSED
+
+GeoMathTest > invalid input is rejected instead of producing NaN geography PASSED
+
+GeoMathTest > forward projection matches PROJ at Qatar checkpoints PASSED
+
+GeoMathTest > inverse projection matches PROJ and round-trips the whole country PASSED
+--
+
+RealWorldAssetsTest > the committed manifest describes the real country grid PASSED
+
+RealWorldAssetsTest > every committed bundle loads, verifies its digest and holds country-scale data FAILED
+    java.lang.IllegalArgumentException: unexpected terrain magic '�', expected 'QTT1'
+        at ai.arena.qatar.world.TerrainGrid.parse(TerrainGrid.java:49)
+        at ai.arena.qatar.world.RealWorldAssetsTest.everyBundleLoadsAndVerifies(RealWorldAssetsTest.java:88)
+
+WorldBundlesTest > resources are readable from the classpath too (packaging sanity) PASSED
+
+WorldBundlesTest > the string table carries bilingual names PASSED
+
+WorldBundlesTest > buildings keep their real footprint shape, height and type PASSED
 
 * What went wrong:
 Execution failed for task ':core:test'.
