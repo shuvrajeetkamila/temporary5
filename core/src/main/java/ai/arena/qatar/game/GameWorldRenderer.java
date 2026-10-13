@@ -133,6 +133,20 @@ public final class GameWorldRenderer implements Disposable {
         }
     }
 
+    /** Uploads the player's body for the locomotion type being played. */
+    public void setActor(ai.arena.qatar.render.MeshData body) {
+        renderer.setActorMesh(body);
+    }
+
+    /**
+     * Draws the player's body at its local position and heading. Local, not bundle: the transform is
+     * one translation near the floating origin, which is the whole point of having one.
+     */
+    public void drawActor(double localEast, double localNorth, double headingDegrees) {
+        renderer.drawActor(ai.arena.qatar.render.BodyMesher.transform(localEast, localNorth,
+                headingDegrees));
+    }
+
     public ChunkMeshCache cache() {
         return cache;
     }

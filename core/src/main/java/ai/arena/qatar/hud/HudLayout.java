@@ -20,6 +20,7 @@ public final class HudLayout {
         MODE,          // walk <-> car, the two ground ways of getting about
         SPRINT,
         BRAKE,
+        VIEW,          // first person <-> behind the body
         LOCO_HUMAN,
         LOCO_CAR,
         LOCO_PLANE,
@@ -45,6 +46,8 @@ public final class HudLayout {
         public String labelAr;
         /** False when this control cannot be used in the current mode (drawn dimmed, not pressable). */
         public boolean enabled = true;
+        /** True when this control is currently on (a chosen locomotion type, the view, a held stick). */
+        public boolean on;
 
         Button(Id id, String label, String labelAr) {
             this.id = id;
@@ -197,6 +200,8 @@ public final class HudLayout {
         add(Id.MAP, rightX - bw * 1.2f, pad, bw * 1.2f, bh, "MAP", "خريطة");
         // The brake lives beside the map, where a driving thumb can reach it without leaving the stick.
         add(Id.BRAKE, rightX - bw * 1.2f - gap - bw * 1.2f, pad, bw * 1.2f, bh, "BRAKE", "فرامل");
+        // Above them: whose eyes the screen is looking through -- the driver's, or behind the body.
+        add(Id.VIEW, rightX - bw * 1.2f, pad + bh + gap, bw * 1.2f, bh, "VIEW", "منظر");
 
         // The minimap: a square in the top-right corner, with the whole world in it.
         float mapSize = Math.min(screenHeight * 0.30f, screenWidth * 0.22f);
@@ -229,8 +234,17 @@ public final class HudLayout {
         }
     }
 
-    /** Marks which control is currently on (the walk/fly toggle, the chosen locomotion). */
+    /**
+     * Marks whether one control is currently on (the chosen locomotion, the view, a held stick).
+     *
+     * <p>Per control, not one shared flag: the game sets the state of five or six of them every frame,
+     * and a single field would leave only the last one it touched telling the truth.
+     */
     public void setHighlighted(Id id, boolean on) {
+        Button button = button(id);
+        if (button != null) {
+            button.on = on;
+        }
         highlighted = id;
         highlightedOn = on;
     }
@@ -238,6 +252,7 @@ public final class HudLayout {
     private Id highlighted;
     private boolean highlightedOn;
 
+    /** The last control whose state was set; use {@link #isHighlighted} for a specific one. */
     public Id highlighted() {
         return highlighted;
     }
@@ -246,8 +261,9 @@ public final class HudLayout {
         return highlightedOn;
     }
 
-    /** True when the control with this id is currently the highlighted one and it is on. */
+    /** True when this control is currently on. */
     public boolean isHighlighted(Id id) {
-        return highlighted == id && highlightedOn;
+        Button button = button(id);
+        return button != null && button.on;
     }
 }

@@ -75,6 +75,11 @@ public final class PlayerController {
     /** Wheel brake / astern, 0..1, from the BRAKE button. */
     public boolean braking;
 
+    /**
+     * Third person: the camera sits behind the body on a boom and looks at it, which is the only way to
+     * see the shape the player is driving. Off, the camera is the driver's own eye.
+     */
+    public boolean chase = true;
     /** Camera orbit for the vehicles: swings with a look drag and recentres when driving. */
     private double cameraYawOffset;
     private double cameraPitchOffset;
@@ -276,28 +281,79 @@ public final class PlayerController {
 
     /** Puts the camera where this vehicle's driver, pilot or walker would be looking from. */
     private void syncRig(VehicleState state) {
-        rig.east = state.eastM;
-        rig.north = state.northM;
-        rig.height = state.heightM + loco.cameraHeightM;
+        double yaw;
+        double pitch;
         switch (loco) {
             case HUMAN:
-                rig.yawDegrees = state.headingDegrees;
+                yaw = state.headingDegrees;
+                pitch = rig.pitchDegrees;
                 break;
             case PLANE:
             case HELICOPTER:
                 // The camera looks where the aircraft points, with the stick's own deflection added.
-                rig.yawDegrees = state.headingDegrees;
-                rig.pitchDegrees = clamp(state.pitchDegrees * 0.6
+                yaw = state.headingDegrees;
+                pitch = clamp(state.pitchDegrees * 0.6
                         + Math.toDegrees(Math.atan2(state.verticalMS, Math.max(6.0, state.speedMS))) * 0.4,
                         -85, 85);
                 break;
             default:
-                rig.yawDegrees = VehicleState.wrap(state.headingDegrees + cameraYawOffset);
-                rig.pitchDegrees = clamp(cameraPitchOffset
-                        - Math.toDegrees(Math.atan2(state.verticalMS, Math.max(5.0, state.speedMS))), -60, 40);
+                yaw = VehicleState.wrap(state.headingDegrees + cameraYawOffset);
+                pitch = clamp(cameraPitchOffset
+                        - Math.toDegrees(Math.atan2(state.verticalMS, Math.max(5.0, state.speedMS))),
+                        -60, 40);
                 break;
         }
+        if (chase) {
+            // Behind and above, looking at the body. The boom is longer than the machine so nothing of
+            // the vehicle the player is inside ends up inside the near plane.
+            double boom = boomM();
+            rig.east = state.eastM - Math.sin(Math.toRadians(yaw)) * boom;
+            rig.north = state.northM - Math.cos(Math.toRadians(yaw)) * boom;
+            rig.height = state.heightM + loco.cameraHeightM + boom * 0.35;
+            rig.yawDegrees = yaw;
+            // Aim at the body, and let the look drag tilt the aim a little either way.
+            rig.pitchDegrees = clamp(-Math.toDegrees(Math.atan2(boom * 0.35, boom)) * 0.6 + pitch * 0.5,
+                    -60, 40);
+        } else {
+            rig.east = state.eastM;
+            rig.north = state.northM;
+            rig.height = state.heightM + loco.cameraHeightM;
+            rig.yawDegrees = yaw;
+            rig.pitchDegrees = pitch;
+        }
         rig.sprinting = sprinting && loco != Loco.BOAT;
+    }
+
+    /** How far behind a body the chase camera sits, in metres: clear of its own length. */
+    public double boomM() {
+        switch (loco) {
+            case CAR:
+                return 6.5;
+            case PLANE:
+                return 12.0;
+            case HELICOPTER:
+                return 9.0;
+            case BOAT:
+                return 8.0;
+            default:
+                return 3.2;
+        }
+    }
+
+    /** The body the player currently is, as the renderer names it. */
+    public ai.arena.qatar.render.BodyMesher.Body meshKind() {
+        switch (loco) {
+            case CAR:
+                return ai.arena.qatar.render.BodyMesher.Body.CAR;
+            case PLANE:
+                return ai.arena.qatar.render.BodyMesher.Body.PLANE;
+            case HELICOPTER:
+                return ai.arena.qatar.render.BodyMesher.Body.HELICOPTER;
+            case BOAT:
+                return ai.arena.qatar.render.BodyMesher.Body.BOAT;
+            default:
+                return ai.arena.qatar.render.BodyMesher.Body.HUMAN;
+        }
     }
 
     /** Compact HUD line: what the player is, and what it is doing. */

@@ -37,6 +37,8 @@ public final class WorldRenderer implements Disposable {
     private ShaderProgram worldProgram;
     private ShaderProgram skyProgram;
     private Mesh skyQuad;
+    /** The player's own body: the only mesh in the game that moves every frame. */
+    private Mesh actorMesh;
 
     private final LongMap<GpuChunk> chunks = new LongMap<>();
     private final Matrix4 identity = new Matrix4();
@@ -174,6 +176,28 @@ public final class WorldRenderer implements Disposable {
         }
     }
 
+    /**
+     * Uploads the player's body, replacing whatever was there: the player changes vehicle, not shape.
+     * Called when the locomotion type changes and never per frame.
+     */
+    public void setActorMesh(MeshData data) {
+        actorMesh = upload(actorMesh, data);
+    }
+
+    /**
+     * Draws the player's body. The world program must still be bound, so this is called straight after
+     * the chunk loop and the uniforms are already set.
+     */
+    public void drawActor(Matrix4 transform) {
+        if (actorMesh == null || worldProgram == null) {
+            return;
+        }
+        worldProgram.setUniformMatrix("u_model", transform);
+        actorMesh.render(worldProgram, GL20.GL_TRIANGLES);
+        drawCalls++;
+        drawnTriangles += actorMesh.getNumIndices() / 3;
+    }
+
     public void release(long key) {
         GpuChunk gpu = chunks.remove(key);
         if (gpu == null) {
@@ -214,6 +238,10 @@ public final class WorldRenderer implements Disposable {
         if (skyQuad != null) {
             skyQuad.dispose();
             skyQuad = null;
+        }
+        if (actorMesh != null) {
+            actorMesh.dispose();
+            actorMesh = null;
         }
     }
 

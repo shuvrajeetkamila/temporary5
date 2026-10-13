@@ -23,6 +23,8 @@ public final class VertexFormat {
     public static final int SURFACE_ROOF = 3;
     public static final int SURFACE_ROAD = 4;
     public static final int SURFACE_MARKING = 5;
+    /** The player's own body and vehicles: one surface type, painted per part by the material id. */
+    public static final int SURFACE_BODY = 6;
 
     public static final int FLOATS_PER_VERTEX = MeshData.FLOATS_PER_VERTEX;
     public static final int BYTES_PER_VERTEX = FLOATS_PER_VERTEX * 4;
