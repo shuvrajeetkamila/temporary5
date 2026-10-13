@@ -1,7 +1,0 @@
-# World compiler dependencies (pinned for reproducible output).
-numpy==2.4.6
-scipy==1.17.1
-shapely==2.2.0
-pyproj==3.7.2
-rasterio==1.4.4
-osmium==4.2.0

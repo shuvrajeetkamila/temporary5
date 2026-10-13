@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Arabic UI name; UTF-8 source is mandatory and correct shaping is verified in unit tests. -->
-    <string name="app_name" translatable="false">قطر: شبه الجزيرة</string>
-</resources>
