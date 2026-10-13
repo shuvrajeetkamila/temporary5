@@ -1,36 +1,93 @@
-To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
-Daemon will be stopped at the end of the build 
+> Task :core:processTestResources
+> Task :core:testClasses
 
-> Task :core:compileJava FAILED
-/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/TerrainMesher.java:138: error: method surfaceTint in class TerrainMesher cannot be applied to given types;
-        float tint = surfaceTint(material, slope[0], slope[1]);
-                     ^
-  required: int,float,float,float
-  found:    int,float,float
-  reason: actual and formal argument lists differ in length
-1 error
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791896949568.json
+> Task :core:test FAILED
 
-FAILURE: Build failed with an exception.
+GeoMathTest > projected distances and bearings match known national geometry PASSED
+
+GeoMathTest > grid convergence is small but non-zero and signed correctly PASSED
+
+GeoMathTest > invalid input is rejected instead of producing NaN geography PASSED
+
+GeoMathTest > forward projection matches PROJ at Qatar checkpoints PASSED
+
+GeoMathTest > inverse projection matches PROJ and round-trips the whole country PASSED
+--
+
+PhysicsWorldTest > collision matrix is symmetric and triggers never act solid PASSED
+
+MeshersTest > initializationError FAILED
+    java.lang.IllegalArgumentException: material payload truncated: 276 < 17926455316
+        at ai.arena.qatar.world.MaterialGrid.parse(MaterialGrid.java:52)
+        at ai.arena.qatar.render.MeshersTest.load(MeshersTest.java:54)
+
+ArabicReshaperTest > the mandatory lam-alef ligature is produced PASSED
+
+ArabicReshaperTest > base direction detection follows the first strong character PASSED
+
+ArabicReshaperTest > an English label is passed through unchanged PASSED
+
+--
+
+WorldBundlesTest > the string table carries bilingual names PASSED
+
+WorldBundlesTest > buildings keep their real footprint shape, height and type FAILED
+    java.lang.IllegalStateException: buildings.bin.gz: header claims 1185410973701 payload bytes, file has 276
+        at ai.arena.qatar.world.BundleReader.header(BundleReader.java:121)
+        at ai.arena.qatar.world.Buildings.parse(Buildings.java:82)
+        at ai.arena.qatar.world.WorldBundlesTest.buildings(WorldBundlesTest.java:90)
+
+WorldBundlesTest > land use, water and barriers parse with their classes intact FAILED
+    java.lang.IllegalStateException: landuse.bin.gz: header claims 618475290627 payload bytes, file has 144
+        at ai.arena.qatar.world.BundleReader.header(BundleReader.java:121)
+        at ai.arena.qatar.world.Areas.parse(Areas.java:46)
+        at ai.arena.qatar.world.WorldBundlesTest.areasAndBarriers(WorldBundlesTest.java:163)
+
+WorldBundlesTest > points of interest include each vehicle spawn and are queryable FAILED
+    java.lang.IllegalStateException: pois.bin.gz: header claims 343597383685 payload bytes, file has 80
+        at ai.arena.qatar.world.BundleReader.header(BundleReader.java:121)
+        at ai.arena.qatar.world.Points.parse(Points.java:56)
+        at ai.arena.qatar.world.WorldBundlesTest.points(WorldBundlesTest.java:197)
+
+WorldBundlesTest > roads keep class, width, direction and bilingual names FAILED
+    java.lang.IllegalStateException: roads.bin.gz: header claims 429496729603 payload bytes, file has 100
+        at ai.arena.qatar.world.BundleReader.header(BundleReader.java:121)
+        at ai.arena.qatar.world.Roads.parse(Roads.java:73)
+        at ai.arena.qatar.world.WorldBundlesTest.roads(WorldBundlesTest.java:130)
+
+WorldBundlesTest > manifest declares the grid the geometry is expressed in PASSED
+
+WorldBundlesTest > a bundle that is not a bundle is rejected, not misread PASSED
+
+WorldBundlesTest > the spatial index answers region queries without scanning everything FAILED
+    java.lang.IllegalStateException: buildings.bin.gz: header claims 1185410973701 payload bytes, file has 276
+        at ai.arena.qatar.world.BundleReader.header(BundleReader.java:121)
+        at ai.arena.qatar.world.Buildings.parse(Buildings.java:82)
+        at ai.arena.qatar.world.WorldBundlesTest.featureIndex(WorldBundlesTest.java:230)
+
+WorldBundlesTest > manifest digests are verified, and a corrupted bundle is rejected PASSED
+
+44 tests completed, 6 failed
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791897703928.json
 
 --
 	at org.gradle.composite.internal.DefaultBuildController$BuildOpRunnable.run(DefaultBuildController.java:198)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
-Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Compilation failed; see the compiler error output for details.
-	at org.gradle.api.internal.tasks.compile.JdkJavaCompiler.execute(JdkJavaCompiler.java:61)
-	at org.gradle.api.internal.tasks.compile.JdkJavaCompiler.execute(JdkJavaCompiler.java:41)
-	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.delegateAndHandleErrors(NormalizingJavaCompiler.java:98)
-	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.execute(NormalizingJavaCompiler.java:52)
-	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.execute(NormalizingJavaCompiler.java:38)
-	at org.gradle.api.internal.tasks.compile.AnnotationProcessorDiscoveringCompiler.execute(AnnotationProcessorDiscoveringCompiler.java:52)
-	at org.gradle.api.internal.tasks.compile.AnnotationProcessorDiscoveringCompiler.execute(AnnotationProcessorDiscoveringCompiler.java:38)
-	at org.gradle.api.internal.tasks.compile.ModuleApplicationNameWritingCompiler.execute(ModuleApplicationNameWritingCompiler.java:46)
-	at org.gradle.api.internal.tasks.compile.ModuleApplicationNameWritingCompiler.execute(ModuleApplicationNameWritingCompiler.java:36)
-	at org.gradle.jvm.toolchain.internal.DefaultToolchainJavaCompiler.execute(DefaultToolchainJavaCompiler.java:57)
+Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There were failing tests. See the report at: file:///home/runner/work/temporary5/temporary5/core/build/reports/tests/test/index.html
+	at org.gradle.api.tasks.testing.AbstractTestTask.handleTestFailures(AbstractTestTask.java:691)
+	at org.gradle.api.tasks.testing.AbstractTestTask.handleCollectedResults(AbstractTestTask.java:533)
+	at org.gradle.api.tasks.testing.AbstractTestTask.executeTests(AbstractTestTask.java:528)
+	at org.gradle.api.tasks.testing.Test.executeTests(Test.java:715)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at org.gradle.internal.reflect.JavaMethod.invoke(JavaMethod.java:125)
+	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.doExecute(StandardTaskAction.java:58)
+	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.execute(StandardTaskAction.java:51)
 --
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 12s
-1 actionable task: 1 executed
+BUILD FAILED in 18s
+4 actionable tasks: 4 executed
