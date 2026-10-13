@@ -14,40 +14,46 @@ GeoMathTest > forward projection matches PROJ at Qatar checkpoints PASSED
 GeoMathTest > inverse projection matches PROJ and round-trips the whole country PASSED
 --
 
-PhysicsWorldTest > collision matrix is symmetric and triggers never act solid PASSED
+MeshersTest > land use and water classify ground that the terrain mesh colours PASSED
 
-MeshersTest > initializationError FAILED
-    java.lang.IllegalArgumentException: material payload truncated: 276 < 17926455316
-        at ai.arena.qatar.world.MaterialGrid.parse(MaterialGrid.java:52)
-        at ai.arena.qatar.render.MeshersTest.load(MeshersTest.java:54)
+MeshersTest > road ribbons are as wide as the compiled width and follow the terrain FAILED
+    org.opentest4j.AssertionFailedError: one segment is two quads: 4 ==> expected: <2> but was: <4>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)
+        at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:563)
+        at app//ai.arena.qatar.render.MeshersTest.roadRibbon(MeshersTest.java:210)
 
-ArabicReshaperTest > the mandatory lam-alef ligature is produced PASSED
-
-ArabicReshaperTest > base direction detection follows the first strong character PASSED
-
-ArabicReshaperTest > an English label is passed through unchanged PASSED
+MeshersTest > a concave footprint roofs correctly instead of collapsing to a fan PASSED
 
 --
 
-WorldBundlesTest > the string table carries bilingual names PASSED
+MeshersTest > meshes stay inside the vertex budget of a 16-bit index buffer PASSED
 
-WorldBundlesTest > buildings keep their real footprint shape, height and type FAILED
-    org.opentest4j.AssertionFailedError: an L shape must be smaller than its bounding box, proving the shape was kept ==> expected: <true> but was: <false>
+MeshersTest > terrain meshing produces an upward-facing surface with the right triangle count FAILED
+    org.opentest4j.AssertionFailedError: the land mesh has geometry ==> expected: <false> but was: <true>
         at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
         at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
-        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
-        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
-        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
-        at app//ai.arena.qatar.world.WorldBundlesTest.buildings(WorldBundlesTest.java:123)
+        at app//org.junit.jupiter.api.AssertFalse.failNotFalse(AssertFalse.java:63)
+        at app//org.junit.jupiter.api.AssertFalse.assertFalse(AssertFalse.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertFalse(Assertions.java:239)
+        at app//ai.arena.qatar.render.MeshersTest.terrainSurface(MeshersTest.java:75)
 
-WorldBundlesTest > land use, water and barriers parse with their classes intact FAILED
-    org.opentest4j.AssertionFailedError: the lake contains its own centre ==> expected: <true> but was: <false>
+MeshersTest > a chunk far from the focus is still meshed from the same data (no popping holes) FAILED
+    org.opentest4j.AssertionFailedError: expected: <false> but was: <true>
         at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
         at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
-        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
-        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
-        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
-        at app//ai.arena.qatar.world.WorldBundlesTest.areasAndBarriers(WorldBundlesTest.java:182)
+        at app//org.junit.jupiter.api.AssertFalse.failNotFalse(AssertFalse.java:63)
+        at app//org.junit.jupiter.api.AssertFalse.assertFalse(AssertFalse.java:36)
+        at app//org.junit.jupiter.api.AssertFalse.assertFalse(AssertFalse.java:31)
+        at app//org.junit.jupiter.api.Assertions.assertFalse(Assertions.java:231)
+        at app//ai.arena.qatar.render.MeshersTest.terrainChunking(MeshersTest.java:117)
+
+ArabicReshaperTest > the mandatory lam-alef ligature is produced PASSED
+--
+
+WorldBundlesTest > land use, water and barriers parse with their classes intact PASSED
 
 WorldBundlesTest > points of interest include each vehicle spawn and are queryable FAILED
     org.opentest4j.AssertionFailedError: the car spawn is found from its own neighbourhood ==> expected: <true> but was: <false>
@@ -56,18 +62,11 @@ WorldBundlesTest > points of interest include each vehicle spawn and are queryab
         at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
         at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
         at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
-        at app//ai.arena.qatar.world.WorldBundlesTest.points(WorldBundlesTest.java:203)
+        at app//ai.arena.qatar.world.WorldBundlesTest.points(WorldBundlesTest.java:208)
 
-WorldBundlesTest > roads keep class, width, direction and bilingual names FAILED
-    org.opentest4j.AssertionFailedError: the primary road is present ==> expected: <true> but was: <false>
-        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
-        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
-        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
-        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
-        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
-        at app//ai.arena.qatar.world.WorldBundlesTest.roads(WorldBundlesTest.java:143)
+WorldBundlesTest > roads keep class, width, direction and bilingual names PASSED
 
-WorldBundlesTest > manifest declares the grid the geometry is expressed in PASSED
+--
 
 WorldBundlesTest > a bundle that is not a bundle is rejected, not misread PASSED
 
@@ -78,12 +77,12 @@ WorldBundlesTest > the spatial index answers region queries without scanning eve
         at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
         at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
         at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
-        at app//ai.arena.qatar.world.WorldBundlesTest.featureIndex(WorldBundlesTest.java:236)
+        at app//ai.arena.qatar.world.WorldBundlesTest.featureIndex(WorldBundlesTest.java:241)
 
 WorldBundlesTest > manifest digests are verified, and a corrupted bundle is rejected PASSED
 
 --
-	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
+	at org.gradle.composite.internal.DefaultBuildController$BuildOpRunnable.run(DefaultBuildController.java:198)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There were failing tests. See the report at: file:///home/runner/work/temporary5/temporary5/core/build/reports/tests/test/index.html
@@ -101,5 +100,5 @@ Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 15s
+BUILD FAILED in 23s
 4 actionable tasks: 4 executed
