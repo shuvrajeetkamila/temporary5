@@ -1,6 +1,6 @@
 apk_path=artifacts/Qatar-The-Peninsula-v0.1.0-m0.apk
-apk_bytes=14174585
-apk_sha256=712ed3632e82a20ba7de425e03ac5e44503a6fb2f97f9c4492ec9bd85a8d9f3a
+apk_bytes=14174613
+apk_sha256=1255ad77cddab0cb012f1ca1492452e0ffc3bc1dfd3526a199ad3f2bb867fdce
 zip_integrity=ok
 manifest_package=package: name='ai.arena.qatar.peninsula' versionCode='1' versionName='0.1.0-m0' platformBuildVersionName='14' platformBuildVersionCode='34' compileSdkVersion='34' compileSdkVersionCodename='14'
 manifest_sdk=sdkVersion:26
