@@ -130,12 +130,18 @@ playable world; the remaining risk is what only a device can tell us (see open i
 
 1. ~~Fix the spawn points.~~ Done: the country now compiles 279 car, 6 helicopter, 51 boat and 30
    aeroplane spawn points, and `validate_game_world.py` passes 57/57 against the committed bundles.
-2. Verify the shaders on a device, then fix whatever the driver says. This is the one thing no amount of
-   local work can do: there is no GPU here, so the GLSL is compiled for the first time on a phone.
-3. ~~Buildings are solid.~~ Done, with tests. Still open from step 2: barriers as collision, collisions
-   between vehicles, and a camera that can be looked around while driving.
-4. Detail assets (step 3): the visible bodies for the human and the four vehicles (the camera is
-   first-person today, so nothing of the player is on screen), road markings and kerbs, doors and
-   roof clutter, palms.
-5. Bilingual pass over every label, including the loading screen and the new button set.
-6. Final report: APK link, bytes, SHA-256, run id, honest limitations.
+2. **Verify the shaders on a device**, then fix whatever the driver says. This is the one thing no amount
+   of local work can do: there is no GPU here, so the GLSL is compiled for the first time on a phone. The
+   vertex layout and the shader's decoding of surface types and material ids were both wrong until
+   `VertexLayoutTest` pinned them together; a device may well find the next one.
+3. ~~Buildings are solid.~~ Done, with tests. ~~Barriers as collision.~~ Done, with tests. Still open from
+   step 2: collisions between vehicles, and profiling the streaming on a real phone (the warm-up builds up
+   to 24 chunks per frame, and a dense urban chunk is heavy).
+4. Detail assets (step 3): ~~the visible bodies for the human and the four vehicles~~ done, with tests,
+   and drawn through the new VIEW button. Still open: doors and roof clutter, kerbs, palms, and moving
+   parts — wheels that turn, a propeller and a rotor that spin.
+5. Bilingual pass: done for every control (English above, Arabic below, shaped by `ArabicReshaper`) and
+   for the map hint. The status line is still English-only.
+6. ~~Final report.~~ Written: `docs/FINAL_REPORT.md` — APK link, bytes, SHA-256, run ids, and the eight
+   honest limitations. It has to be re-checked whenever the APK changes, because a rolling release keeps
+   only the newest artefact and the report names one.

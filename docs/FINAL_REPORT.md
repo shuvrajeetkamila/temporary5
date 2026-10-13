@@ -134,6 +134,11 @@ signature, zip integrity.
 7. Terrain is SRTM-derived and smoothed at 100 m: the shapes of dunes are right, individual dune crests
    are not. Building heights are OSM's, which are sometimes a floor count converted to metres.
 8. The bodies are boxes, and locomotion is discrete: the player is one kind of thing at a time.
+9. Aeroplane spawn points are the weakest of the compiled picks: they are real mapped aprons, but the
+   first one sits 640 m from the nearest road, so the game does not *start* there — the start uses a car
+   spawn and the aeroplane is reached from the HUD, which places it correctly on land every time. Heading
+   after a spawn is the last leg of the road it came from, so a vehicle can point away from where it
+   should go and be turned by hand.
 
 ## Data and attribution
 
