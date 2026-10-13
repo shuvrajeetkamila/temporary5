@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   compile:
@@ -60,15 +60,44 @@ jobs:
 
       - name: Report
         if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          mkdir -p artifacts
+          mkdir -p artifacts notclean
           {
             echo "commit=${GITHUB_SHA}"
             echo "run_id=${GITHUB_RUN_ID}"
             echo "url=https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
             echo "finished_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           } > artifacts/COMPILE_GATE.txt
-          tail -30 compile.log >> artifacts/COMPILE_GATE.txt 2>/dev/null || true
+          tail -120 compile.log >> artifacts/COMPILE_GATE.txt 2>/dev/null || true
+          # Compile errors must be readable from the repository: CI logs live on a storage host that is
+          # not always reachable, and an unreadable error is an unfixable error.
+          grep -E "error:|error\b.*\.java" compile.log > notclean/COMPILE_ERRORS.txt 2>/dev/null || true
+          tail -5 artifacts/COMPILE_GATE.txt
+
+      - name: Publish the compile log to the repository
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -u
+          REPO="${GITHUB_REPOSITORY}"
+          BRANCH="${GITHUB_REF_NAME}"
+          for pair in "artifacts/COMPILE_GATE.txt:artifacts/compile/COMPILE_GATE.txt" \
+                      "notclean/COMPILE_ERRORS.txt:artifacts/compile/COMPILE_ERRORS.txt"; do
+            src="${pair%%:*}"; dest="${pair##*:}"
+            [ -f "$src" ] || continue
+            for attempt in 1 2 3; do
+              sha=$(gh api "repos/${REPO}/contents/${dest}?ref=${BRANCH}" --jq .sha 2>/dev/null || true)
+              args=(-X PUT "repos/${REPO}/contents/${dest}" -f message="Compile gate log [skip ci]" \
+                    -f branch="${BRANCH}" -f content="$(base64 -w0 "$src")")
+              [ -n "$sha" ] && args+=(-f sha="$sha")
+              if gh api "${args[@]}" >/dev/null 2>&1; then echo "published $dest"; break; fi
+              sleep 3
+            done
+          done
 
       - uses: actions/upload-artifact@v4
         if: always()
