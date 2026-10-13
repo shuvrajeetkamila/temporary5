@@ -110,7 +110,7 @@ public final class WorldData {
 
         Roads roads = manifest.roads.present()
                 ? Roads.parse(BundleReader.open("roads", readBytes(assetDir, manifest.roads),
-                        manifest.roads.sha256))
+                        manifest.roads.sha256), manifest.originEast, manifest.originNorth)
                 : null;
         Buildings buildings = manifest.buildings.present()
                 ? Buildings.parse(BundleReader.open("buildings", readBytes(assetDir, manifest.buildings),
@@ -118,19 +118,19 @@ public final class WorldData {
                 : null;
         Areas landuse = manifest.landuse.present()
                 ? Areas.parse(BundleReader.open("landuse", readBytes(assetDir, manifest.landuse),
-                        manifest.landuse.sha256), "QLU1")
+                        manifest.landuse.sha256), "QLU1", manifest.originEast, manifest.originNorth)
                 : null;
         Areas water = manifest.water.present()
                 ? Areas.parse(BundleReader.open("water", readBytes(assetDir, manifest.water),
-                        manifest.water.sha256), "QWA1")
+                        manifest.water.sha256), "QWA1", manifest.originEast, manifest.originNorth)
                 : null;
         Barriers barriers = manifest.barriers.present()
                 ? Barriers.parse(BundleReader.open("barriers", readBytes(assetDir, manifest.barriers),
-                        manifest.barriers.sha256))
+                        manifest.barriers.sha256), manifest.originEast, manifest.originNorth)
                 : null;
         Points points = manifest.pois.present()
                 ? Points.parse(BundleReader.open("pois", readBytes(assetDir, manifest.pois),
-                        manifest.pois.sha256))
+                        manifest.pois.sha256), manifest.originEast, manifest.originNorth)
                 : null;
 
         long millis = (System.nanoTime() - started) / 1_000_000L;

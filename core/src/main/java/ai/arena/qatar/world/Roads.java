@@ -69,7 +69,8 @@ public final class Roads {
         return total;
     }
 
-    public static Roads parse(BundleReader reader) {
+    /** Parses {@code QTR1}; coordinates are stored relative to the manifest grid origin. */
+    public static Roads parse(BundleReader reader, double originEast, double originNorth) {
         BundleReader.Header header = reader.header("QTR1");
         int count = header.count;
         int[] lineStart = new int[count];
@@ -125,6 +126,9 @@ public final class Roads {
                 if (i > 0) {
                     east += xz[(vertex - 1) * 2];
                     north += xz[(vertex - 1) * 2 + 1];
+                } else {
+                    east -= (float) originEast;
+                    north -= (float) originNorth;
                 }
                 xz[vertex * 2] = east;
                 xz[vertex * 2 + 1] = north;

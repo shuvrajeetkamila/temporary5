@@ -120,20 +120,21 @@ final class WorldBundlesTest {
             }
         }
         assertTrue(lShaped >= 0, "the L-shaped footprint keeps its six corners plus the closure");
-        assertTrue(buildings.areaM2(lShaped) < 30.0 * 30.0,
-                "an L shape must be smaller than its bounding box, proving the shape was kept");
+        // 60 x 60 m minus a 30 x 30 m notch: the notch must not be filled in, which is exactly what a
+        // bounding-box or convex-hull approximation would do.
+        assertEquals(2700.0, buildings.areaM2(lShaped), 1.0);
     }
 
     @Test
     @DisplayName("roads keep class, width, direction and bilingual names")
     void roads() throws IOException {
-        Roads roads = Roads.parse(open("roads.bin.gz", ""));
+        Roads roads = Roads.parse(open("roads.bin.gz", ""), ORIGIN_E, ORIGIN_N);
         assertEquals(3, roads.count);
 
         int primary = -1;
         int oneWay = -1;
         for (int line = 0; line < roads.count; line++) {
-            if (roads.roadClass[line] == 1) {
+            if (roads.roadClass[line] == 3) {       // tools/build_world.py ROAD_CLASS["primary"]
                 primary = line;
             }
             if (roads.isOneWay(line)) {
@@ -160,7 +161,8 @@ final class WorldBundlesTest {
         String json = new String(read("manifest.json"), java.nio.charset.StandardCharsets.UTF_8);
         GameManifest manifest = GameManifest.parse(json);
 
-        Areas landuse = Areas.parse(open(manifest.landuse.file, manifest.landuse.sha256), "QLU1");
+        Areas landuse = Areas.parse(open(manifest.landuse.file, manifest.landuse.sha256), "QLU1",
+                ORIGIN_E, ORIGIN_N);
         assertEquals(3, landuse.count);
         boolean vegetation = false;
         boolean urban = false;
@@ -176,12 +178,14 @@ final class WorldBundlesTest {
         assertTrue(urban, "the urban pad polygon is classified");
         assertEquals(600.0 * 500.0, landuse.areaM2(0), 1.0);
 
-        Areas water = Areas.parse(open(manifest.water.file, manifest.water.sha256), "QWA1");
+        Areas water = Areas.parse(open(manifest.water.file, manifest.water.sha256), "QWA1",
+                ORIGIN_E, ORIGIN_N);
         assertEquals(1, water.count);
         assertEquals(Areas.WATER_INLAND, water.kind[0], "the lake is inland water");
         assertTrue(water.contains(0, 1000.0, 400.0), "the lake contains its own centre");
 
-        Barriers barriers = Barriers.parse(open(manifest.barriers.file, manifest.barriers.sha256));
+        Barriers barriers = Barriers.parse(open(manifest.barriers.file, manifest.barriers.sha256),
+                ORIGIN_E, ORIGIN_N);
         assertEquals(2, barriers.count);
         assertEquals(Barriers.KIND_WALL, barriers.kind[0]);
         assertEquals(2.4f, barriers.heightM[0], 1e-3f);
@@ -194,7 +198,8 @@ final class WorldBundlesTest {
     void points() throws IOException {
         String json = new String(read("manifest.json"), java.nio.charset.StandardCharsets.UTF_8);
         GameManifest manifest = GameManifest.parse(json);
-        Points points = Points.parse(open(manifest.pois.file, manifest.pois.sha256));
+        Points points = Points.parse(open(manifest.pois.file, manifest.pois.sha256), ORIGIN_E,
+                ORIGIN_N);
         assertEquals(5, points.count);
 
         FeatureIndex index = new FeatureIndex(pointBounds(points), points.count, ORIGIN_E, ORIGIN_N,

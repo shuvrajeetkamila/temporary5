@@ -39,7 +39,9 @@ public final class MaterialGrid {
         if (!"QTM1".equals(magic)) {
             throw new IllegalArgumentException("unexpected material magic '" + magic + "'");
         }
-        buf.getInt();
+        // Layout of QTM1: magic(4) cols(4) rows(4) cellM(4) reserved(4). There is no version field:
+        // reading one would shift every following field by four bytes (which is exactly the bug the
+        // bundle tests caught).
         int cols = buf.getInt();
         int rows = buf.getInt();
         float cell = buf.getFloat();

@@ -38,7 +38,8 @@ public final class Barriers {
         this.bounds = bounds;
     }
 
-    public static Barriers parse(BundleReader reader) {
+    /** Parses {@code QBA1} into grid-origin relative metres. */
+    public static Barriers parse(BundleReader reader, double originEast, double originNorth) {
         BundleReader.Header header = reader.header("QBA1");
         int count = header.count;
         int[] lineLength = new int[count];
@@ -80,6 +81,9 @@ public final class Barriers {
                 if (i > 0) {
                     east += reader.readInt() / 100.0f;
                     north += reader.readInt() / 100.0f;
+                } else {
+                    east -= (float) originEast;
+                    north -= (float) originNorth;
                 }
                 xz[vertex * 2] = east;
                 xz[vertex * 2 + 1] = north;

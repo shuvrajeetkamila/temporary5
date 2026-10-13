@@ -52,7 +52,8 @@ public final class Points {
         this.facingDeg = facingDeg;
     }
 
-    public static Points parse(BundleReader reader) {
+    /** Parses {@code QPO1} into grid-origin relative metres. */
+    public static Points parse(BundleReader reader, double originEast, double originNorth) {
         BundleReader.Header header = reader.header("QPO1");
         int count = header.count;
         float[] xz = new float[count * 2];
@@ -64,8 +65,8 @@ public final class Points {
 
         reader.seek(20);
         for (int i = 0; i < count; i++) {
-            xz[i * 2] = reader.readInt() / 100.0f;
-            xz[i * 2 + 1] = reader.readInt() / 100.0f;
+            xz[i * 2] = (float) (reader.readInt() / 100.0 - originEast);
+            xz[i * 2 + 1] = (float) (reader.readInt() / 100.0 - originNorth);
             kind[i] = (byte) reader.readUnsignedByte();
             poiClass[i] = (byte) reader.readUnsignedByte();
             flags[i] = (byte) reader.readUnsignedByte();

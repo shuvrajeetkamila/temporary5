@@ -42,7 +42,8 @@ public final class Areas {
         this.bounds = bounds;
     }
 
-    public static Areas parse(BundleReader reader, String magic) {
+    /** Parses a {@code QLU1} or {@code QWA1} bundle into grid-origin relative metres. */
+    public static Areas parse(BundleReader reader, String magic, double originEast, double originNorth) {
         BundleReader.Header header = reader.header(magic);
         int count = header.count;
         int[] ringLength = new int[count];
@@ -85,6 +86,9 @@ public final class Areas {
                 if (i > 0) {
                     east += reader.readInt() / 100.0;
                     north += reader.readInt() / 100.0;
+                } else {
+                    east -= originEast;
+                    north -= originNorth;
                 }
                 xz[vertex * 2] = (float) east;
                 xz[vertex * 2 + 1] = (float) north;

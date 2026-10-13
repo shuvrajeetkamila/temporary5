@@ -63,7 +63,8 @@ final class MeshersTest {
 
     private static Roads roads() throws IOException {
         return Roads.parse(BundleReader.open("roads",
-                Files.readAllBytes(fixture.resolve(manifest.roads.file)), manifest.roads.sha256));
+                Files.readAllBytes(fixture.resolve(manifest.roads.file)), manifest.roads.sha256),
+                ORIGIN_E, ORIGIN_N);
     }
 
     @Test
@@ -198,7 +199,7 @@ final class MeshersTest {
 
         int primary = -1;
         for (int line = 0; line < roads.count; line++) {
-            if (roads.roadClass[line] == 1) {
+            if (roads.roadClass[line] == 3) {
                 primary = line;
             }
         }
@@ -235,10 +236,10 @@ final class MeshersTest {
     void landUseClassification() throws IOException {
         Areas landuse = Areas.parse(BundleReader.open("landuse",
                 Files.readAllBytes(fixture.resolve(manifest.landuse.file)), manifest.landuse.sha256),
-                "QLU1");
+                "QLU1", ORIGIN_E, ORIGIN_N);
         Areas water = Areas.parse(BundleReader.open("water",
                 Files.readAllBytes(fixture.resolve(manifest.water.file)), manifest.water.sha256),
-                "QWA1");
+                "QWA1", ORIGIN_E, ORIGIN_N);
         assertNotNull(landuse);
         assertNotNull(water);
         assertTrue(landuse.count > 0 && water.count > 0);
