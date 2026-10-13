@@ -39,6 +39,10 @@ public final class AircraftBody extends VehicleBody {
      * modelling bug: it capped the ground roll at 65 km/h and the aeroplane never reached rotation speed.
      */
     public static final double CL_ROLL = 0.35;
+    /** The attitude the pilot rotates to before the wheels leave: 16 degrees of nose-up. */
+    public static final double ROTATION_PITCH_DEG = 16.0;
+    /** How fast the elevator can raise the nose on the ground, degrees per second. */
+    public static final double ROTATION_RATE_DEG_S = 10.0;
     public static final double GEAR_HEIGHT_M = 0.9;
     public static final double GROUND_WHEELBASE_M = 1.65;
     public static final double ROLLING_COEFFICIENT = 0.03;
@@ -134,7 +138,12 @@ public final class AircraftBody extends VehicleBody {
         // ---- attitude ---------------------------------------------------------------------------
         boolean onWheels = state.grounded || state.heightM <= ground + GEAR_HEIGHT_M + 0.02;
         if (state.grounded) {
-            state.pitchDegrees = approach(state.pitchDegrees, 0.0, 12.0 * dt);
+            // Rotation happens on the ground, not in the air: the elevator raises the nose while the
+            // wheels are still rolling, and the aeroplane leaves the runway because of the attitude the
+            // pilot has already set, not because a flag says "flying".
+            double rotationTarget = pitchInput > 0.05 ? ROTATION_PITCH_DEG * pitchInput : 0.0;
+            state.pitchDegrees = clamp(approach(state.pitchDegrees, rotationTarget, ROTATION_RATE_DEG_S * dt),
+                    0.0, MAX_PITCH_DEG);
             state.rollDegrees = approach(state.rollDegrees, 0.0, 20.0 * dt);
         } else {
             double targetPitch = clamp(state.pitchDegrees + pitchInput * ELEVATOR_RATE_DEG_S * dt,
@@ -186,9 +195,12 @@ public final class AircraftBody extends VehicleBody {
             double stall = stallSpeed(density, 0);
             boolean wingCanCarry = q * WING_AREA_M2 * Math.min(clNeeded, CL_MAX) >= weight * 0.98;
             if (wingCanCarry && state.speedMS > stall * 0.98 && pitchInput > 0.05) {
+                // It leaves the ground along the flight path its own attitude gives it: the angle of the
+                // nose less the angle of attack the wing needs at this speed.
+                double liftGamma = Math.toRadians(state.pitchDegrees) - Math.min(alphaTrim, ALPHA_STALL_RAD);
                 state.grounded = false;
                 state.heightM = Math.max(state.heightM, ground + GEAR_HEIGHT_M + 0.05);
-                state.verticalMS = Math.max(0.5, state.speedMS * Math.sin(Math.toRadians(6)));
+                state.verticalMS = Math.max(0.3, state.speedMS * Math.sin(liftGamma));
             }
         }
 
