@@ -1,0 +1,1 @@
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/TerrainMesher.java:138: error: method surfaceTint in class TerrainMesher cannot be applied to given types;
