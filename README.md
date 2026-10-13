@@ -24,13 +24,14 @@ their drawn ring, and the world stops being drawn beyond the streaming radius ar
 Download and install on an Android phone (6.0+):
 
 **[Qatar-The-Peninsula-v0.1.0-m0.apk](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk)** —
-18,997,238 bytes, SHA-256 `c4f097246d73897956088b031c55701386342ac128ba1129a3f640c6048e561c`
+19,073,854 bytes, SHA-256 `73e3f49da68a4ee80cea1c45d900cfe464995ac7ad33b727d425068c09956520`
 (the sidecar `.sha256` is next to it). Debug-signed, so Android will ask you to allow installation from
 this source. No network permission: the country is inside the package.
 
 Controls: drag to look, drag on the lower-left to move, the buttons on the right open the map (tap a
 place on it to be put there), and `VIEW` switches between the driver's eyes and a camera behind the
-machine. The full report, including what is honestly not finished, is in
+machine. The status line and every control are in English and Arabic, and the data credit
+(© OpenStreetMap contributors, ODbL; elevation from SRTM) is on the map screen and at launch. The full report, including what is honestly not finished, is in
 [docs/FINAL_REPORT.md](docs/FINAL_REPORT.md).
 
 ## How it works

@@ -9,13 +9,13 @@ repository, a CI run, or a byte count that can be re-derived.
 | | |
 |---|---|
 | **APK** | [`Qatar-The-Peninsula-v0.1.0-m0.apk`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk) |
-| **Bytes** | 18,997,238 |
-| **SHA-256** | `c4f097246d73897956088b031c55701386342ac128ba1129a3f640c6048e561c` |
+| **Bytes** | 19,073,854 |
+| **SHA-256** | `73e3f49da68a4ee80cea1c45d900cfe464995ac7ad33b727d425068c09956520` |
 | **Sidecar** | [`…apk.sha256`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256) |
 | **Release** | https://github.com/shuvrajeetkamila/temporary5/releases/tag/v0.1.0-m0 (rolling: each green run republishes it) |
-| **Built from** | commit `c2e4f13`, branch `arena/4eb37624-temporary5` |
-| **CI runs for that commit** | Build APK [`38446565143`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38446565143) success · Compile gate [`38446565061`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38446565061) success · Protect the project [`38446565328`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38446565328) success |
-| **Tests at that commit** | 95 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_STATUS.txt`, evidence commit `9067a9d`) |
+| **Built from** | commit `77af170`, branch `arena/4eb37624-temporary5` |
+| **CI runs for that commit** | Build APK [`38454241913`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38454241913) success. `77af170` is the world-data evidence commit and is byte-for-byte the code of `52ca4b4`, whose runs were also green: Compile gate [`38453269340`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38453269340), Build world data [`38453269358`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38453269358), Build APK [`38453269376`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38453269376), Protect the project [`38453269400`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38453269400) |
+| **Tests at that commit** | 101 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_STATUS.txt`, evidence commit `1cfcc0e`) |
 | **Package** | `ai.arena.qatar.peninsula`, versionName `0.1.0-m0`, debug-signed, `minSdk 26`, `targetSdk 34` |
 | **ABIs** | `arm64-v8a`, `armeabi-v7a`, `x86_64` |
 | **Permissions** | none: no `INTERNET`, nothing to phone home to. The country is inside the APK. |
@@ -82,7 +82,7 @@ The map is interactable: buildings and barriers are solid at the altitude the bo
 chest height is stopped by a wall; an aircraft above its top is not), terrain that has not streamed in
 is not walked onto, and taps on the map move the player.
 
-Evidence: `VehicleDynamicsTest`, `BuildingCollisionTest`, `BarrierCollisionTest` — part of the 95 passing
+Evidence: `VehicleDynamicsTest`, `BuildingCollisionTest`, `BarrierCollisionTest` — part of the 101 passing
 tests.
 
 ## 3. Detail assets
@@ -102,6 +102,14 @@ tests.
 * Land is painted from its compiled material id — sabkha, mangrove, tidal mud, dune sand, urban pad —
   with per-vertex shading from a tint the meshers compute.
 
+* The text is part of the art, so it is treated as one: the HUD fonts are generated from the licensed
+  Amiri typeface by `tools/make_font.py`, and every character the game can print has a glyph in them --
+  the 17,718 names in the compiled country, shaped Arabic and all. `FontCoverageTest` reads the shipped
+  atlases and the world's own string table and fails on a character that would print as a blank. It found
+  four on its first run -- 'é', 'ā', 'ū' and 'ی', in nine names out of the country's 17,718: Ladurée,
+  Lycée Franco Qatari Voltaire, Bū Sadād, ایران, Villa D Esté -- and the generator now covers every
+  character class Amiri has in the ranges the data uses: 663 glyphs per font.
+
 What is not there: doors, roof clutter, kerbs and palms; a walking animation (the person's legs are
 static boxes, and the body is drawn only in the third-person view); and curves -- the bodies are boxes by
 construction, so silhouettes and dimensions are right and folds are not.
@@ -115,6 +123,13 @@ within 900 m, else the nearest shore — never the middle of the sea. A tap in a
 harbour in reach is moved to the shore. `MapTeleportTest` holds all of that against the compiled
 geometry, and it is what caught the two bugs in this area: inland water was outlined but never filled,
 and a tap in the sea resolved to the tapped point.
+
+The controls are bilingual and so is the readout: the status line prints the locomotion, whether the
+player is on the ground, in the air or in the water, the speed, the altitude and the heading in Arabic as
+well as English, and the Arabic is shaped and put in visual order for the renderer rather than drawn as
+the disconnected letters a left-to-right font would produce. The map's hint is two lines for the same
+reason. `BilingualStatusTest` holds the Arabic line to being Arabic, to carrying the same numbers, and to
+shaping into forms the font carries.
 
 ## 5. The APK
 
@@ -141,7 +156,10 @@ signature, zip integrity.
    are not. Building heights are OSM's, which are sometimes a floor count converted to metres.
 8. The bodies are boxes, the person's legs do not swing, the body is drawn only in the third-person
    view, and locomotion is discrete: the player is one kind of thing at a time.
-9. Aeroplane spawn points are the weakest of the compiled picks: they are real mapped aprons, but the
+9. The Arabic in the interface is Modern Standard Arabic written for this project. No native speaker
+   has reviewed it, and a translated phrase is not the same thing as a phrase somebody would actually
+   say -- the same honesty that applies to the code applies to the language.
+10. Aeroplane spawn points are the weakest of the compiled picks: they are real mapped aprons, but the
    first one sits 640 m from the nearest road, so the game does not *start* there — the start uses a car
    spawn and the aeroplane is reached from the HUD, which places it correctly on land every time. Heading
    after a spawn is the last leg of the road it came from, so a vehicle can point away from where it
@@ -158,12 +176,17 @@ signature, zip integrity.
   `ArabicReshaper`, which emits the presentation forms the font carries.
 * Full details, per-input URLs, sizes and hashes: `DATA_SOURCES.md`, `ASSET_LICENSES.md`,
   `android/assets/DATA_SOURCES.md`, `data/geodata/SOURCES.json`.
+* **In the game**: the credit is printed in both languages on the map screen, which is the picture made
+  from that data, and for the first twelve seconds of every launch. It comes from the compiled world's
+  own manifest (`Credits.english`), so a world that names its sources prints exactly those words. For a
+  long time the manifest was the only place this text existed -- in the APK, never on the screen -- and
+  the licence asks for more than that.
 
 ## How to reproduce
 
 ```bash
 git clone https://github.com/shuvrajeetkamila/temporary5 && cd temporary5
-git checkout c2e4f13
+git checkout 77af170
 # world data (downloads OSM + SRTM, compiles the country, validates it):
 python3 tools/fetch_sources.py && python3 tools/build_world.py && python3 tools/game_world.py
 python3 tools/validate_game_world.py --world android/assets/world     # 57/57
@@ -176,4 +199,7 @@ cd ../android && ../gradlew assembleDebug && python3 ../tools/validate_apk.sh \
 
 The three checks CI runs on every push are `compile.yml` (the compile gate), `build.yml` (unit tests,
 APK build and validation, release publication) and `archive.yml` (the repository archive). `data.yml`
-recompiles the country from source.
+recompiles the country from source, and is the one workflow not to trigger on a path it also writes to:
+it publishes its own provenance into `data/geodata/**`, and while that directory was one of its push
+triggers every run started the next one -- five full country compiles were queued that way before it was
+noticed, each of them re-downloading the same sources to rewrite the same evidence.
