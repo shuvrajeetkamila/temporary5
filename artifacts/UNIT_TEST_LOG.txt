@@ -1,0 +1,74 @@
+
+VehicleDynamicsTest > every body refuses to move over terrain that has not streamed in PASSED
+
+VehicleDynamicsTest > a car reaches 100 km/h in a real car's time and stops in a real car's distance FAILED
+    org.opentest4j.AssertionFailedError: reaching 100 km/h and holding it for 40 s covered 1437.672671243337 m ==> expected: <true> but was: <false>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+        at app//ai.arena.qatar.vehicle.VehicleDynamicsTest.carAcceleratesAndStops(VehicleDynamicsTest.java:52)
+
+VehicleDynamicsTest > a helicopter hovers at the collective that carries its weight PASSED
+
+--
+
+VehicleDynamicsTest > a jump leaves the ground and lands again PASSED
+
+VehicleDynamicsTest > an aeroplane below its stall speed sinks, drops its nose and flies again FAILED
+    org.opentest4j.AssertionFailedError: 20 m/s in level flight should be stalled ==> expected: <true> but was: <false>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+        at app//ai.arena.qatar.vehicle.VehicleDynamicsTest.aircraftStallsAndRecovers(VehicleDynamicsTest.java:263)
+
+VehicleDynamicsTest > an aeroplane leaves the ground only once the wing can carry it FAILED
+    org.opentest4j.AssertionFailedError: the aeroplane never took off in 60 s ==> expected: <true> but was: <false>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+        at app//ai.arena.qatar.vehicle.VehicleDynamicsTest.aircraftTakesOff(VehicleDynamicsTest.java:241)
+
+ChunkManagerTest > chunksBecomeActiveAndUploadsStayInBudget() PASSED
+
+--
+
+64 tests completed, 3 failed
+
+> Task :core:test FAILED
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791908675823.json
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':core:test'.
+> There were failing tests. See the report at: file:///home/runner/work/temporary5/temporary5/core/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to get full insights.
+--
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
+Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There were failing tests. See the report at: file:///home/runner/work/temporary5/temporary5/core/build/reports/tests/test/index.html
+	at org.gradle.api.tasks.testing.AbstractTestTask.handleTestFailures(AbstractTestTask.java:691)
+	at org.gradle.api.tasks.testing.AbstractTestTask.handleCollectedResults(AbstractTestTask.java:533)
+	at org.gradle.api.tasks.testing.AbstractTestTask.executeTests(AbstractTestTask.java:528)
+	at org.gradle.api.tasks.testing.Test.executeTests(Test.java:715)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at org.gradle.internal.reflect.JavaMethod.invoke(JavaMethod.java:125)
+	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.doExecute(StandardTaskAction.java:58)
+	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.execute(StandardTaskAction.java:51)
+--
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
+
+
+BUILD FAILED in 24s
+4 actionable tasks: 4 executed
