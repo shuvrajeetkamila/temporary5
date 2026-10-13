@@ -1,3 +1,17 @@
+> Task :core:processTestResources
+> Task :core:testClasses
+
+> Task :core:test FAILED
+
+MapTeleportTest > a map pixel and a world position are the same thing to within one pixel PASSED
+
+MapTeleportTest > every tap on the map lands inside the country PASSED
+
+MapTeleportTest > tapping beside a road puts the player on that road PASSED
+
+MapTeleportTest > zooming keeps the point under the fingers still and the view inside the data PASSED
+
+MapTeleportTest > tapping the lake does not leave the player swimming PASSED
 
 MapTeleportTest > a start position exists for every locomotion type PASSED
 
@@ -12,36 +26,6 @@ MapTeleportTest > the map knows water from land FAILED
 
 GeoMathTest > projected distances and bearings match known national geometry PASSED
 
---
-
-VehicleDynamicsTest > an aeroplane at full power settles at its real cruise speed PASSED
-
-VehicleDynamicsTest > an aeroplane leaves the ground only once the wing can carry it FAILED
-    org.opentest4j.AssertionFailedError: it got airborne but barely climbed: 0.9550000000000001 m ==> expected: <true> but was: <false>
-        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
-        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
-        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
-        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
-        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
-        at app//ai.arena.qatar.vehicle.VehicleDynamicsTest.aircraftTakesOff(VehicleDynamicsTest.java:261)
-
-ChunkManagerTest > chunksBecomeActiveAndUploadsStayInBudget() PASSED
-
---
-
-72 tests completed, 2 failed
-
-> Task :core:test FAILED
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791910476300.json
-
-FAILURE: Build failed with an exception.
-
-* What went wrong:
-Execution failed for task ':core:test'.
-> There were failing tests. See the report at: file:///home/runner/work/temporary5/temporary5/core/build/reports/tests/test/index.html
-
-* Try:
-> Run with --scan to get full insights.
 --
 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
@@ -61,5 +45,5 @@ Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 21s
+BUILD FAILED in 12s
 4 actionable tasks: 4 executed
