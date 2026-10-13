@@ -1,0 +1,13 @@
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:12: error: cannot find symbol
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:47: error: cannot find symbol
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:48: error: cannot find symbol
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/ChunkMeshCache.java:53: error: method key in class Entry cannot be applied to given types;
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/SkyAndGroundRenderer.java:48: error: cannot find symbol
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/SkyAndGroundRenderer.java:48: error: cannot find symbol
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/SkyAndGroundRenderer.java:49: error: cannot find symbol
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/SkyAndGroundRenderer.java:49: error: cannot find symbol
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/SkyAndGroundRenderer.java:50: error: cannot find symbol
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/SkyAndGroundRenderer.java:50: error: cannot find symbol
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:47: error: cannot find symbol
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:48: error: cannot find symbol
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:106: error: package LongSet does not exist
