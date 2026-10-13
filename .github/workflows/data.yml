@@ -1,0 +1,213 @@
+name: Build world data
+
+# Fetches the verified open sources (OpenStreetMap Qatar extract + SRTM elevation), compiles the
+# runtime world bundle for the whole country, publishes it as a workflow artifact, records the
+# provenance/evidence files through the contents API, and then dispatches the APK workflow with the
+# run id so the APK build downloads exactly this bundle.
+#
+# Raw acquisitions (PBF, HGT) stay out of Git; only compiled derivatives, reports and checksums are
+# committed (by the APK workflow, which is the workflow with a verified push path).
+#
+# Every step tees into run.log, which is committed as artifacts/DATA_RUN_LOG.txt: CI logs are not
+# retrievable from the development sandbox, so each run carries its own diagnostics.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/**'
+      - '.github/workflows/data.yml'
+      - 'data/geodata/**'
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  compile-world:
+    name: Fetch sources and compile the country bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install compiler dependencies
+        run: |
+          python -m pip install --upgrade pip 2>&1 | tail -1 | tee -a run.log
+          python -m pip install -r tools/requirements.txt 2>&1 | tail -3 | tee -a run.log
+
+      - name: Record provenance of this run
+        if: always()
+        run: |
+          {
+            echo "head_sha=$(git rev-parse HEAD)"
+            echo "head_subject=$(git log -1 --format=%s)"
+            echo "tool_build_world_sha256=$(sha256sum tools/build_world.py | cut -d' ' -f1)"
+            echo "tool_fetch_sources_sha256=$(sha256sum tools/fetch_sources.py | cut -d' ' -f1)"
+          } | tee -a run.log
+
+      - name: Static self-test of the compiler
+        if: always()
+        run: |
+          set +e
+          python3 -m pip install --quiet numpy shapely pyproj pyflakes 2>&1 | tail -2 | tee -a run.log
+          python3 tools/selftest_world.py 2>&1 | tee -a run.log
+          echo "selftest_exit=${PIPESTATUS[0]}" | tee -a run.log
+
+      - name: Probe source hosts
+        run: |
+          for url in "https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf" \
+                     "https://download.bbbike.org/osm/bbbike/Qatar/Qatar.osm.pbf" \
+                     "https://download.geofabrik.de/asia/gcc-states-latest.osm.pbf" \
+                     "https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E051.hgt.gz"; do
+            code=$(curl -s -o /dev/null -w "%{http_code} size=%{size_download} redirect=%{redirect_url}" --max-time 30 -r 0-511 "$url" || echo CURLFAIL)
+            echo "probe: $url -> $code" | tee -a run.log
+          done
+
+      - name: Fetch and verify sources
+        run: |
+          set +e
+          python3 tools/fetch_sources.py 2>&1 | tee -a run.log
+          echo "fetch_exit=${PIPESTATUS[0]}" | tee -a run.log
+
+      - name: Diagnose country geometry
+        if: always()
+        run: |
+          set +e
+          if [ -f data/raw/qatar-latest.osm.pbf ]; then
+            python3 tools/build_world.py --stage diagnose 2>&1 | tee -a run.log
+          fi
+
+      - name: Compile world bundle
+        if: always()
+        run: |
+          set +e
+          if [ -f data/raw/qatar-latest.osm.pbf ]; then
+            python3 tools/build_world.py --stage all 2>&1 | tee -a run.log
+            echo "compile_exit=${PIPESTATUS[0]}" | tee -a run.log
+          else
+            echo "compile_exit=1 (no OSM extract available)" | tee -a run.log
+          fi
+
+      - name: Validate compiled country coverage
+        if: always()
+        run: |
+          set +e
+          python3 tools/validate_world.py 2>&1 | tee -a run.log
+          if [ "${PIPESTATUS[0]}" -eq 0 ]; then echo "WORLD_VALIDATION=PASSED" | tee -a run.log; fi
+
+      - name: Compile the game bundles (buildings, land use, water, barriers, points)
+        if: always()
+        run: |
+          set +e
+          # Stage 2 re-reads the same extract and turns it into the geometry the 3D world needs:
+          # real footprint rings, surface polygons, water to carve, barriers and spawn points.
+          python3 tools/game_world.py --osm data/raw/qatar-latest.osm.pbf 2>&1 | tee -a run.log
+          echo "game_compile_exit=${PIPESTATUS[0]}" | tee -a run.log
+          echo "--- bundle contracts (synthetic fixture) ---"
+          python3 tools/selftest_game_world.py 2>&1 | tail -8 | tee -a run.log
+          echo "--- validate the real game bundles ---"
+          python3 tools/validate_game_world.py --report artifacts/GAME_WORLD_VALIDATION.txt 2>&1 | tail -30 | tee -a run.log
+          if [ "${PIPESTATUS[0]}" -eq 0 ]; then echo "GAME_WORLD_VALIDATION=PASSED" | tee -a run.log; fi
+
+      - name: Show bundle summary
+        if: always()
+        run: |
+          ls -la android/assets/world/ 2>&1 | tee -a run.log || true
+          du -sh android/assets/world/ 2>&1 | tee -a run.log || true
+
+      - name: Assemble evidence
+        if: always()
+        run: |
+          mkdir -p artifacts
+          cp run.log artifacts/DATA_RUN_LOG.txt 2>/dev/null || echo "no run.log" > artifacts/DATA_RUN_LOG.txt
+          if grep -q "WORLD_VALIDATION=PASSED" run.log 2>/dev/null; then
+            echo "status=PASSED" > artifacts/DATA_STATUS.txt
+          else
+            echo "status=FAILED" > artifacts/DATA_STATUS.txt
+          fi
+          {
+            echo "commit=${GITHUB_SHA}"
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "branch=${GITHUB_REF_NAME}"
+            echo "finished_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } >> artifacts/DATA_STATUS.txt
+          { echo "=== full run log ==="; cat artifacts/DATA_RUN_LOG.txt; } >> artifacts/DATA_STATUS.txt
+          head -20 artifacts/DATA_STATUS.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: world-data
+          path: |
+            android/assets/world/
+            data/geodata/
+            artifacts/
+          if-no-files-found: warn
+
+      - name: Publish evidence and provenance through the contents API
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -u
+          REPO="${GITHUB_REPOSITORY}"
+          BRANCH="${GITHUB_REF_NAME}"
+          # Per-run filenames never collide with the APK workflow's commits or with other runs.
+          # A small pointer file is retried on conflict.
+          commit_file() {
+            local src="$1" dest="$2" attempt
+            [ -f "$src" ] || { echo "skip (missing): $src"; return 0; }
+            for attempt in 1 2 3 4; do
+              local sha
+              sha=$(gh api "repos/${REPO}/contents/${dest}?ref=${BRANCH}" --jq .sha 2>/dev/null || true)
+              local args=(-X PUT "repos/${REPO}/contents/${dest}" -f message="World data evidence [skip ci]" -f branch="${BRANCH}" -f content="$(base64 -w0 "$src")")
+              if [ -n "$sha" ]; then args+=(-f sha="$sha"); fi
+              if gh api "${args[@]}" >/dev/null 2>&1; then echo "published $dest (attempt $attempt)"; return 0; fi
+              sleep 3
+            done
+            echo "WARNING: could not publish $dest"
+            return 0
+          }
+          commit_file artifacts/DATA_STATUS.txt "artifacts/data/DATA_STATUS_${GITHUB_RUN_ID}.txt"
+          commit_file artifacts/DATA_STATUS.txt "artifacts/data/DATA_LATEST.txt"
+          commit_file artifacts/DATA_RUN_LOG.txt "artifacts/data/DATA_RUN_LOG_${GITHUB_RUN_ID}.txt"
+          commit_file data/geodata/SOURCES.json "data/geodata/SOURCES.json"
+          commit_file data/geodata/QATAR_NATIONAL_AOI.geojson "data/geodata/QATAR_NATIONAL_AOI.geojson"
+          commit_file data/geodata/QATAR_MUNICIPALITIES.geojson "data/geodata/QATAR_MUNICIPALITIES.geojson"
+          commit_file data/geodata/QATAR_ISLANDS_MANIFEST.json "data/geodata/QATAR_ISLANDS_MANIFEST.json"
+          commit_file data/geodata/QATAR_BOUNDARY_REPORT.md "data/geodata/QATAR_BOUNDARY_REPORT.md"
+          commit_file data/geodata/SHA256SUMS "data/geodata/SHA256SUMS"
+
+      - name: Dispatch the APK build with this data run
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if grep -q "status=PASSED" artifacts/DATA_STATUS.txt 2>/dev/null; then
+            gh workflow run build.yml --repo "${GITHUB_REPOSITORY}" --ref "${GITHUB_REF_NAME}" \
+              -f data_run_id="${GITHUB_RUN_ID}" -f publish_release=false && echo "dispatched build.yml"
+          else
+            echo "world data FAILED - not dispatching the APK build"
+          fi
+
+      - name: Fail the run if compilation or validation failed
+        if: always()
+        run: |
+          if grep -q "status=PASSED" artifacts/DATA_STATUS.txt 2>/dev/null; then
+            echo "world data PASSED"
+            tail -40 artifacts/DATA_RUN_LOG.txt
+          else
+            echo "world data FAILED"
+            cat artifacts/DATA_STATUS.txt 2>/dev/null || true
+            tail -100 artifacts/DATA_RUN_LOG.txt 2>/dev/null || true
+            exit 1
+          fi

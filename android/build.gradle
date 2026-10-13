@@ -1,0 +1,113 @@
+// :android -- Android launcher module for QATAR: THE PENINSULA
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'ai.arena.qatar.android'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "ai.arena.qatar.peninsula"
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName "0.1.0-m0"
+        // Universal APK: every supported ABI, so it installs on any device.
+        ndk {
+            abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    sourceSets {
+        main {
+            // libGDX loads everything through the Android asset manager.
+            assets.srcDirs = ['assets']
+            jniLibs.srcDirs = ['libs']
+        }
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+            minifyEnabled false
+        }
+        release {
+            minifyEnabled false
+            // Debug signing only: no private release keystore is ever committed or requested.
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+        resources {
+            excludes += ['META-INF/*.kotlin_module', 'META-INF/DEPENDENCIES', 'META-INF/LICENSE*', 'META-INF/NOTICE*']
+        }
+    }
+
+    lint {
+        abortOnError false
+    }
+}
+
+// Deterministic artefact naming for both variants.
+android.applicationVariants.all { variant ->
+    variant.outputs.all { output ->
+        outputFileName = "Qatar-The-Peninsula-v${variant.versionName}-${variant.buildType.name}.apk"
+    }
+}
+
+configurations {
+    // libGDX natives ship as plain jars; the task below unpacks them into jniLibs.
+    natives
+}
+
+dependencies {
+    implementation project(':core')
+    implementation "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
+
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-arm64-v8a"
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi-v7a"
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86_64"
+}
+
+def supportedAbis = ['arm64-v8a', 'armeabi-v7a', 'x86_64', 'x86']
+
+tasks.register('copyAndroidNatives') {
+    def libsDir = layout.projectDirectory.dir('libs').asFile
+    def nativeFiles = configurations.natives
+    inputs.files(nativeFiles)
+    outputs.dir(libsDir)
+    doLast {
+        supportedAbis.each { abi -> new File(libsDir, abi).mkdirs() }
+        nativeFiles.files.each { jar ->
+            def abi = jar.name.replaceAll(/^.*natives-/, '').replaceAll(/\.jar$/, '')
+            if (!supportedAbis.contains(abi)) {
+                return
+            }
+            def target = new File(libsDir, abi)
+            copy {
+                from zipTree(jar)
+                include '**/*.so'
+                eachFile { it.path = it.name }
+                includeEmptyDirs = false
+                into target
+            }
+        }
+        def count = fileTree(libsDir).matching { include '**/*.so' }.files.size()
+        println "copyAndroidNatives: ${count} native libraries staged in ${libsDir}"
+    }
+}
+
+tasks.matching { it.name.toLowerCase().contains('jnilibfolders') }.configureEach {
+    dependsOn 'copyAndroidNatives'
+}
+tasks.named('preBuild') { dependsOn 'copyAndroidNatives' }

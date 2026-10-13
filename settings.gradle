@@ -1,0 +1,25 @@
+// QATAR: THE PENINSULA -- Gradle settings
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "qatar-the-peninsula"
+include ':core'
+
+// The Android module is only configured when the Android SDK is available.
+// This keeps `:core:test` (pure JVM unit tests) runnable on any machine.
+def androidSdkAvailable = System.getenv("ANDROID_HOME") != null || System.getenv("ANDROID_SDK_ROOT") != null
+if (androidSdkAvailable) {
+    include ':android'
+}

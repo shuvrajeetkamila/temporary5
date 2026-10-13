@@ -1,0 +1,24 @@
+// QATAR: THE PENINSULA -- root build script
+// Pinned, reproducible versions. See docs/WORLD_EPOCH.md for the data epoch.
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+plugins {
+    id 'base'
+    // Pinned Android Gradle Plugin. 8.5.x requires JDK 17 and Gradle 8.7+ (both pinned in CI).
+    id 'com.android.application' version '8.5.2' apply false
+}
+
+allprojects {
+    group = 'ai.arena.qatar'
+    version = '0.1.0'
+}
+
+ext {
+    gdxVersion = '1.12.1'
+    junitVersion = '5.10.2'
+}

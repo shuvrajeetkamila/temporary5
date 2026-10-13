@@ -1,0 +1,72 @@
+name: Protect the project
+
+# Runs on EVERY push, before and independently of the build: it mirrors the complete repository
+# history into a git bundle, verifies the bundle, and stores it as a rolling Release asset on the
+# "project-archive" tag. If a later change breaks or destroys something, the full history can be
+# restored from that bundle regardless of what happens to the branches:
+#
+#   curl -L -o game.bundle https://github.com/<owner>/<repo>/releases/download/project-archive/latest.bundle
+#   git clone game.bundle restored && cd restored
+#
+# The job never depends on the build job, so a red build can never block the lifetime insurance.
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  archive:
+    name: Mirror history into a verified bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Full history, all branches and all tags: the bundle must be able to restore everything.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build and verify the archive bundle
+        run: |
+          git fetch --all --tags --prune
+          python3 tools/repo_archive.py --outdir archives
+
+      - name: Publish the archive as a rolling release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          ARCHIVE=$(ls archives/*.bundle | head -1)
+          CHECKSUM=$(ls archives/*.bundle.sha256 | head -1)
+          MANIFEST=$(ls archives/*.manifest.txt | head -1)
+          cp "$ARCHIVE" archives/latest.bundle
+          cp "$CHECKSUM" archives/latest.bundle.sha256
+          cp "$MANIFEST" archives/latest.manifest.txt
+
+          if gh release view project-archive --repo "${GITHUB_REPOSITORY}" > /dev/null 2>&1; then
+            gh release upload project-archive archives/latest.bundle archives/latest.bundle.sha256 \
+              archives/latest.manifest.txt --clobber --repo "${GITHUB_REPOSITORY}"
+          else
+            gh release create project-archive archives/latest.bundle archives/latest.bundle.sha256 \
+              archives/latest.manifest.txt \
+              --title "Project archive (rolling)" \
+              --notes "Verified git bundle of the complete repository history. Download \`latest.bundle\` and run \`git clone latest.bundle restored\` to restore every branch, tag and commit. Asset names are stable, so the link never rots." \
+              --repo "${GITHUB_REPOSITORY}"
+          fi
+          echo "archive: https://github.com/${GITHUB_REPOSITORY}/releases/download/project-archive/latest.bundle"
+
+      - name: Keep the previous archive too (belt and braces)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repo-archive-bundle
+          path: archives/*.bundle*
+          retention-days: 90

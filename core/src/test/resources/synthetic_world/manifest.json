@@ -1,0 +1,103 @@
+{
+  "format": 2,
+  "worldEpoch": 20261013,
+  "crs": "EPSG:32639",
+  "crsName": "WGS 84 / UTM zone 39N",
+  "originEast": 553000.0,
+  "originNorth": 2796000.0,
+  "widthM": 1600.0,
+  "heightM": 1600.0,
+  "levels": [
+    {
+      "name": "l1",
+      "cellM": 100.0,
+      "cols": 16,
+      "rows": 16,
+      "file": "terrain_l1.bin.gz",
+      "sha256": "f4005f91521eba4a1b2da7e3d7edfa677727d73b623e85923fc12f09d1153f7c"
+    }
+  ],
+  "terrain_l0": {
+    "file": "terrain_l0.bin.gz",
+    "cellM": 100.0,
+    "cols": 16,
+    "rows": 16,
+    "sha256": "f4005f91521eba4a1b2da7e3d7edfa677727d73b623e85923fc12f09d1153f7c"
+  },
+  "terrain_l1": {
+    "file": "terrain_l1.bin.gz",
+    "cellM": 100.0,
+    "cols": 16,
+    "rows": 16,
+    "sha256": "f4005f91521eba4a1b2da7e3d7edfa677727d73b623e85923fc12f09d1153f7c"
+  },
+  "materials": {
+    "file": "material_l1.bin.gz",
+    "cellM": 100.0,
+    "cols": 16,
+    "rows": 16,
+    "sha256": "315d47d30589aeff3ed91975e79f8925578a84df8b32e1e3a3ff8ccca0b3b544"
+  },
+  "roads": {
+    "file": "roads.bin.gz",
+    "count": 3,
+    "sha256": "c6477c87934af20de0bc1fd90dcf29c13104910e3fc14e2d9f6c1aed2ebbad5b"
+  },
+  "strings": {
+    "file": "strings.bin.gz",
+    "sha256": "22ae53e690e2c66362b1977361253f8363fe330fe64ad5f032f5dbddc8a29661"
+  },
+  "gameBundles": {
+    "buildings": {
+      "file": "buildings.bin.gz",
+      "records": 5,
+      "sha256": "8e0af9c023b0fdd7de8ba30b5b713cefd1df52d25a77d0f4bdf3917027d948f9"
+    },
+    "landuse": {
+      "file": "landuse.bin.gz",
+      "records": 3,
+      "sha256": "f9308f6275ce6bf29816a80a295bf4f9f9735ae614665fc2865beb6f95506f59"
+    },
+    "water": {
+      "file": "water.bin.gz",
+      "records": 1,
+      "sha256": "0885199affc5524f2da57d00f2f536013937b5e41bf7599b08cfba4fcc05ff13"
+    },
+    "barriers": {
+      "file": "barriers.bin.gz",
+      "records": 2,
+      "sha256": "a481ca7c86b46fa726423338ccb09a10eb736f3b4858c223136abbd2b6c4405b"
+    },
+    "pois": {
+      "file": "pois.bin.gz",
+      "records": 5,
+      "sha256": "f75ba0d750b75c0e51cff95828f87a12b1f48ad5e662a6380fec165a42a5ac0a"
+    }
+  },
+  "municipalities": [
+    {
+      "id": "syn-1",
+      "name": "Synthetic Municipality",
+      "nameAr": "بل",
+      "east": 553800.0,
+      "north": 2796800.0,
+      "areaKm2": 2.56
+    }
+  ],
+  "islands": [],
+  "attribution": "© OpenStreetMap contributors, ODbL 1.0 | SRTM elevation (public domain)",
+  "stats": {
+    "buildings": 5,
+    "landusePolygons": 3,
+    "waterPolygons": 1,
+    "barriers": 2,
+    "pois": 5,
+    "roads": 3,
+    "spawnPoints": {
+      "car": 1,
+      "helicopter": 1,
+      "boat": 1,
+      "aeroplane": 1
+    }
+  }
+}

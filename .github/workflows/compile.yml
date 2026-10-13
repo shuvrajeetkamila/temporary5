@@ -1,0 +1,78 @@
+name: Compile gate
+
+# The fastest job that can tell whether the code is broken. It compiles every Java source and every
+# test source, and runs the Python tool gates, in a couple of minutes -- before the multi-minute world
+# compile and APK assembly even start.
+#
+# Why this exists: the world data job spends minutes downloading and compiling the country, and the APK
+# job spends more assembling it. Without a gate, a one-character type error in a new mesh builder would
+# only be discovered twenty minutes later, at the end of the pipeline. Compilers are cheap; use them
+# first.
+
+on:
+  push:
+    branches: ["**"]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    name: javac + tool gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Compile game code and tests
+        run: |
+          set -o pipefail
+          gradle --no-daemon --stacktrace :core:compileJava :core:compileTestJava 2>&1 | tee compile.log
+          echo "compile_exit=${PIPESTATUS[0]}"
+
+      - name: Python tool gates (self-tests and validators on the synthetic fixture)
+        run: |
+          python3 -m pip install --quiet --upgrade pip
+          # The stage 1 self-test exercises the real land-mask derivation, so it needs the full
+          # compiler dependency set, not just the packers' subset.
+          python3 -m pip install --quiet -r tools/requirements.txt
+          python3 -m pip install --quiet pyflakes
+          echo "--- stage 1 compiler self-test ---"
+          python3 tools/selftest_world.py 2>&1 | tail -6
+          echo "--- game world bundle contracts + fixture ---"
+          python3 tools/selftest_game_world.py 2>&1 | tail -8
+          echo "--- validate the synthetic game bundle ---"
+          python3 tools/validate_game_world.py --world core/src/test/resources/synthetic_world --synthetic 2>&1 | tail -4
+
+      - name: Report
+        if: always()
+        run: |
+          mkdir -p artifacts
+          {
+            echo "commit=${GITHUB_SHA}"
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "url=https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "finished_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } > artifacts/COMPILE_GATE.txt
+          tail -30 compile.log >> artifacts/COMPILE_GATE.txt 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compile-gate
+          path: artifacts/COMPILE_GATE.txt
+          retention-days: 30
