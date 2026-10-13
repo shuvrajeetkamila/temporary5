@@ -235,9 +235,10 @@ final class VehicleDynamicsTest {
         boolean earlyLift = false;
         for (double t = 0; t < 120.0; t += DT) {
             if (state.grounded) {
-                // Rotate once there is a hint of flying speed. Below it, holding the stick back does
-                // nothing at all, which is the point of the test.
-                input.pitch = state.speedMS > stall * 0.85 ? 0.45 : 0.0;
+                // Rotate once there is a hint of flying speed, and rotate properly: a token pull on the
+                // stick leaves the aeroplane hopping along the runway, which is exactly what a real one
+                // does. Below flying speed, holding the stick back does nothing at all.
+                input.pitch = state.speedMS > stall * 0.85 ? 0.8 : 0.0;
             } else {
                 if (airborneSince < 0) {
                     airborneSince = t;

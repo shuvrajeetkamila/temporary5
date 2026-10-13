@@ -52,6 +52,8 @@ public final class AircraftBody extends VehicleBody {
     public static final double RUDDER_RATE_DEG_S = 25.0;
     public static final double MAX_PITCH_DEG = 55.0;
     public static final double MAX_ROLL_DEG = 70.0;
+    /** A touch-down harder than this scrubs speed; anything gentler costs nothing. */
+    public static final double HARD_LANDING_MS = 5.0;
     /** Sink rate in a fully developed stall, m/s. */
     public static final double STALL_SINK_MS = 9.0;
     /** Never exceed speed, m/s (331 km/h). */
@@ -231,13 +233,18 @@ public final class AircraftBody extends VehicleBody {
             state.heightM += state.verticalMS * dt;
             double ceiling = groundHere + GEAR_HEIGHT_M;
             if (state.heightM <= ceiling) {
-                boolean hard = state.verticalMS < -3.0;
+                double arrival = state.verticalMS;
                 state.heightM = ceiling;
                 state.grounded = true;
                 state.verticalMS = 0;
-                if (hard) {
-                    state.speedMS *= 0.75;   // a hard arrival scrubs speed and bends the aeroplane's pride
-                    state.pitchDegrees -= 6.0;
+                if (arrival < -HARD_LANDING_MS) {
+                    // Only a genuinely hard arrival costs anything. A flat penalty on every touchdown is
+                    // wrong: an aeroplane skimming back onto the runway at a metre per second would be
+                    // braked to a standstill by its own touch-down, which is what stopped this one from
+                    // ever accelerating past rotation speed.
+                    double scrub = clamp((-arrival - HARD_LANDING_MS) / 15.0, 0.0, 0.40);
+                    state.speedMS *= 1.0 - scrub;
+                    state.pitchDegrees -= 20.0 * scrub;
                 }
             }
         }
