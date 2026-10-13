@@ -113,6 +113,7 @@ public final class BundleReader {
             throw new IllegalStateException(name + ": unexpected magic '" + magic + "', expected '"
                     + expectedMagic + "'");
         }
+        cursor = 4;                 // step over the magic before reading the numeric header fields
         int version = readInt();
         long count = readUnsignedInt();
         long payloadBytes = readLong();
@@ -121,8 +122,7 @@ public final class BundleReader {
             throw new IllegalStateException(name + ": header claims " + payloadBytes
                     + " payload bytes, file has " + available);
         }
-        cursor = 20;
-        return new Header(magic, version, (int) count, payloadBytes);
+        return new Header(magic, version, (int) count, payloadBytes);   // cursor is at 20
     }
 
     public static final class Header {
