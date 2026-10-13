@@ -113,6 +113,7 @@ public final class GameScreen extends InputAdapter implements Disposable {
 
         worldRenderer = new GameWorldRenderer(world, origin, new ai.arena.qatar.render.WorldRenderer());
         worldRenderer.init();
+        worldRenderer.setActor(ai.arena.qatar.render.BodyMesher.mesh(controller.meshKind()));
 
         raster = MapRaster.build(world, 2048);
         teleport = new TeleportService(world, raster);
@@ -169,6 +170,12 @@ public final class GameScreen extends InputAdapter implements Disposable {
         updateCamera();
 
         worldRenderer.render(camera);
+        if (controller.chase) {
+            // Drawn after the chunks, with the world program still bound: one more draw call per frame
+            // buys the player the sight of the machine they are in.
+            worldRenderer.drawActor(controller.state().eastM, controller.state().northM,
+                    controller.state().headingDegrees);
+        }
 
         int width = Gdx.graphics.getWidth();
         int height = Gdx.graphics.getHeight();
@@ -196,6 +203,7 @@ public final class GameScreen extends InputAdapter implements Disposable {
     private void drawWorldButtons(int width, int height) {
         layout.setHighlighted(Id.MODE, rig.mode == CameraRig.Mode.FLY);
         layout.setHighlighted(Id.SPRINT, rig.sprinting);
+        layout.setHighlighted(Id.VIEW, controller.chase);
         layout.setHighlighted(Id.LOCO_HUMAN, controller.loco() == Loco.HUMAN);
         layout.setHighlighted(Id.LOCO_CAR, controller.loco() == Loco.CAR);
         layout.setHighlighted(Id.LOCO_PLANE, controller.loco() == Loco.PLANE);
@@ -390,6 +398,8 @@ public final class GameScreen extends InputAdapter implements Disposable {
                 // One press between the two ground ways of getting about; the flying machines have their
                 // own buttons because they are not a mode of walking.
                 controller.setLoco(controller.loco() == Loco.CAR ? Loco.HUMAN : Loco.CAR);
+                controller.chase = true;
+                worldRenderer.setActor(ai.arena.qatar.render.BodyMesher.mesh(controller.meshKind()));
                 break;
             case SPRINT:
                 controller.sprinting = pressed;
@@ -397,22 +407,32 @@ public final class GameScreen extends InputAdapter implements Disposable {
             case BRAKE:
                 controller.braking = pressed;
                 break;
+            case VIEW:
+                if (pressed) {
+                    controller.chase = !controller.chase;
+                }
+                break;
             case LOCO_HUMAN:
                 controller.setLoco(Loco.HUMAN);
+                worldRenderer.setActor(ai.arena.qatar.render.BodyMesher.mesh(controller.meshKind()));
                 break;
             case LOCO_CAR:
                 controller.setLoco(Loco.CAR);
+                worldRenderer.setActor(ai.arena.qatar.render.BodyMesher.mesh(controller.meshKind()));
                 break;
             case LOCO_PLANE:
                 controller.setLoco(Loco.PLANE);
+                worldRenderer.setActor(ai.arena.qatar.render.BodyMesher.mesh(controller.meshKind()));
                 controller.adjustAltitude(220.0);
                 break;
             case LOCO_HELI:
                 controller.setLoco(Loco.HELICOPTER);
+                worldRenderer.setActor(ai.arena.qatar.render.BodyMesher.mesh(controller.meshKind()));
                 controller.adjustAltitude(120.0);
                 break;
             case LOCO_BOAT:
                 controller.setLoco(Loco.BOAT);
+                worldRenderer.setActor(ai.arena.qatar.render.BodyMesher.mesh(controller.meshKind()));
                 break;
             case MAP:
                 openBigMap();

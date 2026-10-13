@@ -117,9 +117,10 @@ final class VertexLayoutTest {
     @DisplayName("the shader's surface codes are the ones the meshers write")
     void surfaceCodesMatch() {
         int[] cpp = {VertexFormat.SURFACE_LAND, VertexFormat.SURFACE_WATER, VertexFormat.SURFACE_WALL,
-                VertexFormat.SURFACE_ROOF, VertexFormat.SURFACE_ROAD, VertexFormat.SURFACE_MARKING};
+                VertexFormat.SURFACE_ROOF, VertexFormat.SURFACE_ROAD, VertexFormat.SURFACE_MARKING,
+                VertexFormat.SURFACE_BODY};
         String[] names = {"SURFACE_LAND", "SURFACE_WATER", "SURFACE_WALL", "SURFACE_ROOF",
-                "SURFACE_ROAD", "SURFACE_MARKING"};
+                "SURFACE_ROAD", "SURFACE_MARKING", "SURFACE_BODY"};
         for (int i = 0; i < names.length; i++) {
             String declaration = "const int " + names[i] + " = " + cpp[i] + ";";
             assertTrue(ShaderSources.FRAGMENT.contains(declaration),

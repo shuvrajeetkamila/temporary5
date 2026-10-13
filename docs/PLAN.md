@@ -60,11 +60,39 @@ gate: 78 tests, 0 failures, on the commit that added the walls.
 **Remaining for step 2:** collision against barriers and against other vehicles, and the in-cockpit feel
 on a real device.
 
+## The vertex layout, which was wrong in a way nothing local could see
+
+The layout declared the auxiliary vertex data as four packed bytes -- a 28-byte vertex -- while every
+mesher wrote four floats, 40 bytes. libGDX takes the stride and the attribute offsets from that
+declaration, so the driver would have been told each vertex began twelve bytes before it did. The
+shader then made a second, independent mistake with the same data: it divided by 255 what the meshers
+had written as plain numbers, so a wall (written as 2.0) read as 510, fell past every branch of the
+palette, and the compiled material ids of the whole country -- sabkha, mangrove, tidal mud, urban pad --
+were never used. The tint every mesher computes per vertex was read by nothing at all.
+
+Fixed in "Tell the driver the truth about the vertex stride": the layout is eleven floats, the ids are
+read as numbers, land vertices carry their material id, and the tint multiplies. `VertexLayoutTest`
+asserts the three-way agreement -- floats written, stride declared, shader read -- because that is the
+kind of mismatch a GPU-less CI can still catch if somebody writes the assertion down.
+
 ## Step 3 — detail assets
 
-Walls band their glazing procedurally in metres, so detail does not swim. Still to add: window bands by
-building type, road markings and kerbs, doors, air-conditioning boxes, palm trees, and the visible bodies
-for the human and the four vehicles.
+Walls band their glazing procedurally in metres, so detail does not swim. Road ribbons are drawn with
+painted lane markings, and barriers (walls, railings, fences) extrude with the buildings.
+
+**The bodies exist now.** `BodyMesher` builds the five shapes the player is -- a person, a car, an
+aeroplane, a helicopter, a boat -- in metres, in the body's own frame, from the published dimensions of
+real machines: 1.75 m of person, a 4.60 m car with a 2.79 m wheelbase, an 11 m wing, a 5.6 m rotor disc,
+a 6.50 m hull that floats with 0.35 m of itself under the waterline. Each part carries a paint id
+(car paint, glass, tyre, aircraft white, teak deck, skin, steel, rotor), so one surface type is silver on
+one part and black on the next without a texture file anywhere in the project.
+
+They are drawn in third person: the **VIEW** button swings the camera onto a boom behind the body, and
+`PlayerController` keeps the camera's own orbit on top of it. In first person nothing of the player is
+drawn, which is honest -- there is nothing to see -- and the button is one press away.
+
+Still to add: doors and roof clutter on the buildings, kerbs, palms, window bands that vary by building
+type, and moving parts on the bodies (wheels that turn, a rotor that spins).
 
 ## Step 4 — minimap, buttons, zoomable map, tap to travel
 
@@ -73,6 +101,10 @@ that one texture, so they cannot disagree. `MapView` does pan/zoom about the fin
 `TeleportService` resolves a tap into a place that can be stood on: nearest named spawn point, else the
 nearest road vertex, never the middle of the sea. The HUD draws a button for every locomotion type, and
 taps are exact arithmetic on the same raster.
+
+**One button, one light.** `HudLayout` used to keep a single "highlighted" field, so the six controls the
+game sets state for every frame all wrote to the same flag and only the last one told the truth. Each
+control now carries its own, and the locomotion buttons and the new VIEW button light up correctly.
 
 **Tested.** `MapTeleportTest` holds the promises to the compiled geometry: pixels round trip to within a
 cell, water is water, a tap beside a primary road lands on that road, every tap over the whole raster
