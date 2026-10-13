@@ -1,7 +1,6 @@
-> Task :android:javaPreCompileDebug
-> Task :android:generateDebugResValues
+> Task :android:generateDebugResources
 
-> Task :core:compileJava FAILED
+> Task :core:compileJava
 /home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/TerrainMesher.java:138: error: method surfaceTint in class TerrainMesher cannot be applied to given types;
         float tint = surfaceTint(material, slope[0], slope[1]);
                      ^
@@ -10,9 +9,17 @@
   reason: actual and formal argument lists differ in length
 1 error
 
-> Task :android:checkDebugAarMetadata
-> Task :android:mapDebugSourceSetPaths
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_6-1791896467537.json
+> Task :core:compileJava FAILED
+> Task :android:packageDebugResources
+> Task :android:mergeDebugResources
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_6-1791896962385.json
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':core:compileJava'.
+> Compilation failed; see the compiler error output for details.
+
 --
 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
@@ -32,5 +39,5 @@ Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Com
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 10s
-6 actionable tasks: 6 executed
+BUILD FAILED in 11s
+9 actionable tasks: 9 executed
