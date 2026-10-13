@@ -74,7 +74,7 @@ public final class HelicopterBody extends VehicleBody {
     public void spawn(VehicleState state, double east, double north, Surface surface, double heading) {
         super.spawn(state, east, north, surface, heading);
         resetRotor();
-        state.heightM = surface.groundHeightM(x, z) + SKID_HEIGHT_M;
+        state.heightM = surface.groundHeightM(east, north) + SKID_HEIGHT_M;
     }
 
     @Override

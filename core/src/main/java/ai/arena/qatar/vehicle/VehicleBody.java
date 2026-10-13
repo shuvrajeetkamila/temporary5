@@ -48,7 +48,7 @@ public abstract class VehicleBody {
 
     /** Puts the state on the ground at a spawn point, facing a heading, stopped. */
     public void spawn(VehicleState state, double east, double north, Surface surface, double heading) {
-        state.reset(east, north, surface.groundHeightM(), heading);
+        state.reset(east, north, surface.groundHeightM(east, north), heading);
     }
 
     protected static double clamp(double v, double low, double high) {
