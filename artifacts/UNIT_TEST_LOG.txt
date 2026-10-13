@@ -2,7 +2,7 @@
 VehicleDynamicsTest > an aeroplane at full power settles at its real cruise speed PASSED
 
 VehicleDynamicsTest > an aeroplane leaves the ground only once the wing can carry it FAILED
-    org.opentest4j.AssertionFailedError: it got airborne but barely climbed: 0.9951762111536873 m ==> expected: <true> but was: <false>
+    org.opentest4j.AssertionFailedError: it got airborne but barely climbed: 0.9550000000000001 m ==> expected: <true> but was: <false>
         at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
         at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
         at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
@@ -17,7 +17,7 @@ ChunkManagerTest > chunksBecomeActiveAndUploadsStayInBudget() PASSED
 65 tests completed, 1 failed
 
 > Task :core:test FAILED
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791909527416.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791910162700.json
 
 FAILURE: Build failed with an exception.
 
@@ -28,7 +28,7 @@ Execution failed for task ':core:test'.
 * Try:
 > Run with --scan to get full insights.
 --
-	at org.gradle.composite.internal.DefaultBuildController$BuildOpRunnable.run(DefaultBuildController.java:198)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There were failing tests. See the report at: file:///home/runner/work/temporary5/temporary5/core/build/reports/tests/test/index.html
@@ -46,5 +46,5 @@ Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 19s
+BUILD FAILED in 21s
 4 actionable tasks: 4 executed
