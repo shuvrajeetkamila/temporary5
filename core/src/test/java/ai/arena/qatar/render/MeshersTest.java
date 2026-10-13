@@ -206,8 +206,9 @@ final class MeshersTest {
         mesher.addRoad(primary, mesh);
         assertFalse(mesh.isEmpty(), "the road produces a ribbon");
 
-        // A straight road with 2 points: one quad for the surface plus one for the centre line.
-        assertEquals(2, mesh.triangleCount(), "one segment is two quads: " + mesh.triangleCount());
+        // A straight three-lane road with 2 points: one quad for the surface plus one for the painted
+        // centre line, so four triangles in total.
+        assertEquals(4, mesh.triangleCount(), "one segment is two quads: " + mesh.triangleCount());
 
         float[] vertices = mesh.vertices();
         float minNorth = Float.MAX_VALUE;

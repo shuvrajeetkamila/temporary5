@@ -47,10 +47,13 @@ public final class TerrainMesher {
         MeshData mesh = new MeshData();
         double cell = terrain.cellM;
 
-        int col0 = clamp((int) Math.floor((minEast - terrain.originEast) / cell - 1), 0, terrain.cols - 1);
-        int col1 = clamp((int) Math.ceil((maxEast - terrain.originEast) / cell + 1), 0, terrain.cols - 1);
-        int row0 = clamp((int) Math.floor((minNorth - terrain.originNorth) / cell - 1), 0, terrain.rows - 1);
-        int row1 = clamp((int) Math.ceil((maxNorth - terrain.originNorth) / cell + 1), 0, terrain.rows - 1);
+        // The rectangle is in bundle space (metres from the manifest grid origin) and the terrain grid
+        // starts at that same origin, so the cell maths is a plain division. One extra cell of margin
+        // on each side keeps a chunk's edge continuous with its neighbour.
+        int col0 = clamp((int) Math.floor(minEast / cell) - 1, 0, terrain.cols - 1);
+        int col1 = clamp((int) Math.ceil(maxEast / cell) + 1, 0, terrain.cols - 1);
+        int row0 = clamp((int) Math.floor(minNorth / cell) - 1, 0, terrain.rows - 1);
+        int row1 = clamp((int) Math.ceil(maxNorth / cell) + 1, 0, terrain.rows - 1);
         if (col1 <= col0 || row1 <= row0) {
             return mesh;
         }

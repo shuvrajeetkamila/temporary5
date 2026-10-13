@@ -81,6 +81,9 @@ public final class FeatureIndex {
         return items.length;
     }
 
+    // Bounds, queries and the features themselves are all in bundle space (metres from the grid
+    // origin), so cell maths is a plain division -- and the stored origin exists only so callers can
+    // tell which world frame this index describes.
     private int column(double eastRelative) {
         int value = (int) Math.floor(eastRelative / cellM);
         return value < 0 ? 0 : (value >= cols ? cols - 1 : value);
@@ -91,12 +94,20 @@ public final class FeatureIndex {
         return value < 0 ? 0 : (value >= rows ? rows - 1 : value);
     }
 
+    public double originEast() {
+        return originEast;
+    }
+
+    public double originNorth() {
+        return originNorth;
+    }
+
     /** Visits every indexed feature whose bounding box overlaps the query rectangle. */
     public void query(double minEast, double minNorth, double maxEast, double maxNorth, Visitor visitor) {
-        int c0 = column(minEast - originEast);
-        int c1 = column(maxEast - originEast);
-        int r0 = row(minNorth - originNorth);
-        int r1 = row(maxNorth - originNorth);
+        int c0 = column(minEast);
+        int c1 = column(maxEast);
+        int r0 = row(minNorth);
+        int r1 = row(maxNorth);
         for (int r = r0; r <= r1; r++) {
             for (int c = c0; c <= c1; c++) {
                 int cell = r * cols + c;
