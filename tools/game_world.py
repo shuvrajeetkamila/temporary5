@@ -630,11 +630,15 @@ def main() -> int:
     stats["waterPolygons"] = water_stats["records"]
     stats["barriers"] = barrier_stats["records"]
     stats["pois"] = poi_stats["records"]
+    # Spawn kinds are ints in the in-memory histogram and strings once the report is serialised, so
+    # read whichever is present rather than assuming.
+    histogram = poi_stats["kindHistogram"]
+    history = {int(k): v for k, v in histogram.items()}
     stats["spawnPoints"] = {
-        "car": poi_stats["kindHistogram"].get(str(SPAWN_CAR), poi_stats["kindHistogram"].get(SPAWN_CAR, 0)),
-        "helicopter": poi_stats["kindHistogram"].get(str(SPAWN_HELI), poi_stats["kindHistogram"].get(SPAWN_HELI, 0)),
-        "boat": poi_stats["kindHistogram"].get(str(SPAWN_BOAT), poi_stats["kindHistogram"].get(SPAWN_BOAT, 0)),
-        "aeroplane": poi_stats["kindHistogram"].get(str(SPAWN_PLANE), poi_stats["kindHistogram"].get(SPAWN_PLANE, 0)),
+        "car": history.get(SPAWN_CAR, 0),
+        "helicopter": history.get(SPAWN_HELI, 0),
+        "boat": history.get(SPAWN_BOAT, 0),
+        "aeroplane": history.get(SPAWN_PLANE, 0),
     }
     game["stats"] = stats
     game["roofHistogram"] = building_stats["roofHistogram"]
