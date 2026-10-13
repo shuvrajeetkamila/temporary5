@@ -1,68 +1,38 @@
-> Task :core:processTestResources
-> Task :core:testClasses
-
-> Task :core:test FAILED
-
-GeoMathTest > projected distances and bearings match known national geometry PASSED
-
-GeoMathTest > grid convergence is small but non-zero and signed correctly PASSED
-
-GeoMathTest > invalid input is rejected instead of producing NaN geography PASSED
-
-GeoMathTest > forward projection matches PROJ at Qatar checkpoints PASSED
-
-GeoMathTest > inverse projection matches PROJ and round-trips the whole country PASSED
---
-
-MeshersTest > land use and water classify ground that the terrain mesh colours PASSED
-
-MeshersTest > road ribbons are as wide as the compiled width and follow the terrain FAILED
-    org.opentest4j.AssertionFailedError: one segment is two quads: 4 ==> expected: <2> but was: <4>
-        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
-        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
-        at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
-        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)
-        at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:563)
-        at app//ai.arena.qatar.render.MeshersTest.roadRibbon(MeshersTest.java:210)
-
-MeshersTest > a concave footprint roofs correctly instead of collapsing to a fan PASSED
-
---
 
 MeshersTest > meshes stay inside the vertex budget of a 16-bit index buffer PASSED
 
 MeshersTest > terrain meshing produces an upward-facing surface with the right triangle count FAILED
-    org.opentest4j.AssertionFailedError: the land mesh has geometry ==> expected: <false> but was: <true>
-        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
-        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
-        at app//org.junit.jupiter.api.AssertFalse.failNotFalse(AssertFalse.java:63)
-        at app//org.junit.jupiter.api.AssertFalse.assertFalse(AssertFalse.java:36)
-        at app//org.junit.jupiter.api.Assertions.assertFalse(Assertions.java:239)
-        at app//ai.arena.qatar.render.MeshersTest.terrainSurface(MeshersTest.java:75)
-
-MeshersTest > a chunk far from the focus is still meshed from the same data (no popping holes) FAILED
-    org.opentest4j.AssertionFailedError: expected: <false> but was: <true>
-        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
-        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
-        at app//org.junit.jupiter.api.AssertFalse.failNotFalse(AssertFalse.java:63)
-        at app//org.junit.jupiter.api.AssertFalse.assertFalse(AssertFalse.java:36)
-        at app//org.junit.jupiter.api.AssertFalse.assertFalse(AssertFalse.java:31)
-        at app//org.junit.jupiter.api.Assertions.assertFalse(Assertions.java:231)
-        at app//ai.arena.qatar.render.MeshersTest.terrainChunking(MeshersTest.java:117)
-
-ArabicReshaperTest > the mandatory lam-alef ligature is produced PASSED
---
-
-WorldBundlesTest > land use, water and barriers parse with their classes intact PASSED
-
-WorldBundlesTest > points of interest include each vehicle spawn and are queryable FAILED
-    org.opentest4j.AssertionFailedError: the car spawn is found from its own neighbourhood ==> expected: <true> but was: <false>
+    org.opentest4j.AssertionFailedError: a 1.6 km square at 100 m cells is a few hundred triangles ==> expected: <true> but was: <false>
         at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
         at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
         at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
         at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
         at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
-        at app//ai.arena.qatar.world.WorldBundlesTest.points(WorldBundlesTest.java:208)
+        at app//ai.arena.qatar.render.MeshersTest.terrainSurface(MeshersTest.java:80)
+
+MeshersTest > a chunk far from the focus is still meshed from the same data (no popping holes) FAILED
+    org.opentest4j.AssertionFailedError: chunk A stays inside its rectangle ==> expected: <true> but was: <false>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+        at app//ai.arena.qatar.render.MeshersTest.terrainChunking(MeshersTest.java:121)
+
+ArabicReshaperTest > the mandatory lam-alef ligature is produced PASSED
+
+--
+
+WorldBundlesTest > land use, water and barriers parse with their classes intact PASSED
+
+WorldBundlesTest > points of interest include each vehicle spawn and are queryable FAILED
+    org.opentest4j.AssertionFailedError: a spawn further away than the range is not returned ==> expected: <-1> but was: <2>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)
+        at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:563)
+        at app//ai.arena.qatar.world.WorldBundlesTest.points(WorldBundlesTest.java:216)
 
 WorldBundlesTest > roads keep class, width, direction and bilingual names PASSED
 
@@ -71,18 +41,31 @@ WorldBundlesTest > roads keep class, width, direction and bilingual names PASSED
 WorldBundlesTest > a bundle that is not a bundle is rejected, not misread PASSED
 
 WorldBundlesTest > the spatial index answers region queries without scanning everything FAILED
-    org.opentest4j.AssertionFailedError: the mosque is found by a small query box ==> expected: <true> but was: <false>
+    org.opentest4j.AssertionFailedError: a whole-world query finds every ring ==> expected: <5> but was: <11>
         at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
         at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
-        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
-        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
-        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
-        at app//ai.arena.qatar.world.WorldBundlesTest.featureIndex(WorldBundlesTest.java:241)
+        at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)
+        at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:563)
+        at app//ai.arena.qatar.world.WorldBundlesTest.featureIndex(WorldBundlesTest.java:252)
 
 WorldBundlesTest > manifest digests are verified, and a corrupted bundle is rejected PASSED
 
+50 tests completed, 4 failed
+
+> Task :core:test FAILED
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791900169270.json
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':core:test'.
+> There were failing tests. See the report at: file:///home/runner/work/temporary5/temporary5/core/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to get full insights.
 --
-	at org.gradle.composite.internal.DefaultBuildController$BuildOpRunnable.run(DefaultBuildController.java:198)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There were failing tests. See the report at: file:///home/runner/work/temporary5/temporary5/core/build/reports/tests/test/index.html
@@ -100,5 +83,5 @@ Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 23s
+BUILD FAILED in 19s
 4 actionable tasks: 4 executed
