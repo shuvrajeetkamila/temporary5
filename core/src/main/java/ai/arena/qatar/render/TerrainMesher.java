@@ -135,7 +135,7 @@ public final class TerrainMesher {
         // Texture coordinates: one tile per 25 m, so surface detail keeps a constant real-world size.
         float u = (float) ((east - originEast) / 25.0);
         float v = (float) ((north - originNorth) / 25.0);
-        float tint = surfaceTint(material, slope[0], slope[1]);
+        float tint = surfaceTint(material, slope[0], slope[1], slope[2]);
         return mesh.addVertex((float) (east - originEast), (float) height + LAND_LIFT,
                 (float) (north - originNorth), slope[0], slope[1], slope[2], SURFACE_LAND, u, v, tint);
     }
