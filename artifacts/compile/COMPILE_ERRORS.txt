@@ -1,3 +1,0 @@
-/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/vehicle/VehicleBody.java:51: error: method groundHeightM in interface Surface cannot be applied to given types;
-/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/vehicle/HelicopterBody.java:77: error: cannot find symbol
-/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/vehicle/HelicopterBody.java:77: error: cannot find symbol
