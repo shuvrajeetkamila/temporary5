@@ -1,0 +1,57 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Task :core:compileJava FAILED
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/hud/HudRenderer.java:249: error: incompatible types: Texture cannot be converted to TextureRegion
+        batch.draw(white, x0, y0 - thickness * 0.5f, 0f, thickness * 0.5f, length, thickness, 1f, 1f,
+                   ^
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:207: error: incompatible types: possible lossy conversion from double to float
+            hud.drawStick(moveAnchor.x, moveAnchor.y, moveCurrent.x, moveCurrent.y, moveRadius);
+                                    ^
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:311: error: incompatible types: possible lossy conversion from double to float
+            float dx = x - lookLast.x;
+                         ^
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:312: error: incompatible types: possible lossy conversion from double to float
+            float dy = y - lookLast.y;
+                         ^
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:360: error: incompatible types: possible lossy conversion from double to float
+        float dx = moveCurrent.x - moveAnchor.x;
+                                 ^
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:361: error: incompatible types: possible lossy conversion from double to float
+        float dy = moveCurrent.y - moveAnchor.y;
+                                 ^
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:501: error: incompatible types: possible lossy conversion from double to float
+            float dx = x - mapDragLast.x;
+                         ^
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameScreen.java:502: error: incompatible types: possible lossy conversion from double to float
+            float dy = y - mapDragLast.y;
+                         ^
+Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
+8 errors
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791903213154.json
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':core:compileJava'.
+--
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
+Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Compilation failed; see the compiler error output for details.
+	at org.gradle.api.internal.tasks.compile.JdkJavaCompiler.execute(JdkJavaCompiler.java:61)
+	at org.gradle.api.internal.tasks.compile.JdkJavaCompiler.execute(JdkJavaCompiler.java:41)
+	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.delegateAndHandleErrors(NormalizingJavaCompiler.java:98)
+	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.execute(NormalizingJavaCompiler.java:52)
+	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.execute(NormalizingJavaCompiler.java:38)
+	at org.gradle.api.internal.tasks.compile.AnnotationProcessorDiscoveringCompiler.execute(AnnotationProcessorDiscoveringCompiler.java:52)
+	at org.gradle.api.internal.tasks.compile.AnnotationProcessorDiscoveringCompiler.execute(AnnotationProcessorDiscoveringCompiler.java:38)
+	at org.gradle.api.internal.tasks.compile.ModuleApplicationNameWritingCompiler.execute(ModuleApplicationNameWritingCompiler.java:46)
+	at org.gradle.api.internal.tasks.compile.ModuleApplicationNameWritingCompiler.execute(ModuleApplicationNameWritingCompiler.java:36)
+	at org.gradle.jvm.toolchain.internal.DefaultToolchainJavaCompiler.execute(DefaultToolchainJavaCompiler.java:57)
+--
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
+
+
+BUILD FAILED in 8s
+1 actionable task: 1 executed
