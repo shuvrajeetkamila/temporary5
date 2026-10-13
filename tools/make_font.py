@@ -105,7 +105,7 @@ def build(ttf: Path, out_base: Path, size_px: int, padding: int = 1) -> dict:
         f'packed=0',
         f'page id=0 file="{png_path.name}"',
         f'chars count={sum(1 for g in glyphs if g["img"] is not None)}',
-        f'kernings count=0',
+        'kernings count=0',
     ]
     for g, spot in zip(glyphs, placements):
         if g["img"] is None or spot is None:
