@@ -535,7 +535,8 @@ def build_barriers(data: "bw.OsmData") -> list[dict]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--osm", default="data/raw/qatar-latest.osm.pbf")
-    parser.add_argument("--world", default="assets/world", help="output directory for game bundles")
+    parser.add_argument("--world", default="android/assets/world",
+                        help="directory holding the stage 1 bundles (the packaged asset folder)")
     parser.add_argument("--geo", default="data/geodata")
     args = parser.parse_args()
 
