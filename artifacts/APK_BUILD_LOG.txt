@@ -1,0 +1,97 @@
+> Task :android:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :android:javaPreCompileDebug
+
+> Task :core:compileJava FAILED
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:12: error: cannot find symbol
+import com.badlogic.gdx.utils.LongSet;
+                             ^
+  symbol:   class LongSet
+  location: package com.badlogic.gdx.utils
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:47: error: cannot find symbol
+    private final LongSet uploaded = new LongSet();
+                  ^
+  symbol:   class LongSet
+  location: class GameWorldRenderer
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:48: error: cannot find symbol
+    private final LongSet liveKeys = new LongSet();
+                  ^
+  symbol:   class LongSet
+  location: class GameWorldRenderer
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/ChunkMeshCache.java:53: error: method key in class Entry cannot be applied to given types;
+            return key(chunkX, chunkZ);
+                   ^
+  required: no arguments
+  found:    int,int
+  reason: actual and formal argument lists differ in length
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/SkyAndGroundRenderer.java:48: error: cannot find symbol
+        terrainShader = compile(ShaderSources.TERRAIN_VERT, ShaderSources.TERRAIN_FRAG, "terrain");
+                                             ^
+  symbol:   variable TERRAIN_VERT
+  location: class ShaderSources
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/SkyAndGroundRenderer.java:48: error: cannot find symbol
+        terrainShader = compile(ShaderSources.TERRAIN_VERT, ShaderSources.TERRAIN_FRAG, "terrain");
+                                                                         ^
+  symbol:   variable TERRAIN_FRAG
+  location: class ShaderSources
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/SkyAndGroundRenderer.java:49: error: cannot find symbol
+        waterShader = compile(ShaderSources.WATER_VERT, ShaderSources.WATER_FRAG, "water");
+                                           ^
+  symbol:   variable WATER_VERT
+  location: class ShaderSources
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/SkyAndGroundRenderer.java:49: error: cannot find symbol
+        waterShader = compile(ShaderSources.WATER_VERT, ShaderSources.WATER_FRAG, "water");
+                                                                     ^
+  symbol:   variable WATER_FRAG
+  location: class ShaderSources
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/SkyAndGroundRenderer.java:50: error: cannot find symbol
+        solidShader = compile(ShaderSources.SOLID_VERT, ShaderSources.SOLID_FRAG, "solid");
+                                           ^
+  symbol:   variable SOLID_VERT
+  location: class ShaderSources
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/SkyAndGroundRenderer.java:50: error: cannot find symbol
+        solidShader = compile(ShaderSources.SOLID_VERT, ShaderSources.SOLID_FRAG, "solid");
+                                                                     ^
+  symbol:   variable SOLID_FRAG
+  location: class ShaderSources
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:47: error: cannot find symbol
+    private final LongSet uploaded = new LongSet();
+                                         ^
+  symbol:   class LongSet
+  location: class GameWorldRenderer
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:48: error: cannot find symbol
+    private final LongSet liveKeys = new LongSet();
+                                         ^
+  symbol:   class LongSet
+  location: class GameWorldRenderer
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:106: error: package LongSet does not exist
+        LongSet.LongSetIterator iterator = uploaded.iterator();
+               ^
+13 errors
+
+> Task :android:checkDebugAarMetadata
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_6-1791903127316.json
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+--
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
+Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Compilation failed; see the compiler error output for details.
+	at org.gradle.api.internal.tasks.compile.JdkJavaCompiler.execute(JdkJavaCompiler.java:61)
+	at org.gradle.api.internal.tasks.compile.JdkJavaCompiler.execute(JdkJavaCompiler.java:41)
+	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.delegateAndHandleErrors(NormalizingJavaCompiler.java:98)
+	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.execute(NormalizingJavaCompiler.java:52)
+	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.execute(NormalizingJavaCompiler.java:38)
+	at org.gradle.api.internal.tasks.compile.AnnotationProcessorDiscoveringCompiler.execute(AnnotationProcessorDiscoveringCompiler.java:52)
+	at org.gradle.api.internal.tasks.compile.AnnotationProcessorDiscoveringCompiler.execute(AnnotationProcessorDiscoveringCompiler.java:38)
+	at org.gradle.api.internal.tasks.compile.ModuleApplicationNameWritingCompiler.execute(ModuleApplicationNameWritingCompiler.java:46)
+	at org.gradle.api.internal.tasks.compile.ModuleApplicationNameWritingCompiler.execute(ModuleApplicationNameWritingCompiler.java:36)
+	at org.gradle.jvm.toolchain.internal.DefaultToolchainJavaCompiler.execute(DefaultToolchainJavaCompiler.java:57)
+--
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
+
+
+BUILD FAILED in 10s
+4 actionable tasks: 4 executed
