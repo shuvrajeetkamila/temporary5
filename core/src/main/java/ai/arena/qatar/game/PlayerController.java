@@ -80,6 +80,12 @@ public final class PlayerController {
      * see the shape the player is driving. Off, the camera is the driver's own eye.
      */
     public boolean chase = true;
+    /**
+     * How far the body's moving parts have turned, in degrees, wrapped into one revolution, since the
+     * game started. Purely visual: nothing in the simulation reads it, so a wheel cannot make the car
+     * go faster by turning.
+     */
+    public double spinDegrees;
     /** Camera orbit for the vehicles: swings with a look drag and recentres when driving. */
     private double cameraYawOffset;
     private double cameraPitchOffset;
@@ -259,7 +265,30 @@ public final class PlayerController {
                 cameraYawOffset = approach(cameraYawOffset, 0, 25.0 * dt);
             }
         }
+        spinDegrees = VehicleState.wrap(spinDegrees + spinRateDegPerSec(state) * dt);
         syncRig(state);
+    }
+
+    /**
+     * How fast the wheels, the propeller or the rotors are turning, in degrees per second. Given the
+     * machine, these are the real numbers: a car wheel turns at v/r, an aeroplane engine idles at 700 rpm
+     * and turns 2,400 at full power, a rotor head is governed near 330 rpm whatever the collective does.
+     */
+    public double spinRateDegPerSec(VehicleState state) {
+        switch (loco) {
+            case CAR:
+                // Rolling without slipping: one radius of travel is one radian of rotation.
+                return Math.toDegrees(state.speedMS / CarBody.WHEEL_RADIUS_M);
+            case PLANE: {
+                double throttle = sprinting ? 1.0 : clamp(forward, 0, 1);
+                return 6.0 * (700.0 + 1_700.0 * throttle);
+            }
+            case HELICOPTER:
+                return 6.0 * (330.0 + 40.0 * clamp(input.collective, 0, 1));
+            default:
+                // Nothing on a person or a boat that a camera can see: a boat's propeller is underwater.
+                return 0.0;
+        }
     }
 
     /**

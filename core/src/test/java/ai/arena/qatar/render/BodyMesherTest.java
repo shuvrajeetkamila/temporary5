@@ -1,11 +1,13 @@
 package ai.arena.qatar.render;
 
+import ai.arena.qatar.vehicle.CarBody;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector3;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -18,8 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>A body that is the wrong size is not a crash, it is a game that looks wrong -- a person as tall as a
  * bus, a wing inside the fuselage, a boat floating a metre above the water. None of that is visible
  * without a screen, so it is checked here: dimensions against the published figures, symmetry about the
- * centreline, which end is the front, and whether the wheels, skids and hull bottom actually reach the
- * ground or the water they are standing on.
+ * centreline, which end is the front, whether the wheels, skids and hull bottom actually reach the ground
+ * or the water they are standing on -- and that the parts which turn, turn where they are.
  */
 final class BodyMesherTest {
 
@@ -31,28 +33,36 @@ final class BodyMesherTest {
         for (BodyMesher.Body body : BodyMesher.Body.values()) {
             MeshData mesh = BodyMesher.mesh(body);
             assertFalse(mesh.isEmpty(), body + " has no geometry");
-            assertTrue(mesh.triangleCount() >= 60, body + " is too simple to read: "
-                    + mesh.triangleCount() + " triangles");
-            assertTrue(mesh.triangleCount() <= 200, body + " costs more than it needs: "
-                    + mesh.triangleCount() + " triangles");
+            assertTrue(BodyMesher.triangles(body) >= 60, body + " is too simple to read: "
+                    + BodyMesher.triangles(body) + " triangles");
+            assertTrue(BodyMesher.triangles(body) <= 250, body + " costs more than it needs: "
+                    + BodyMesher.triangles(body) + " triangles");
 
-            float[] v = mesh.vertices();
             Set<Integer> used = new LinkedHashSet<>();
-            for (int i = 0; i < mesh.vertexCount(); i++) {
-                int base = i * MeshData.FLOATS_PER_VERTEX;
-                assertEquals(VertexFormat.SURFACE_BODY, (int) (v[base + 6] + 0.5f),
-                        body + " has a part that is not part of a body");
-                int material = (int) (v[base + 10] + 0.5f);
-                assertTrue(material >= 1 && material <= 11, body + " uses paint " + material);
-                used.add(material);
-                // Normals are unit length: a face pointing nowhere would be shaded as if lit from inside.
-                float nx = v[base + 3];
-                float ny = v[base + 4];
-                float nz = v[base + 5];
-                assertEquals(1.0f, Math.sqrt(nx * nx + ny * ny + nz * nz), 1e-3f,
-                        body + " has a face with a broken normal");
+            checkPainted(body + " body", mesh, used);
+            for (BodyMesher.Part part : BodyMesher.parts(body)) {
+                assertFalse(part.mesh.isEmpty(), body + "'s " + part.name + " has no geometry");
+                checkPainted(body + "'s " + part.name, part.mesh, used);
             }
             assertTrue(used.size() >= 3, body + " is painted in fewer than three colours: " + used);
+        }
+    }
+
+    private static void checkPainted(String what, MeshData mesh, Set<Integer> used) {
+        float[] v = mesh.vertices();
+        for (int i = 0; i < mesh.vertexCount(); i++) {
+            int base = i * MeshData.FLOATS_PER_VERTEX;
+            assertEquals(VertexFormat.SURFACE_BODY, (int) (v[base + 6] + 0.5f),
+                    what + " has a part that is not part of a body");
+            int material = (int) (v[base + 10] + 0.5f);
+            assertTrue(material >= 1 && material <= 11, what + " uses paint " + material);
+            used.add(material);
+            // Normals are unit length: a face pointing nowhere would be shaded as if lit from inside.
+            float nx = v[base + 3];
+            float ny = v[base + 4];
+            float nz = v[base + 5];
+            assertEquals(1.0f, Math.sqrt(nx * nx + ny * ny + nz * nz), 1e-3f,
+                    what + " has a face with a broken normal");
         }
     }
 
@@ -65,6 +75,8 @@ final class BodyMesherTest {
         assertEquals(0.0, b[1], 0.001, "the person does not stand on the ground");
         assertEquals(0.0, b[0] + b[3], 0.001, "the person is not centred on their own spine");
         assertTrue(b[3] - b[0] < 0.60, "the person is wider than a person: " + (b[3] - b[0]));
+        assertTrue(BodyMesher.parts(BodyMesher.Body.HUMAN).isEmpty(),
+                "a person has something that spins");
     }
 
     @Test
@@ -72,43 +84,65 @@ final class BodyMesherTest {
     void carIsTheSizeOfACar() {
         MeshData mesh = BodyMesher.mesh(BodyMesher.Body.CAR);
         float[] b = mesh.bounds();
-        assertEquals(4.60, b[5] - b[2], TOLERANCE, "the car is not 4.60 m long");
-        assertEquals(1.42, b[4] - b[1], TOLERANCE, "the car is not 1.42 m tall");
-        assertEquals(0.0, b[1], 0.001, "the car does not stand on its wheels");
+        assertEquals(CarBody.CAR_LENGTH_M, b[5] - b[2], TOLERANCE,
+                "the car is not as long as the car physics thinks it is");
+        assertEquals(1.42, b[4], TOLERANCE, "the roof is not 1.42 m off the ground");
+        assertTrue(b[1] > 0.2 && b[1] <= BodyMesher.WHEEL_RADIUS_M + 0.02,
+                "the hull is not riding on its wheels: the floor is at " + b[1] + " m");
         assertEquals(0.0, b[0] + b[3], 0.001, "the car is not symmetric about its centreline");
-        assertTrue(b[3] - b[0] > 1.8 && b[3] - b[0] < 2.2, "the car is not 1.8-2.2 m wide: "
+        assertTrue(b[3] - b[0] > 1.7 && b[3] - b[0] < 2.2, "the car is not 1.7-2.2 m wide: "
                 + (b[3] - b[0]));
 
         // Glass is the greenhouse, and the greenhouse is behind the nose: z is forward.
         double glassZ = meanZ(mesh, BodyMesher.MATERIAL_GLASS);
         assertTrue(glassZ < 0, "the cabin is in front of the driver: " + glassZ);
 
-        // Four wheels, each touching the ground: sixteen contact points, and the two axles exactly one
-        // wheelbase apart -- the same number the physics drives on.
-        java.util.Set<String> contacts = new java.util.HashSet<>();
-        float[] v = mesh.vertices();
-        double frontZ = Double.NEGATIVE_INFINITY;
-        double rearZ = Double.POSITIVE_INFINITY;
-        for (int i = 0; i < mesh.vertexCount(); i++) {
-            int base = i * MeshData.FLOATS_PER_VERTEX;
-            if ((int) (v[base + 10] + 0.5f) == BodyMesher.MATERIAL_TYRE && Math.abs(v[base + 1]) < 0.01f) {
-                contacts.add(String.format(java.util.Locale.ROOT, "%.3f,%.3f", v[base], v[base + 2]));
-                frontZ = Math.max(frontZ, v[base + 2]);
-                rearZ = Math.min(rearZ, v[base + 2]);
-            }
+        // Four wheels, each centred on its own axle, each rim exactly touching the road: the running
+        // gear is the physics' running gear, because the mesh has to roll on the same wheelbase, track
+        // and radius the model yaws on or the car skates sideways.
+        assertEquals(CarBody.WHEELBASE_M, BodyMesher.WHEELBASE_M, 1e-9,
+                "the mesher and the physics disagree about the wheelbase");
+        assertEquals(CarBody.TRACK_M, BodyMesher.TRACK_M, 1e-9,
+                "the mesher and the physics disagree about the track");
+        assertEquals(CarBody.WHEEL_RADIUS_M, BodyMesher.WHEEL_RADIUS_M, 1e-9,
+                "the mesher and the physics disagree about the wheel radius");
+        List<BodyMesher.Part> wheels = BodyMesher.parts(BodyMesher.Body.CAR);
+        assertEquals(4, wheels.size(), "the car does not have four wheels");
+        Set<String> contactPoints = new LinkedHashSet<>();
+        double front = Double.NEGATIVE_INFINITY;
+        double rear = Double.POSITIVE_INFINITY;
+        for (BodyMesher.Part wheel : wheels) {
+            assertEquals(BodyMesher.AXIS_X, wheel.axis,
+                    "a car wheel does not turn about its axle");
+            assertEquals(BodyMesher.WHEEL_RADIUS_M, wheel.offsetY, 1e-6,
+                    "a wheel is not one radius above the ground");
+            front = Math.max(front, wheel.offsetNorth);
+            rear = Math.min(rear, wheel.offsetNorth);
+            assertEquals(BodyMesher.TRACK_M, Math.abs(wheel.offsetEastM) * 2, 0.01,
+                    "the two wheels on one axle are not a track apart");
+            assertEquals(BodyMesher.WHEELBASE_M * 0.5, Math.abs(wheel.offsetNorth), 0.01,
+                    "an axle is not half a wheelbase from the middle of the car");
+            assertTrue(Math.abs(wheel.offsetEastM) + wheel.mesh.bounds()[3] <= b[3] + 0.01,
+                    "a wheel sticks out past the bodywork");
+            double[] rim = rimRadii(wheel.mesh);
+            assertEquals(BodyMesher.WHEEL_RADIUS_M, rim[0], 0.01, "the wheel is not round");
+            assertEquals(rim[0], rim[1], 0.02,
+                    "the rim is not a circle: radius varies by " + (rim[1] - rim[0]));
+            contactPoints.add(String.format(java.util.Locale.ROOT, "%.2f,%.2f", wheel.offsetEastM,
+                    wheel.offsetNorth));
         }
-        assertEquals(16, contacts.size(), "the car does not sit on four wheels: " + contacts);
-        assertEquals(2.79 + 0.66, frontZ - rearZ, 0.01, "the axles are not a wheelbase apart");
+        assertEquals(4, contactPoints.size(), "two wheels are in the same place: " + contactPoints);
+        assertEquals(BodyMesher.WHEELBASE_M, front - rear, 0.01,
+                "the axles are not a wheelbase apart");
     }
 
     @Test
     @DisplayName("an aeroplane has an 11 m wing, an 8.28 m fuselage and a propeller at the front")
     void planeHasWings() {
-        MeshData mesh = BodyMesher.mesh(BodyMesher.Body.PLANE);
+        BodyMesher.Body kind = BodyMesher.Body.PLANE;
+        MeshData mesh = BodyMesher.mesh(kind);
         float[] b = mesh.bounds();
         assertEquals(11.00, b[3] - b[0], TOLERANCE, "the wing is not a Cessna's 11 m");
-        // The fuselage, not the propeller: the disc stands ahead of the nose exactly as it does on the
-        // real aeroplane, so the length is measured on the fuselage's own paint.
         assertEquals(8.28, spanZ(mesh, BodyMesher.MATERIAL_AIRCRAFT)[0], TOLERANCE,
                 "the fuselage is not 8.28 m long");
         assertTrue(b[4] > 2.4, "the fin does not stand up: " + b[4]);
@@ -133,34 +167,48 @@ final class BodyMesherTest {
         assertTrue(fuselageHalf > 0.5f && fuselageHalf < 1.0f, "the fuselage is "
                 + fuselageHalf + " m in half-width");
 
-        // The propeller is the furthest thing forward, and the tail is the furthest back.
-        assertTrue(meanZ(mesh, BodyMesher.MATERIAL_STEEL) > 4.0, "the propeller is not on the nose");
+        // The propeller is a part of its own, on the nose, turning about the fuselage.
+        List<BodyMesher.Part> parts = BodyMesher.parts(kind);
+        assertEquals(1, parts.size(), "an aeroplane has one propeller");
+        BodyMesher.Part propeller = parts.get(0);
+        assertEquals(BodyMesher.AXIS_Z, propeller.axis, "the propeller does not turn about the nose");
+        assertTrue(propeller.offsetNorth > 4.0, "the propeller is not on the nose: "
+                + propeller.offsetNorth);
+        assertTrue(propeller.offsetY > 0.4 && propeller.offsetY < 1.2,
+                "the propeller is not on the engine axis: " + propeller.offsetY);
     }
 
     @Test
     @DisplayName("a helicopter has a 5.6 m rotor, stands on skids and carries its tail out the back")
     void helicopterSpinsTheRotor() {
-        MeshData mesh = BodyMesher.mesh(BodyMesher.Body.HELICOPTER);
+        BodyMesher.Body kind = BodyMesher.Body.HELICOPTER;
+        MeshData mesh = BodyMesher.mesh(kind);
         float[] b = mesh.bounds();
-        assertEquals(5.60, b[3] - b[0], TOLERANCE, "the rotor disc is not 5.60 m across");
         assertEquals(0.0, b[1], 0.001, "the helicopter does not stand on its skids");
         assertTrue(b[5] - b[2] > 4.5, "the helicopter is shorter than its own tail boom");
 
-        float rotorTop = Float.NEGATIVE_INFINITY;
-        float cabinTop = Float.NEGATIVE_INFINITY;
+        List<BodyMesher.Part> parts = BodyMesher.parts(kind);
+        assertEquals(2, parts.size(), "a helicopter has a main rotor and a tail rotor");
+        BodyMesher.Part main = parts.get(0);
+        BodyMesher.Part tail = parts.get(1);
+        assertEquals(BodyMesher.AXIS_Y, main.axis, "the main rotor does not turn about the mast");
+        assertEquals(BodyMesher.AXIS_X, tail.axis, "the tail rotor does not turn about its shaft");
+        assertTrue(tail.rateScale > 1.0, "the tail rotor turns no faster than the main rotor");
+        assertEquals(5.60, spanX(main.mesh), TOLERANCE, "the rotor disc is not 5.60 m across");
+        // The highest thing under the disc is the cabin roof: the rotor turns clear above it, and the
+        // fin still stands above the rotor.
+        double under = 0;
         float[] v = mesh.vertices();
         for (int i = 0; i < mesh.vertexCount(); i++) {
             int base = i * MeshData.FLOATS_PER_VERTEX;
-            int material = (int) (v[base + 10] + 0.5f);
-            if (material == BodyMesher.MATERIAL_ROTOR && v[base + 2] > -1f) {
-                rotorTop = Math.max(rotorTop, v[base + 1]);
-            }
-            if (material == BodyMesher.MATERIAL_HELI) {
-                cabinTop = Math.max(cabinTop, v[base + 1]);
+            if (Math.abs(v[base]) <= 2.8f && Math.abs(v[base + 2]) <= 2.8f) {
+                under = Math.max(under, v[base + 1]);
             }
         }
-        assertTrue(rotorTop > cabinTop, "the rotor is below the cabin roof");
-        assertTrue(meanZ(mesh, BodyMesher.MATERIAL_HELI) < 0.5, "the body is not where it should be");
+        assertTrue(main.offsetY > under, "the rotor turns inside the cabin: hub at " + main.offsetY
+                + " m, the cabin reaches " + under + " m");
+        assertTrue(main.offsetY < b[4], "the rotor hub is level with the top of the fin");
+        assertTrue(spanX(main.mesh) > spanX(mesh), "the rotor is narrower than the machine");
     }
 
     @Test
@@ -168,7 +216,6 @@ final class BodyMesherTest {
     void boatFloats() {
         MeshData mesh = BodyMesher.mesh(BodyMesher.Body.BOAT);
         float[] b = mesh.bounds();
-        // The hull, not the outboard hanging off the stern.
         assertEquals(6.50, spanZ(mesh, BodyMesher.MATERIAL_HULL)[0], TOLERANCE,
                 "the hull is not 6.50 m long");
         assertEquals(2.10, b[3] - b[0], TOLERANCE, "the beam is not 2.10 m");
@@ -176,6 +223,44 @@ final class BodyMesherTest {
         assertTrue(b[4] > 1.8, "the cabin does not stand above the deck: " + b[4]);
         assertTrue(meanZ(mesh, BodyMesher.MATERIAL_STEEL) < -3.0, "the outboard is not astern");
         assertTrue(meanZ(mesh, BodyMesher.MATERIAL_DECK) > -0.5, "the deck is not in the boat");
+        assertTrue(BodyMesher.parts(BodyMesher.Body.BOAT).isEmpty(),
+                "a boat has something that spins above the water");
+    }
+
+    @Test
+    @DisplayName("a moving part is centred on its own pivot, so it turns where it is")
+    void partsSpinInPlace() {
+        for (BodyMesher.Body kind : BodyMesher.Body.values()) {
+            for (BodyMesher.Part part : BodyMesher.parts(kind)) {
+                float[] b = part.mesh.bounds();
+                // Across the spin axis the part must be centred on (0,0), or it would wobble.
+                switch (part.axis) {
+                    case BodyMesher.AXIS_X:
+                        assertEquals(0.0, b[1] + b[4], 0.05, part.name + " is not centred vertically");
+                        assertEquals(0.0, b[2] + b[5], 0.05, part.name + " is not centred lengthways");
+                        break;
+                    case BodyMesher.AXIS_Z:
+                        assertEquals(0.0, b[0] + b[3], 0.05, part.name + " is not centred sideways");
+                        assertEquals(0.0, b[1] + b[4], 0.05, part.name + " is not centred vertically");
+                        break;
+                    default:
+                        assertEquals(0.0, b[0] + b[3], 0.05, part.name + " is not centred sideways");
+                        assertEquals(0.0, b[2] + b[5], 0.05, part.name + " is not centred lengthways");
+                        break;
+                }
+                // And whatever the spin, the part's pivot stays exactly where the body put it.
+                for (double spin : new double[]{0.0, 37.5, 180.0, 359.0}) {
+                    Vector3 pivot = new Vector3(0f, 0f, 0f)
+                            .mul(BodyMesher.transform(part, 120.0, -45.0, 90.0, spin));
+                    assertEquals(120.0 + part.offsetNorth, pivot.x, 1e-3,
+                            part.name + " moved sideways when it turned: " + pivot.x);
+                    assertEquals(part.offsetY, pivot.y, 1e-3,
+                            part.name + " changed height when it turned: " + pivot.y);
+                    assertEquals(-45.0 - part.offsetEastM, pivot.z, 1e-3,
+                            part.name + " moved along the body when it turned: " + pivot.z);
+                }
+            }
+        }
     }
 
     @Test
@@ -191,21 +276,48 @@ final class BodyMesherTest {
         assertEquals(2.0, east.x, 1e-3, "heading 90 does not face east");
         assertEquals(0.0, east.z, 1e-3, "heading 90 does not face east");
 
-        Vector3 left = new Vector3(1f, 0f, 0f).mul(BodyMesher.transform(0.0, 0.0, 0.0));
-        assertEquals(1.0, left.x, 1e-3, "the body's own right is not east when facing north");
+        Vector3 right = new Vector3(1f, 0f, 0f).mul(BodyMesher.transform(0.0, 0.0, 0.0));
+        assertEquals(1.0, right.x, 1e-3, "the body's own x axis is not east when it faces north");
     }
 
     @Test
     @DisplayName("the shader has a colour for every paint the bodies use")
     void shaderKnowsEveryPaint() {
         String fragment = ShaderSources.FRAGMENT;
+        String body = fragment.substring(fragment.indexOf("vec3 bodyColour"));
+        body = body.substring(0, body.indexOf('}'));
         for (int material : BodyMesher.MATERIALS) {
-            assertTrue(fragment.contains("if (id == " + material + ")"),
-                    "the shader has no colour for paint " + material);
+            assertTrue(body.contains("if (id == " + material + ")"),
+                    "the shader paints no body part with paint " + material);
         }
         assertTrue(fragment.contains("SURFACE_BODY = " + VertexFormat.SURFACE_BODY + ";"),
                 "the shader and VertexFormat disagree about the body surface code");
         assertTrue(fragment.contains("bodyColour"), "the shader never paints a body");
+    }
+
+    /** Smallest and largest distance of a rim vertex from its own axis, for "is it round" checks. */
+    private static double[] rimRadii(MeshData mesh) {
+        float[] v = mesh.vertices();
+        double min = Double.POSITIVE_INFINITY;
+        double max = 0;
+        int found = 0;
+        for (int i = 0; i < mesh.vertexCount(); i++) {
+            int base = i * MeshData.FLOATS_PER_VERTEX;
+            double radius = Math.hypot(v[base + 1], v[base + 2]);
+            if (radius > 0.01) {
+                min = Math.min(min, radius);
+                max = Math.max(max, radius);
+                found++;
+            }
+        }
+        assertTrue(found >= 6, "the wheel has no rim");
+        return new double[]{min, max};
+    }
+
+    /** Sideways extent of a mesh, for "is the wing wider than the fuselage" checks. */
+    private static double spanX(MeshData mesh) {
+        float[] b = mesh.bounds();
+        return b[3] - b[0];
     }
 
     /**

@@ -44,6 +44,7 @@ public final class GameWorldRenderer implements Disposable {
     private final ChunkMeshCache cache;
     private final WorldRenderer renderer;
 
+    private final com.badlogic.gdx.math.Matrix4 actorScratch = new com.badlogic.gdx.math.Matrix4();
     private final LongMap<Boolean> uploaded = new LongMap<>();
     private final LongMap<Boolean> liveKeys = new LongMap<>();
 
@@ -133,18 +134,22 @@ public final class GameWorldRenderer implements Disposable {
         }
     }
 
-    /** Uploads the player's body for the locomotion type being played. */
-    public void setActor(ai.arena.qatar.render.MeshData body) {
-        renderer.setActorMesh(body);
+    /** Uploads the player's body, and the parts of it that move, for the locomotion being played. */
+    public void setActor(ai.arena.qatar.render.BodyMesher.Body kind) {
+        renderer.setActor(ai.arena.qatar.render.BodyMesher.mesh(kind),
+                ai.arena.qatar.render.BodyMesher.parts(kind));
     }
 
     /**
      * Draws the player's body at its local position and heading. Local, not bundle: the transform is
      * one translation near the floating origin, which is the whole point of having one.
      */
-    public void drawActor(double localEast, double localNorth, double headingDegrees) {
-        renderer.drawActor(ai.arena.qatar.render.BodyMesher.transform(localEast, localNorth,
-                headingDegrees));
+    public void drawActor(double localEast, double localNorth, double headingDegrees,
+                          double spinDegrees, ai.arena.qatar.render.BodyMesher.Body kind) {
+        renderer.drawActor(ai.arena.qatar.render.BodyMesher.transform(actorScratch, localEast,
+                        localNorth, headingDegrees),
+                ai.arena.qatar.render.BodyMesher.parts(kind), localEast, localNorth, headingDegrees,
+                spinDegrees);
     }
 
     public ChunkMeshCache cache() {

@@ -2,6 +2,10 @@ package ai.arena.qatar.render;
 
 import com.badlogic.gdx.math.Matrix4;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * The bodies the player actually is: a person, a car, an aeroplane, a helicopter and a boat.
  *
@@ -14,10 +18,14 @@ import com.badlogic.gdx.math.Matrix4;
  * aircraft white, teak deck, skin), which is how one surface type is red on one part and black on the
  * next without a texture anywhere in the project.
  *
- * <p>Deliberately boxy. A person is five boxes and a car is seven, which reads correctly at the
- * distance a chase camera sits and costs tens of triangles instead of requiring a modelling tool this
- * project does not have. The silhouettes are right; the folds are not there, and that is stated rather
- * than hidden.
+ * <p>Parts that move are built separately, in coordinates centred on their own pivot, so they can spin
+ * where they are instead of orbiting the body: four wheels about the axle, a propeller about the
+ * fuselage, a main rotor about the mast and a tail rotor about its own shaft. See {@link #parts}.
+ *
+ * <p>Deliberately boxy. A person is seven boxes and a car is three plus four wheels, which reads
+ * correctly at the distance a chase camera sits and costs tens of triangles instead of requiring a
+ * modelling tool this project does not have. The silhouettes are right; the folds are not there, and
+ * that is stated rather than hidden.
  */
 public final class BodyMesher {
 
@@ -43,14 +51,55 @@ public final class BodyMesher {
     public static final int MATERIAL_STEEL = 10;
     public static final int MATERIAL_ROTOR = 11;
 
-    /** Every id {@link #mesh} can emit; the test holds the shader's table to this list. */
+    /** Every id {@link #mesh} and {@link #parts} can emit; the test holds the shader's table to it. */
     public static final int[] MATERIALS = {MATERIAL_PAINT, MATERIAL_GLASS, MATERIAL_TYRE,
             MATERIAL_AIRCRAFT, MATERIAL_HELI, MATERIAL_HULL, MATERIAL_DECK, MATERIAL_CLOTH,
             MATERIAL_SKIN, MATERIAL_STEEL, MATERIAL_ROTOR};
 
+    /** Spin axes, as indices into a rotation about that axis. */
+    public static final int AXIS_X = 0;
+    public static final int AXIS_Y = 1;
+    public static final int AXIS_Z = 2;
+
+    /**
+     * The car's running gear, in metres: the same 0.33 m wheels, 1.57 m track and 2.79 m wheelbase the
+     * car physics drives on. The mesh and the model have to agree or the car skates sideways.
+     */
+    public static final double WHEEL_RADIUS_M = 0.33;
+    public static final double TRACK_M = 1.57;
+    public static final double WHEELBASE_M = 2.79;
+
+    /**
+     * A part of a body that moves: its geometry is centred on its own pivot, and the caller rotates it
+     * about {@link #axis} at {@code spinDegrees * rateScale} to make it turn where it is.
+     */
+    public static final class Part {
+        public final String name;
+        public final MeshData mesh;
+        /** Pivot in the body's own frame, in metres. */
+        public final double offsetEastM;
+        public final double offsetY;
+        public final double offsetNorth;
+        public final int axis;
+        /** Spins faster than the body's own rate when this is more than one: a tail rotor does. */
+        public final double rateScale;
+
+        Part(String name, MeshData mesh, double offsetEastM, double offsetY, double offsetNorth,
+             int axis, double rateScale) {
+            this.name = name;
+            this.mesh = mesh;
+            this.offsetEastM = offsetEastM;
+            this.offsetY = offsetY;
+            this.offsetNorth = offsetNorth;
+            this.axis = axis;
+            this.rateScale = rateScale;
+        }
+    }
+
     private BodyMesher() {
     }
 
+    /** The geometry that does not move: everything except the wheels, propeller and rotors. */
     public static MeshData mesh(Body body) {
         switch (body) {
             case HUMAN:
@@ -68,20 +117,79 @@ public final class BodyMesher {
         }
     }
 
+    /** The parts that move. Empty for a person and a boat, which have nothing to turn. */
+    public static List<Part> parts(Body body) {
+        switch (body) {
+            case CAR:
+                return wheels();
+            case PLANE:
+                return Collections.singletonList(new Part("propeller", propeller(), 0.0, 0.76, 4.44,
+                        AXIS_Z, 1.0));
+            case HELICOPTER:
+                List<Part> rotors = new ArrayList<>(2);
+                rotors.add(new Part("main rotor", mainRotor(), 0.0, 1.59, 0.0, AXIS_Y, 1.0));
+                rotors.add(new Part("tail rotor", tailRotor(), 0.0, 1.50, -3.40, AXIS_X, 2.5));
+                return rotors;
+            default:
+                return Collections.emptyList();
+        }
+    }
+
+    /** How many triangles a whole body costs, moving parts included. */
+    public static int triangles(Body body) {
+        int total = mesh(body).triangleCount();
+        for (Part part : parts(body)) {
+            total += part.mesh.triangleCount();
+        }
+        return total;
+    }
+
     /**
      * Places a body in the local frame: east/north metres from the floating origin, and a heading in
      * degrees (0 faces north, 90 faces east), the same convention the bodies simulate in.
      */
     public static Matrix4 transform(double eastM, double northM, double headingDegrees) {
-        Matrix4 matrix = new Matrix4();
-        matrix.setToTranslation((float) eastM, 0f, (float) northM);
-        matrix.rotate(0f, 1f, 0f, (float) headingDegrees);
-        return matrix;
+        return transform(new Matrix4(), eastM, northM, headingDegrees);
+    }
+
+    /** The same, into a matrix the caller reuses: this runs once per part per frame. */
+    public static Matrix4 transform(Matrix4 out, double eastM, double northM, double headingDegrees) {
+        out.setToTranslation((float) eastM, 0f, (float) northM);
+        out.rotate(0f, 1f, 0f, (float) headingDegrees);
+        return out;
+    }
+
+    /**
+     * Places one moving part: the body's own transform, then out to the part's pivot, then the spin, so
+     * the part turns where it is rather than orbiting the machine.
+     */
+    public static Matrix4 transform(Part part, double eastM, double northM, double headingDegrees,
+                                    double spinDegrees) {
+        return transform(new Matrix4(), part, eastM, northM, headingDegrees, spinDegrees);
+    }
+
+    /** The same, into a matrix the caller reuses. */
+    public static Matrix4 transform(Matrix4 out, Part part, double eastM, double northM,
+                                    double headingDegrees, double spinDegrees) {
+        transform(out, eastM, northM, headingDegrees);
+        out.translate((float) part.offsetEastM, (float) part.offsetY, (float) part.offsetNorth);
+        switch (part.axis) {
+            case AXIS_X:
+                out.rotate(1f, 0f, 0f, (float) (spinDegrees * part.rateScale));
+                break;
+            case AXIS_Z:
+                out.rotate(0f, 0f, 1f, (float) (spinDegrees * part.rateScale));
+                break;
+            default:
+                out.rotate(0f, 1f, 0f, (float) (spinDegrees * part.rateScale));
+                break;
+        }
+        return out;
     }
 
     // ------------------------------------------------------------------ the five bodies -----------
 
-    /** Five boxes: legs, torso, head, two arms. 1.75 m tall. */
+    /** Seven boxes: legs, torso, head, two arms, two shoes. 1.75 m tall. */
     private static MeshData human() {
         MeshData mesh = new MeshData();
         box(mesh, 0, 0.425, 0, 0.40, 0.85, 0.18, MATERIAL_CLOTH, 0.45f);    // legs, dark cloth
@@ -94,20 +202,67 @@ public final class BodyMesher {
         return mesh;
     }
 
-    /** Body, glass band, roof and four wheels. 4.60 m long, 1.42 m tall, 1.82 m wide. */
+    /** Body, glass band and roof: 4.60 m long, 1.42 m tall. The wheels are {@link #wheels()}. */
     private static MeshData car() {
         MeshData mesh = new MeshData();
         box(mesh, 0, 0.54, 0, 1.82, 0.48, 4.60, MATERIAL_PAINT, 1.0f);      // hull of the car
         box(mesh, 0, 1.04, -0.30, 1.60, 0.52, 1.80, MATERIAL_GLASS, 0.9f);  // greenhouse
         box(mesh, 0, 1.36, -0.30, 1.62, 0.12, 1.90, MATERIAL_PAINT, 1.0f);  // roof
-        wheel(mesh, 0.86, 1.395);
-        wheel(mesh, -0.86, 1.395);
-        wheel(mesh, 0.86, -1.395);
-        wheel(mesh, -0.86, -1.395);
         return mesh;
     }
 
-    /** Fuselage, cabin, wing, tailplane, fin, propeller and three wheels: 11 m span, 8.28 m long. */
+    /** Four round wheels on one wheelbase, centred on their own axles so they can roll. */
+    private static List<Part> wheels() {
+        List<Part> parts = new ArrayList<>(4);
+        for (double track : new double[]{TRACK_M * 0.5, -TRACK_M * 0.5}) {
+            for (double axle : new double[]{WHEELBASE_M * 0.5, -WHEELBASE_M * 0.5}) {
+                parts.add(new Part("wheel", wheel(), track, WHEEL_RADIUS_M, axle, AXIS_X, 1.0));
+            }
+        }
+        return parts;
+    }
+
+    /** One wheel, centred on its own axle: an eight-sided rim, 0.24 m of tyre. */
+    private static MeshData wheel() {
+        MeshData mesh = new MeshData();
+        int sides = 8;
+        double width = 0.24;
+        double x0 = -width / 2;
+        double x1 = width / 2;
+        float[][] rim = new float[sides + 1][2];
+        for (int i = 0; i <= sides; i++) {
+            double angle = 2.0 * Math.PI * i / sides;
+            rim[i][0] = (float) (WHEEL_RADIUS_M * Math.cos(angle));
+            rim[i][1] = (float) (WHEEL_RADIUS_M * Math.sin(angle));
+        }
+        for (int i = 0; i < sides; i++) {
+            float y0 = rim[i][0];
+            float z0 = rim[i][1];
+            float y1 = rim[i + 1][0];
+            float z1 = rim[i + 1][1];
+            double mid = Math.atan2((z0 + z1) * 0.5, (y0 + y1) * 0.5);
+            quad(mesh, (float) x0, y0, z0, (float) x0, y1, z1, (float) x1, y1, z1, (float) x1, y0, z0,
+                    0f, (float) Math.cos(mid), (float) Math.sin(mid), MATERIAL_TYRE, 1.0f);
+            // Caps: a fan per side, wound so each faces out of the wheel.
+            int capCentre = mesh.addVertexMaterial((float) x1, 0f, 0f, 1f, 0f, 0f,
+                    VertexFormat.SURFACE_BODY, 0f, 0f, 1.0f, MATERIAL_TYRE);
+            int a = mesh.addVertexMaterial((float) x1, y0, z0, 1f, 0f, 0f, VertexFormat.SURFACE_BODY,
+                    0f, 0f, 1.0f, MATERIAL_TYRE);
+            int b = mesh.addVertexMaterial((float) x1, y1, z1, 1f, 0f, 0f, VertexFormat.SURFACE_BODY,
+                    0f, 0f, 1.0f, MATERIAL_TYRE);
+            mesh.addTriangle(capCentre, a, b);
+            int backCentre = mesh.addVertexMaterial((float) x0, 0f, 0f, -1f, 0f, 0f,
+                    VertexFormat.SURFACE_BODY, 0f, 0f, 1.0f, MATERIAL_TYRE);
+            int c = mesh.addVertexMaterial((float) x0, y0, z0, -1f, 0f, 0f, VertexFormat.SURFACE_BODY,
+                    0f, 0f, 1.0f, MATERIAL_TYRE);
+            int d = mesh.addVertexMaterial((float) x0, y1, z1, -1f, 0f, 0f, VertexFormat.SURFACE_BODY,
+                    0f, 0f, 1.0f, MATERIAL_TYRE);
+            mesh.addTriangle(backCentre, d, c);
+        }
+        return mesh;
+    }
+
+    /** Fuselage, cabin, wing, tailplane, fin and three wheels: 11 m span, 8.28 m long. */
     private static MeshData plane() {
         MeshData mesh = new MeshData();
         box(mesh, 0, 1.05, 0.24, 1.10, 1.00, 8.28, MATERIAL_AIRCRAFT, 1.0f);   // fuselage
@@ -115,25 +270,44 @@ public final class BodyMesher {
         box(mesh, 0, 1.45, 0.20, 11.00, 0.20, 1.00, MATERIAL_AIRCRAFT, 1.0f); // wing
         box(mesh, 0, 1.36, -3.45, 3.20, 0.12, 0.90, MATERIAL_AIRCRAFT, 1.0f); // tailplane
         box(mesh, 0, 2.075, -3.55, 0.12, 1.05, 0.70, MATERIAL_AIRCRAFT, 1.0f);
-        box(mesh, 0, 0.76, 4.44, 1.90, 0.20, 0.12, MATERIAL_STEEL, 1.0f);     // propeller
         box(mesh, 0, 0.275, 3.60, 0.24, 0.55, 0.60, MATERIAL_TYRE, 1.0f);     // nose wheel
         box(mesh, 1.00, 0.275, -0.30, 0.24, 0.55, 0.60, MATERIAL_TYRE, 1.0f);
         box(mesh, -1.00, 0.275, -0.30, 0.24, 0.55, 0.60, MATERIAL_TYRE, 1.0f);
         return mesh;
     }
 
-    /** Cabin, boom, fin, two crossed blades, a tail rotor and two skids: 5.60 m rotor disc. */
+    /** The propeller disc, centred on the hub, lying across the nose. */
+    private static MeshData propeller() {
+        MeshData mesh = new MeshData();
+        box(mesh, 0.95, 0, 0, 1.90, 0.20, 0.12, MATERIAL_STEEL, 1.0f);
+        box(mesh, -0.95, 0, 0, 1.90, 0.20, 0.12, MATERIAL_STEEL, 1.0f);
+        return mesh;
+    }
+
+    /** Cabin, boom, fin and two skids: 5.60 m of rotor disc, in the parts. */
     private static MeshData helicopter() {
         MeshData mesh = new MeshData();
         box(mesh, 0, 0.815, 0.35, 1.50, 1.27, 2.50, MATERIAL_HELI, 1.0f);    // cabin
         box(mesh, 0, 1.20, 1.40, 1.40, 0.60, 0.40, MATERIAL_GLASS, 1.0f);   // canopy
         box(mesh, 0, 0.90, -2.05, 0.50, 0.40, 2.30, MATERIAL_HELI, 1.0f);   // tail boom
         box(mesh, 0, 1.20, -3.20, 0.16, 0.80, 0.40, MATERIAL_HELI, 1.0f);   // fin
-        box(mesh, 0, 1.59, 0, 5.60, 0.08, 0.20, MATERIAL_ROTOR, 0.7f);      // main rotor, two blades
-        box(mesh, 0, 1.59, 0, 0.20, 0.08, 5.60, MATERIAL_ROTOR, 0.7f);
-        box(mesh, 0, 1.50, -3.40, 0.12, 0.90, 0.10, MATERIAL_ROTOR, 0.7f);  // tail rotor
         box(mesh, 0.65, 0.09, 0.40, 0.20, 0.18, 2.80, MATERIAL_STEEL, 1.0f);  // skids
         box(mesh, -0.65, 0.09, 0.40, 0.20, 0.18, 2.80, MATERIAL_STEEL, 1.0f);
+        return mesh;
+    }
+
+    /** Two crossed blades, centred on the mast. */
+    private static MeshData mainRotor() {
+        MeshData mesh = new MeshData();
+        box(mesh, 0, 0, 0, 5.60, 0.08, 0.20, MATERIAL_ROTOR, 0.7f);
+        box(mesh, 0, 0, 0, 0.20, 0.08, 5.60, MATERIAL_ROTOR, 0.7f);
+        return mesh;
+    }
+
+    /** Two blades in the vertical plane, centred on the tail shaft. */
+    private static MeshData tailRotor() {
+        MeshData mesh = new MeshData();
+        box(mesh, 0, 0, 0, 0.12, 0.90, 0.10, MATERIAL_ROTOR, 0.7f);
         return mesh;
     }
 
@@ -149,10 +323,6 @@ public final class BodyMesher {
     }
 
     // ------------------------------------------------------------------ one box ------------------
-
-    private static void wheel(MeshData mesh, double centreX, double centreZ) {
-        box(mesh, centreX, 0.33, centreZ, 0.24, 0.66, 0.66, MATERIAL_TYRE, 1.0f);
-    }
 
     /**
      * Adds one axis-aligned box: the centre and the full extent on each axis, so a call reads like the

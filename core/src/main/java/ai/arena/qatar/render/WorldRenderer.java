@@ -39,6 +39,10 @@ public final class WorldRenderer implements Disposable {
     private Mesh skyQuad;
     /** The player's own body: the only mesh in the game that moves every frame. */
     private Mesh actorMesh;
+    /** Wheels, a propeller, rotors: the parts of that body that turn where they are. */
+    private Mesh[] actorParts = new Mesh[0];
+    /** One matrix per moving part, reused every frame: a car has four wheels, so this never grows. */
+    private Matrix4[] partScratch = new Matrix4[8];
 
     private final LongMap<GpuChunk> chunks = new LongMap<>();
     private final Matrix4 identity = new Matrix4();
@@ -184,6 +188,26 @@ public final class WorldRenderer implements Disposable {
         actorMesh = upload(actorMesh, data);
     }
 
+    /** Uploads the player's body together with the parts of it that move. */
+    public void setActor(MeshData body, java.util.List<BodyMesher.Part> parts) {
+        setActorMesh(body);
+        for (Mesh existing : actorParts) {
+            if (existing != null) {
+                existing.dispose();
+            }
+        }
+        if (partScratch.length < parts.size()) {
+            partScratch = java.util.Arrays.copyOf(partScratch, parts.size());
+        }
+        actorParts = new Mesh[parts.size()];
+        for (int i = 0; i < parts.size(); i++) {
+            actorParts[i] = upload(null, parts.get(i).mesh);
+            if (partScratch[i] == null) {
+                partScratch[i] = new Matrix4();
+            }
+        }
+    }
+
     /**
      * Draws the player's body. The world program must still be bound, so this is called straight after
      * the chunk loop and the uniforms are already set.
@@ -196,6 +220,28 @@ public final class WorldRenderer implements Disposable {
         actorMesh.render(worldProgram, GL20.GL_TRIANGLES);
         drawCalls++;
         drawnTriangles += actorMesh.getNumIndices() / 3;
+    }
+
+    /**
+     * Draws the body and every moving part of it. Each part is placed at its own pivot first and turned
+     * second, so a wheel spins on its axle instead of orbiting the car.
+     */
+    public void drawActor(Matrix4 bodyTransform, java.util.List<BodyMesher.Part> parts,
+                          double localEast, double localNorth, double headingDegrees,
+                          double spinDegrees) {
+        drawActor(bodyTransform);
+        for (int i = 0; i < actorParts.length && i < parts.size(); i++) {
+            Mesh part = actorParts[i];
+            if (part == null || partScratch[i] == null) {
+                continue;
+            }
+            BodyMesher.transform(partScratch[i], parts.get(i), localEast, localNorth, headingDegrees,
+                    spinDegrees);
+            worldProgram.setUniformMatrix("u_model", partScratch[i]);
+            part.render(worldProgram, GL20.GL_TRIANGLES);
+            drawCalls++;
+            drawnTriangles += part.getNumIndices() / 3;
+        }
     }
 
     public void release(long key) {
@@ -243,6 +289,12 @@ public final class WorldRenderer implements Disposable {
             actorMesh.dispose();
             actorMesh = null;
         }
+        for (Mesh part : actorParts) {
+            if (part != null) {
+                part.dispose();
+            }
+        }
+        actorParts = new Mesh[0];
     }
 
     @Override
