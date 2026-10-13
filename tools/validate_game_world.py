@@ -66,12 +66,17 @@ def main() -> int:
     check(manifest.get("format") == 2, f"manifest is game format 2 (found {manifest.get('format')})")
     check(manifest.get("crs") == "EPSG:32639", "manifest declares the UTM 39N master CRS")
     check(bool(manifest.get("attribution")), "manifest carries the OSM attribution")
-    origin_e = float(manifest["originEast"])
-    origin_n = float(manifest["originNorth"])
-    max_e = origin_e + float(manifest["widthM"])
-    max_n = origin_n + float(manifest["heightM"])
-    check(float(manifest["widthM"]) > (1_000 if args.synthetic else 100_000),
-          "grid covers the country (wider than 100 km)")
+    # The grid lives under "grid" in the manifest stage 1 writes and stage 2 rewrites; the flat keys are
+    # accepted too, so this validator can read a hand-written manifest without pretending it is broken.
+    grid = manifest.get("grid", {})
+    origin_e = float(manifest.get("originEast", grid.get("originEast", 0.0)))
+    origin_n = float(manifest.get("originNorth", grid.get("originNorth", 0.0)))
+    width_m = float(manifest.get("widthM", grid.get("widthM", 0.0)))
+    height_m = float(manifest.get("heightM", grid.get("heightM", 0.0)))
+    max_e = origin_e + width_m
+    max_n = origin_n + height_m
+    check(width_m > (1_000 if args.synthetic else 100_000),
+          f"grid covers the country ({(width_m / 1000):.0f} km wide)")
     # Country-scale floors: a real Qatar compile must clear these by a wide margin, while the synthetic
     # fixture (used by the JVM unit tests) is deliberately tiny.
     # Country-scale floors. Land use is plentiful in Qatar; inland water is sparse (a desert country
@@ -192,6 +197,15 @@ def main() -> int:
         spawns = manifest.get("stats", {}).get("spawnPoints", {})
         check(spawns.get("car", 0) > 0 and spawns.get("aeroplane", 0) > 0,
               f"manifest reports spawn points ({spawns})")
+        if not args.synthetic:
+            # Country-scale sanity, from the two defects the last data run exposed: plane spawns were
+            # emitted for taxiways and for every shared way junction (1,916 of them), and there were no
+            # helicopter spawns at all because helipads are nodes and stage 1 only collects ways.
+            check(kinds.get(1, 0) > 0, f"the country has helicopter spawn points ({kinds.get(1, 0)})")
+            check(kinds.get(3, 0) <= 600,
+                  f"aeroplane spawn points are runway ends, not way vertices ({kinds.get(3, 0)})")
+            check(spawns.get("car", 0) >= 20, f"car spawn points are plentiful ({spawns.get('car', 0)})")
+            check(kinds.get(2, 0) > 0, f"boat spawn points exist ({kinds.get(2, 0)})")
 
     # The stage 2 compiler once ran to completion over real Oman/Qatar data before failing on a tuple
     # that was never unpacked, and the fixture path could not see it. These are the cheap static guards

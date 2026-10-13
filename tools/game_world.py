@@ -383,16 +383,26 @@ def collect_pois(data: "bw.OsmData", strings: "bw.StringTable") -> list[dict]:
 
 
 def runway_spawns(data: "bw.OsmData") -> list[dict]:
-    """Runway end points, the natural place to spawn the light aeroplane."""
+    """Runway end points, the natural place to spawn the light aeroplane.
+
+    Only a runway end is somewhere an aeroplane belongs -- taxiway ends are not spawn points. Ends that
+    land on top of one another, from shared way junctions or from one physical runway mapped as two ways,
+    are folded together: two spawns on one threshold is a data artefact, not a second runway.
+    """
     out: list[dict] = []
+    seen: set[tuple[int, int]] = set()
     for way in data.aeroways:
-        if (way["tags"].get("aeroway") or "") not in ("runway", "taxiway"):
+        if (way["tags"].get("aeroway") or "") != "runway":
             continue
         coords = way["coords"]
         if len(coords) < 2:
             continue
         for index, endpoint in enumerate((coords[0], coords[-1])):
             east, north = bw.FWD.transform(*endpoint)
+            cell = (int(round(east / 50.0)), int(round(north / 50.0)))
+            if cell in seen:
+                continue
+            seen.add(cell)
             other = coords[-1] if index == 0 else coords[0]
             other_east, other_north = bw.FWD.transform(*other)
             angle = math.degrees(math.atan2(other_north - north, other_east - east)) % 360.0
@@ -400,6 +410,87 @@ def runway_spawns(data: "bw.OsmData") -> list[dict]:
                         "class": POI_CLASS_IDS["airport"], "name": way["tags"].get("ref") or "",
                         "angle": int(round(angle * 10.0))})
     return out
+
+
+def collect_poi_nodes(osm_path: Path) -> list[dict]:
+    """Places that live on OSM nodes rather than on areas.
+
+    A helipad is a node; so are most parking entrances, fuel stations and bus stops. Stage 1 compiles the
+    terrain and the ways and never looks at these, which is exactly why the country had no helicopter
+    spawn point at all -- so stage 2 makes its own pass over the same extract for the point features the
+    game places things on.
+    """
+    import osmium
+
+    wanted = {
+        ("aeroway", "helipad"): "helipad",
+        ("aeroway", "heliport"): "heliport",
+        ("amenity", "parking"): "parking",
+        ("amenity", "fuel"): "fuel",
+        ("amenity", "bus_station"): "bus_station",
+        ("railway", "station"): "station",
+        ("amenity", "hospital"): "hospital",
+        ("amenity", "school"): "school",
+        ("amenity", "place_of_worship"): "mosque",
+        ("leisure", "marina"): "marina",
+        ("shop", "mall"): "mall",
+        ("amenity", "marketplace"): "marketplace",
+        ("leisure", "sports_centre"): "stadium",
+        ("tourism", "museum"): "museum",
+    }
+    out: list[dict] = []
+    seen: set[tuple[int, int]] = set()
+
+    class NodeCollector(osmium.SimpleHandler):
+        def node(self, node):  # noqa: N802 - osmium API
+            if not node.location.valid():
+                return
+            tags = {t.k: t.v for t in node.tags}
+            key = None
+            for tag, value in wanted.items():
+                if tags.get(tag[0]) == tag[1]:
+                    key = value
+                    break
+            if key is None:
+                return
+            east, north = bw.FWD.transform(node.location.lon, node.location.lat)
+            cell = (int(round(east / 20.0)), int(round(north / 20.0)))
+            if cell in seen:
+                return
+            seen.add(cell)
+            out.append({"lon": node.location.lon, "lat": node.location.lat, "tags": tags,
+                        "name": tags.get("name:en") or tags.get("name") or "", "key": key})
+
+    NodeCollector().apply_file(str(osm_path), locations=True)
+    bw.log(f"    node features: {len(out):,}")
+    return out
+
+
+def dedupe_points(points: list[dict]) -> list[dict]:
+    """Folds points that describe the same place, preferring ones the game can spawn on.
+
+    The area pass, the node pass and the runway ends overlap: a marina is an area and its pontoons are
+    nodes, and a runway threshold is also the corner of an apron. Two markers 20 m apart are one place to
+    a player, so they are one place in the data.
+    """
+    kept: list[dict] = []
+    occupied: dict[tuple[int, int], int] = {}
+    for point in points:
+        cell = (int(round(point["east"] / 25.0)), int(round(point["north"] / 25.0)))
+        existing = occupied.get(cell)
+        if existing is None:
+            occupied[cell] = len(kept)
+            kept.append(point)
+            continue
+        previous = kept[existing]
+        new_spawn = point.get("kind") in (SPAWN_CAR, SPAWN_HELI, SPAWN_BOAT, SPAWN_PLANE)
+        old_spawn = previous.get("kind") in (SPAWN_CAR, SPAWN_HELI, SPAWN_BOAT, SPAWN_PLANE)
+        if new_spawn != old_spawn:
+            if new_spawn:
+                kept[existing] = point
+        elif len(point.get("name", "")) > len(previous.get("name", "")):
+            kept[existing] = point
+    return kept
 
 
 # ---------------------------------------------------------------------------------------------
@@ -580,7 +671,20 @@ def main() -> int:
     bw.log(f"    barriers: {barrier_stats['records']:,} lines")
 
     bw.log("  packing points of interest and spawn points")
-    poi_list = collect_pois(data, strings) + runway_spawns(data)
+    node_features = collect_poi_nodes(osm_path)
+    # Area and way features first (stage 1's extraction already has them), then the node features that
+    # stage 1 never looks at -- helipads, parking, fuel, marinas -- then runway ends, then one pass that
+    # folds duplicates, so a place named twice is one place.
+    class NodeAreas:
+        """Adapts the node pass to the area pass's shape: collect_pois reads named_areas and places."""
+
+        named_areas: list = node_features
+        places: list = []
+
+    poi_list = collect_pois(data, strings)
+    poi_list += collect_pois(NodeAreas(), strings)
+    poi_list += runway_spawns(data)
+    poi_list = dedupe_points(poi_list)
     pois_payload, poi_stats = pack_pois(poi_list, strings)
     bw.log(f"    points: {poi_stats['records']:,}")
 

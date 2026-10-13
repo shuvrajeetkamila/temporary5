@@ -93,69 +93,73 @@ public final class WorldData {
         return loadMillis;
     }
 
+    /**
+     * Where bundle bytes come from: a file handle on a device, a directory in a test, memory in a tool.
+     *
+     * <p>The loading path is the same one everywhere, which is the point: the test that loads the
+     * committed 14 MB of Qatar runs the same code the phone runs, not a paraphrase of it.
+     */
+    public interface BundleSource {
+        byte[] read(String fileName);
+    }
+
     /** Loads and verifies every bundle from an asset directory such as {@code world}. */
     public static WorldData load(String assetDir) {
-        long started = System.nanoTime();
         GameManifest manifest = GameManifest.load(assetDir);
-        StringTable strings = readStrings(assetDir, manifest);
+        return fromSource(manifest, fileName -> {
+            FileHandle handle = Gdx.files.internal(assetDir + "/" + fileName);
+            if (!handle.exists()) {
+                throw new IllegalStateException("world bundle missing: " + fileName);
+            }
+            return handle.readBytes();
+        });
+    }
 
-        TerrainGrid terrainL1 = TerrainGrid.parse(readBytes(assetDir, manifest.terrainL1),
+    /** Loads and verifies every bundle the manifest names, from whatever holds them. */
+    public static WorldData fromSource(GameManifest manifest, BundleSource source) {
+        long started = System.nanoTime();
+        StringTable strings = manifest.strings.present()
+                ? StringTable.parseUncompressed(BundleReader.open("strings",
+                        source.read(manifest.strings.file), manifest.strings.sha256))
+                : StringTable.empty();
+
+        TerrainGrid terrainL1 = TerrainGrid.parse(source.read(manifest.terrainL1.file),
                 manifest.originEast, manifest.originNorth, "QTT1");
         TerrainGrid terrainL0 = manifest.terrainL0.present()
-                ? TerrainGrid.parse(readBytes(assetDir, manifest.terrainL0), manifest.originEast,
-                        manifest.originNorth, "QTT1")
+                ? TerrainGrid.parse(source.read(manifest.terrainL0.file),
+                        manifest.originEast, manifest.originNorth, "QTT1")
                 : terrainL1;
-        MaterialGrid materials = MaterialGrid.parse(readBytes(assetDir, manifest.materials),
+        MaterialGrid materials = MaterialGrid.parse(source.read(manifest.materials.file),
                 manifest.originEast, manifest.originNorth);
 
         Roads roads = manifest.roads.present()
-                ? Roads.parse(BundleReader.open("roads", readBytes(assetDir, manifest.roads),
+                ? Roads.parse(BundleReader.open("roads", source.read(manifest.roads.file),
                         manifest.roads.sha256), manifest.originEast, manifest.originNorth)
                 : null;
         Buildings buildings = manifest.buildings.present()
-                ? Buildings.parse(BundleReader.open("buildings", readBytes(assetDir, manifest.buildings),
+                ? Buildings.parse(BundleReader.open("buildings", source.read(manifest.buildings.file),
                         manifest.buildings.sha256), manifest.originEast, manifest.originNorth)
                 : null;
         Areas landuse = manifest.landuse.present()
-                ? Areas.parse(BundleReader.open("landuse", readBytes(assetDir, manifest.landuse),
+                ? Areas.parse(BundleReader.open("landuse", source.read(manifest.landuse.file),
                         manifest.landuse.sha256), "QLU1", manifest.originEast, manifest.originNorth)
                 : null;
         Areas water = manifest.water.present()
-                ? Areas.parse(BundleReader.open("water", readBytes(assetDir, manifest.water),
+                ? Areas.parse(BundleReader.open("water", source.read(manifest.water.file),
                         manifest.water.sha256), "QWA1", manifest.originEast, manifest.originNorth)
                 : null;
         Barriers barriers = manifest.barriers.present()
-                ? Barriers.parse(BundleReader.open("barriers", readBytes(assetDir, manifest.barriers),
+                ? Barriers.parse(BundleReader.open("barriers", source.read(manifest.barriers.file),
                         manifest.barriers.sha256), manifest.originEast, manifest.originNorth)
                 : null;
         Points points = manifest.pois.present()
-                ? Points.parse(BundleReader.open("pois", readBytes(assetDir, manifest.pois),
+                ? Points.parse(BundleReader.open("pois", source.read(manifest.pois.file),
                         manifest.pois.sha256), manifest.originEast, manifest.originNorth)
                 : null;
 
         long millis = (System.nanoTime() - started) / 1_000_000L;
         return new WorldData(manifest, strings, terrainL1, terrainL0, materials, roads, buildings,
                 landuse, water, barriers, points, millis);
-    }
-
-    private static byte[] readBytes(String assetDir, GameManifest.Bundle bundle) {
-        if (!bundle.present()) {
-            throw new IllegalStateException("manifest does not name a required bundle");
-        }
-        FileHandle handle = Gdx.files.internal(assetDir + "/" + bundle.file);
-        if (!handle.exists()) {
-            throw new IllegalStateException("world bundle missing: " + bundle.file);
-        }
-        return handle.readBytes();
-    }
-
-    private static StringTable readStrings(String assetDir, GameManifest manifest) {
-        if (!manifest.strings.present()) {
-            return StringTable.empty();
-        }
-        byte[] raw = readBytes(assetDir, manifest.strings);
-        BundleReader reader = BundleReader.open("strings", raw, manifest.strings.sha256);
-        return StringTable.parseUncompressed(reader);
     }
 
     /** Human readable summary for the loading screen and the startup report. */

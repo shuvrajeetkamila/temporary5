@@ -91,6 +91,18 @@ public final class GameManifest {
         return east >= originEast && east <= maxEast() && north >= originNorth && north <= maxNorth();
     }
 
+    /** Joins an array of strings (the manifest records attribution as a list). */
+    private static String joinStrings(com.badlogic.gdx.utils.JsonValue array) {
+        StringBuilder sb = new StringBuilder();
+        for (com.badlogic.gdx.utils.JsonValue value = array.child; value != null; value = value.next) {
+            if (sb.length() > 0) {
+                sb.append(" | ");
+            }
+            sb.append(value.asString());
+        }
+        return sb.toString();
+    }
+
     /** Loads the manifest from the asset root, e.g. {@code world}. */
     public static GameManifest load(String worldDir) {
         FileHandle handle = Gdx.files.internal(worldDir + "/manifest.json");
@@ -111,11 +123,25 @@ public final class GameManifest {
         manifest.worldEpoch = root.getInt("worldEpoch", 0);
         manifest.crs = root.getString("crs", "");
         manifest.crsName = root.getString("crsName", "");
-        manifest.originEast = root.getDouble("originEast", 0);
-        manifest.originNorth = root.getDouble("originNorth", 0);
-        manifest.widthM = root.getDouble("widthM", 0);
-        manifest.heightM = root.getDouble("heightM", 0);
-        manifest.attribution = root.getString("attribution", "");
+        // The grid stage 1 writes lives under "grid"; flat keys are accepted for hand-written manifests.
+        // Falling back to 0,0 for a missing grid used to be silent and catastrophic: every cell lookup
+        // would be 431 km off, so an absent grid is an error, not a default.
+        JsonValue grid = root.get("grid");
+        JsonValue originSource = grid != null ? grid : root;
+        manifest.originEast = originSource.getDouble("originEast", Double.NaN);
+        manifest.originNorth = originSource.getDouble("originNorth", Double.NaN);
+        manifest.widthM = originSource.getDouble("widthM", Double.NaN);
+        manifest.heightM = originSource.getDouble("heightM", Double.NaN);
+        if (Double.isNaN(manifest.originEast) || Double.isNaN(manifest.originNorth)
+                || Double.isNaN(manifest.widthM) || Double.isNaN(manifest.heightM)
+                || manifest.widthM <= 0 || manifest.heightM <= 0) {
+            throw new IllegalStateException("world manifest has no usable grid: origin ("
+                    + manifest.originEast + ", " + manifest.originNorth + ") extent ("
+                    + manifest.widthM + " x " + manifest.heightM + ")");
+        }
+        JsonValue attribution = root.get("attribution");
+        manifest.attribution = attribution == null ? ""
+                : (attribution.isArray() ? joinStrings(attribution) : attribution.asString());
 
         manifest.terrainL0 = bundle(root.get("terrain_l0"));
         manifest.terrainL1 = bundle(root.get("terrain_l1"));
