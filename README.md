@@ -19,6 +19,20 @@ GLSL is compiled (there is no GPU in CI), there is no sound, buildings collide a
 their drawn ring, and the world stops being drawn beyond the streaming radius around the player. See
 `docs/PLAN.md` for the running list.
 
+## Install it
+
+Download and install on an Android phone (6.0+):
+
+**[Qatar-The-Peninsula-v0.1.0-m0.apk](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk)** —
+18,994,222 bytes, SHA-256 `340d8eb46260c6f63ecf49cea9fcf178ab87d6c47303163d5936eac586809dc7`
+(the sidecar `.sha256` is next to it). Debug-signed, so Android will ask you to allow installation from
+this source. No network permission: the country is inside the package.
+
+Controls: drag to look, drag on the lower-left to move, the buttons on the right open the map (tap a
+place on it to be put there), and `VIEW` switches between the driver's eyes and a camera behind the
+machine. The full report, including what is honestly not finished, is in
+[docs/FINAL_REPORT.md](docs/FINAL_REPORT.md).
+
 ## How it works
 
 * `tools/fetch_sources.py` — downloads the OpenStreetMap extract for Qatar and the SRTM elevation tiles,
