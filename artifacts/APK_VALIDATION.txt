@@ -1,6 +1,6 @@
 apk_path=artifacts/Qatar-The-Peninsula-v0.1.0-m0.apk
-apk_bytes=14221655
-apk_sha256=95541f932d3941b78da16ee2af7f96d63a8c363e4f846d3d4f7e58f254c7e158
+apk_bytes=18974815
+apk_sha256=36285363465ce4087306ac3cfa9fbcc95ec9cf96ca5166dfb48fced80d4fd49b
 zip_integrity=ok
 manifest_package=package: name='ai.arena.qatar.peninsula' versionCode='1' versionName='0.1.0-m0' platformBuildVersionName='14' platformBuildVersionCode='34' compileSdkVersion='34' compileSdkVersionCodename='14'
 manifest_sdk=sdkVersion:26
@@ -9,11 +9,11 @@ offline_first=yes (no INTERNET permission requested)
 native_abis=arm64-v8a armeabi-v7a x86_64 
 libgdx_native=present
 dex_files=12
-world_assets=9
+world_assets=13
 world_manifest=present
 licenses_packaged=yes
 signature=present
-apk_entry_count=47
-largest_entries=20823620 assets/world/terrain_l1.bin;14972032 assets/world/roads.bin;6941220 assets/world/material_l1.bin;4300859 assets/world/buildings.bin;2311997 assets/world/terrain_l0.bin;
+apk_entry_count=51
+largest_entries=20823620 assets/world/terrain_l1.bin;14972032 assets/world/roads.bin;12159880 assets/world/buildings.bin;6941220 assets/world/material_l1.bin;2311997 assets/world/terrain_l0.bin;
 checksum_sidecar=artifacts/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256
 validation=PASSED
