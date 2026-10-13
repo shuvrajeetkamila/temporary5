@@ -1,2 +1,0 @@
-/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/world/RealWorldAssetsTest.java:111: error: cannot find symbol
-/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/world/RealWorldAssetsTest.java:112: error: cannot find symbol
