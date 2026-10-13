@@ -1,8 +1,23 @@
 
+MapTeleportTest > a start position exists for every locomotion type PASSED
+
+MapTeleportTest > the map knows water from land FAILED
+    org.opentest4j.AssertionFailedError: the lake is drawn as land ==> expected: <true> but was: <false>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+        at app//ai.arena.qatar.game.MapTeleportTest.mapKnowsWater(MapTeleportTest.java:87)
+
+GeoMathTest > projected distances and bearings match known national geometry PASSED
+
+--
+
 VehicleDynamicsTest > an aeroplane at full power settles at its real cruise speed PASSED
 
 VehicleDynamicsTest > an aeroplane leaves the ground only once the wing can carry it FAILED
-    org.opentest4j.AssertionFailedError: it got airborne but barely climbed: 0.9951762111536873 m ==> expected: <true> but was: <false>
+    org.opentest4j.AssertionFailedError: it got airborne but barely climbed: 0.9550000000000001 m ==> expected: <true> but was: <false>
         at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
         at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
         at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
@@ -14,10 +29,10 @@ ChunkManagerTest > chunksBecomeActiveAndUploadsStayInBudget() PASSED
 
 --
 
-65 tests completed, 1 failed
+72 tests completed, 2 failed
 
 > Task :core:test FAILED
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791909527416.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791910476300.json
 
 FAILURE: Build failed with an exception.
 
@@ -46,5 +61,5 @@ Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 19s
+BUILD FAILED in 21s
 4 actionable tasks: 4 executed
