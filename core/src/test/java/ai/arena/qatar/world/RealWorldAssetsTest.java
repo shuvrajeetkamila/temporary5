@@ -108,8 +108,8 @@ public class RealWorldAssetsTest {
         assertNotNull(world.buildings, "buildings loaded");
         assertNotNull(world.roads, "roads loaded");
         assertNotNull(world.points, "points loaded");
-        assertTrue(world.buildings.count > 100_000,
-                "building footprints: " + world.buildings.count);
+        assertTrue(world.buildings.ringCount > 100_000,
+                "building footprints: " + world.buildings.ringCount);
         assertTrue(world.roads.count > 100_000, "road ways: " + world.roads.count);
         assertTrue(world.strings.size() > 10_000, "string table: " + world.strings.size());
         assertTrue(world.points.count > 500, "points of interest: " + world.points.count);
