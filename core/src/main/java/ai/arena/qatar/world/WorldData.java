@@ -32,6 +32,7 @@ public final class WorldData {
     public final FeatureIndex roadIndex;
     public final FeatureIndex waterIndex;
     public final FeatureIndex pointIndex;
+    public final FeatureIndex barrierIndex;
 
     private final long loadMillis;
 
@@ -67,6 +68,11 @@ public final class WorldData {
         this.pointIndex = points == null ? null
                 : new FeatureIndex(pointBounds(points), points.count, manifest.originEast,
                         manifest.originNorth, width, height, 1000.0);
+        // A 250 m cell, because a barrier is a thin line: a coarser index would report neighbours that
+        // are nowhere near the query, and the per-segment test would do the work anyway.
+        this.barrierIndex = barriers == null ? null
+                : new FeatureIndex(barriers.bounds, barriers.count, manifest.originEast,
+                        manifest.originNorth, width, height, 250.0);
     }
 
     /** Points carry no stored bounds; a point's own coordinates are its bounding box. */

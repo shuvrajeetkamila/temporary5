@@ -57,8 +57,14 @@ is written down in the code as the limit of the test: a courtyard is walkable th
 **Evidence.** `VehicleDynamicsTest`, `BuildingCollisionTest` and `MapTeleportTest` run in the compile
 gate: 78 tests, 0 failures, on the commit that added the walls.
 
-**Remaining for step 2:** collision against barriers and against other vehicles, and the in-cockpit feel
-on a real device.
+**Barriers (done).** Walls, fences and hedges are solid along their own line segments, from the ground
+to their compiled height: a person and a car are stopped, a gate is a way through, a kerb is a step you
+take, and an aircraft passing over a 2.4 m wall is not in the wall's way. Getting there turned up a bug
+worth writing down: each barrier's bounding box was seeded from its absolute first vertex and then from
+its origin-relative ones, so a Doha wall claimed to begin at EPSG east 553,100 in a world 259 km wide —
+which is why no barrier in the country had ever been meshed either. The box is in one frame now.
+
+**Remaining for step 2:** collisions between vehicles, and the in-cockpit feel on a real device.
 
 ## The vertex layout, which was wrong in a way nothing local could see
 
