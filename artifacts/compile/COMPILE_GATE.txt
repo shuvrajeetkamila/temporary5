@@ -1,14 +1,14 @@
-commit=d58078de96f137abe8c37d60a36691042b167de6
-run_id=38431589076
-url=https://github.com/shuvrajeetkamila/temporary5/actions/runs/38431589076
-finished_utc=2026-10-13T16:35:14Z
+commit=ec5727d3b6863e52d9fb6d9d5766fa0fdb0311c2
+run_id=38433032553
+url=https://github.com/shuvrajeetkamila/temporary5/actions/runs/38433032553
+finished_utc=2026-10-13T16:45:42Z
 To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
 Daemon will be stopped at the end of the build 
 > Task :core:compileJava
 > Task :core:processResources NO-SOURCE
 > Task :core:classes
 > Task :core:compileTestJava
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run-1791909283245.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run-1791909920877.json
 
-BUILD SUCCESSFUL in 22s
+BUILD SUCCESSFUL in 12s
 2 actionable tasks: 2 executed
