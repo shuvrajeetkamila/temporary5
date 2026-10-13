@@ -555,7 +555,10 @@ def main() -> int:
         return 2
     base = json.loads(manifest_path.read_text())
 
-    data = bw.extract_osm(osm_path)
+    # Stage 1's extractor hands back the national boundary and the feature data together; stage 2
+    # needs the features, and unpacks both so a change on either side stays a type error, not a
+    # silent wrong-bundle build.
+    _national_wgs, data = bw.extract_osm(osm_path)
     # Names added here are appended to the stage 1 table, so every index already packed into the
     # roads and coast bundles keeps pointing at the same string.
     strings = load_string_table(world / "strings.bin.gz")
