@@ -60,9 +60,12 @@ public final class GameScreen extends InputAdapter implements Disposable {
     private int lookPointer = -1;
     private int movePointer = -1;
     private int buttonPointer = -1;
-    private final Vec3 moveAnchor = new Vec3();
-    private final Vec3 moveCurrent = new Vec3();
-    private final Vec3 lookLast = new Vec3();
+    private float moveAnchorX;
+    private float moveAnchorY;
+    private float moveCurrentX;
+    private float moveCurrentY;
+    private float lookLastX;
+    private float lookLastY;
     private float moveRadius = 90f;
     private float lookSensitivity = LOOK_DEGREES_PER_PX;
 
@@ -70,7 +73,8 @@ public final class GameScreen extends InputAdapter implements Disposable {
     private int mapPointerA = -1;
     private int mapPointerB = -1;
     private float lastPinchDistance;
-    private final Vec3 mapDragLast = new Vec3();
+    private float mapDragLastX;
+    private float mapDragLastY;
     private float mapTravel;
     private boolean mapPressedButton;
 
@@ -204,7 +208,7 @@ public final class GameScreen extends InputAdapter implements Disposable {
         }
         // The move stick, drawn where the thumb actually is.
         if (movePointer >= 0) {
-            hud.drawStick(moveAnchor.x, moveAnchor.y, moveCurrent.x, moveCurrent.y, moveRadius);
+            hud.drawStick(moveAnchorX, moveAnchorY, moveCurrentX, moveCurrentY, moveRadius);
         }
     }
 
@@ -284,8 +288,10 @@ public final class GameScreen extends InputAdapter implements Disposable {
         }
         if (movePointer < 0 && x < layout.screenWidth() * 0.3f && y < layout.screenHeight() * 0.62f) {
             movePointer = pointer;
-            moveAnchor.set(x, y, 0);
-            moveCurrent.set(x, y, 0);
+            moveAnchorX = x;
+            moveAnchorY = y;
+            moveCurrentX = x;
+            moveCurrentY = y;
             return true;
         }
         if (layout.minimap().contains(x, y)) {
@@ -294,7 +300,8 @@ public final class GameScreen extends InputAdapter implements Disposable {
         }
         if (lookPointer < 0) {
             lookPointer = pointer;
-            lookLast.set(x, y, 0);
+            lookLastX = x;
+            lookLastY = y;
             return true;
         }
         return false;
@@ -308,14 +315,16 @@ public final class GameScreen extends InputAdapter implements Disposable {
             return mapTouchDragged(x, y, pointer);
         }
         if (pointer == lookPointer) {
-            float dx = x - lookLast.x;
-            float dy = y - lookLast.y;
+            float dx = x - lookLastX;
+            float dy = y - lookLastY;
             rig.look(dx * lookSensitivity, dy * lookSensitivity);
-            lookLast.set(x, y, 0);
+            lookLastX = x;
+            lookLastY = y;
             return true;
         }
         if (pointer == movePointer) {
-            moveCurrent.set(x, y, 0);
+            moveCurrentX = x;
+            moveCurrentY = y;
             updateMoveInput();
             return true;
         }
@@ -357,8 +366,8 @@ public final class GameScreen extends InputAdapter implements Disposable {
 
     /** Converts the stick position into movement input: push forward to go forward. */
     private void updateMoveInput() {
-        float dx = moveCurrent.x - moveAnchor.x;
-        float dy = moveCurrent.y - moveAnchor.y;
+        float dx = moveCurrentX - moveAnchorX;
+        float dy = moveCurrentY - moveAnchorY;
         float forward = -dy / moveRadius;
         float strafe = dx / moveRadius;
         float magnitude = (float) Math.sqrt(forward * forward + strafe * strafe);
@@ -461,7 +470,8 @@ public final class GameScreen extends InputAdapter implements Disposable {
         }
         if (mapPointerA < 0) {
             mapPointerA = pointer;
-            mapDragLast.set(x, y, 0);
+            mapDragLastX = x;
+            mapDragLastY = y;
             mapTravel = 0f;
         } else if (mapPointerB < 0) {
             mapPointerB = pointer;
@@ -498,11 +508,12 @@ public final class GameScreen extends InputAdapter implements Disposable {
             return true;
         }
         if (pointer == mapPointerA) {
-            float dx = x - mapDragLast.x;
-            float dy = y - mapDragLast.y;
+            float dx = x - mapDragLastX;
+            float dy = y - mapDragLastY;
             mapTravel += Math.abs(dx) + Math.abs(dy);
             mapView.pan(dx, dy);
-            mapDragLast.set(x, y, 0);
+            mapDragLastX = x;
+            mapDragLastY = y;
             return true;
         }
         return false;

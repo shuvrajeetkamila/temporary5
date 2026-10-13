@@ -44,6 +44,7 @@ public final class HudRenderer implements Disposable {
     private BitmapFont large;
     private boolean fontsReady;
     private Texture white;
+    private final TextureRegion pixel = new TextureRegion();
     private Texture mapTexture;
     private MapRaster raster;
     private final TextureRegion mapRegion = new TextureRegion();
@@ -53,6 +54,7 @@ public final class HudRenderer implements Disposable {
     /** Loads fonts and uploads the map. Safe to call more than once; failures degrade, they do not crash. */
     public void init(MapRaster raster) {
         white = solidTexture(0xFFFFFFFF);
+        pixel.setRegion(white);
         this.raster = raster;
         if (raster != null) {
             mapTexture = uploadRaster(raster);
@@ -246,7 +248,7 @@ public final class HudRenderer implements Disposable {
         }
         float angle = (float) Math.toDegrees(Math.atan2(dy, dx));
         batch.setColor(colour);
-        batch.draw(white, x0, y0 - thickness * 0.5f, 0f, thickness * 0.5f, length, thickness, 1f, 1f,
+        batch.draw(pixel, x0, y0 - thickness * 0.5f, 0f, thickness * 0.5f, length, thickness, 1f, 1f,
                 angle);
         batch.setColor(Color.WHITE);
     }
