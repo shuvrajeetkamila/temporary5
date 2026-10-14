@@ -120,57 +120,131 @@ public final class GameScreen extends InputAdapter implements Disposable {
      */
     public void show() {
         ai.arena.qatar.boot.ScreenLog console = ai.arena.qatar.boot.ScreenLog.GLOBAL;
-        if (raster == null) {
-            console.log("Building the map raster (" + DEFAULT_MAP_RESOLUTION + ")");
-            raster = MapRaster.build(world, DEFAULT_MAP_RESOLUTION);
+
+        // Every subsystem is built on its own and a failure is named and survived. This used to be one
+        // long sequence: the third install gave up the *whole screen* because one part of it threw, and
+        // the result on the phone was no controls, no map, nothing -- a fallback demo and a wall of text
+        // where the game should have been, with no way to tell which of a dozen calls had failed. The
+        // world, the controls and the maps are now independent: whatever builds, works.
+        boolean rasterReady = step("map raster", () -> {
+            if (raster == null) {
+                console.log("Building the map raster (" + DEFAULT_MAP_RESOLUTION + ")");
+                raster = MapRaster.build(world, DEFAULT_MAP_RESOLUTION);
+            }
+        });
+
+        // The player's own position and the terrain under it: without these there is no game at all, so
+        // this one is allowed to stop the screen rather than leave something half-built behind it.
+        if (!stepEssential("the player and the terrain", () -> {
+            double[] spawnBundle = spawnPosition();
+            origin = new WorldOrigin(world.manifest.originEast + spawnBundle[0],
+                    world.manifest.originNorth + spawnBundle[1]);
+            sampler = new GridTerrainSampler(world.terrainL1, world.materials, origin);
+            double[] spawn = {0.0, 0.0};
+            rig = new CameraRig(sampler, spawn[0], spawn[1]);
+            controller = new PlayerController(rig);
+            // From here on the vehicles move through the real terrain: heights, materials and depths
+            // all come from the compiled country, and a kerb is a step the walker has to be able to take.
+            controller.setSurface(new WorldSurface(sampler, world));
+            // Start looking north-west across the bay rather than into the sand: a first impression of a
+            // capital city is the skyline across the water.
+            rig.yawDegrees = 305.0;
+            rig.pitchDegrees = -6.0;
+        })) {
+            return;
         }
-        double[] spawnBundle = spawnPosition();
-        origin = new WorldOrigin(world.manifest.originEast + spawnBundle[0],
-                world.manifest.originNorth + spawnBundle[1]);
-        sampler = new GridTerrainSampler(world.terrainL1, world.materials, origin);
-        double[] spawn = {0.0, 0.0};
-        rig = new CameraRig(sampler, spawn[0], spawn[1]);
-        controller = new PlayerController(rig);
-        // From here on the vehicles move through the real terrain: heights, materials and depths all
-        // come from the compiled country, and a kerb is a step the walker has to be able to take.
-        controller.setSurface(new WorldSurface(sampler, world));
-        // Start looking north-west across the bay rather than into the sand: a first impression of a
-        // capital city is the skyline across the water.
-        rig.yawDegrees = 305.0;
-        rig.pitchDegrees = -6.0;
 
-        worldRenderer = new GameWorldRenderer(world, origin, new ai.arena.qatar.render.WorldRenderer());
-        worldRenderer.init();
-        if (!worldRenderer.isReady()) {
-            // The world shaders did not compile. Say so, with the driver's own words, and keep the rest
-            // of the game up: the HUD, the map and the panel all still work.
-            console.error("World shaders did not compile: "
-                    + ai.arena.qatar.render.WorldRenderer.lastShaderLog());
-        } else {
-            console.log("World shaders compiled: sky + terrain programs linked");
+        step("the world renderer", () -> {
+            worldRenderer = new GameWorldRenderer(world, origin,
+                    new ai.arena.qatar.render.WorldRenderer());
+            worldRenderer.init();
+            if (!worldRenderer.isReady()) {
+                // The world shaders did not compile. Say so, with the driver's own words: the driver is
+                // the only thing that knows why, and it is the one thing that cannot be tested here.
+                console.error("World shaders did not compile: "
+                        + ai.arena.qatar.render.WorldRenderer.lastShaderLog());
+            } else {
+                console.log("World shaders compiled: sky + terrain programs linked");
+            }
+            worldRenderer.setActor(controller.meshKind());
+        });
+
+        step("the credits", () -> creditsEnglish = Credits.english(world.manifest.attribution));
+
+        step("tap-to-travel", () -> {
+            teleport = new TeleportService(world, raster);
+            // The palette dialogs are named after real places, so a failed teleport service is visible
+            // as a missing label rather than as a game that will not start.
+        });
+
+        step("the map view", () -> {
+            mapView = new MapView(raster);
+            mapView.centreOnWorld(rig.east + offsetEastToBundle(), rig.north + offsetNorthToBundle());
+        });
+
+        // The controls last, and on their own: a font or a texture that will not load must leave the
+        // player able to move with the world still drawing, not take the buttons down with the world.
+        step("the controls", () -> {
+            layout = new HudLayout();
+            hud = new HudRenderer();
+            hud.init(raster);
+            if (!hud.fontsReady()) {
+                console.warn("controls are drawn without labels: the HUD fonts did not load");
+            }
+        });
+
+        step("the camera", () -> {
+            camera = new PerspectiveCamera(72f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+            camera.near = 0.25f;
+            camera.far = 12000f;             // resident radius plus margin; fog hides the end of it
+            camera.up.set(0f, 1f, 0f);
+        });
+
+        try {
+            resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+            Gdx.input.setInputProcessor(this);
+        } catch (Throwable t) {
+            report("could not attach the touch controls", t);
         }
-        worldRenderer.setActor(controller.meshKind());
-
-        creditsEnglish = Credits.english(world.manifest.attribution);
-
-        teleport = new TeleportService(world, raster);
-        mapView = new MapView(raster);
-        mapView.centreOnWorld(rig.east + offsetEastToBundle(), rig.north + offsetNorthToBundle());
-
-        layout = new HudLayout();
-        hud = new HudRenderer();
-        hud.init(raster);
-
-        camera = new PerspectiveCamera(72f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        camera.near = 0.25f;
-        camera.far = 12000f;                 // resident radius plus margin; fog hides the end of it
-        camera.up.set(0f, 1f, 0f);
-
-        resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        Gdx.input.setInputProcessor(this);
+        // One line that says which subsystems exist, so a screenshot of the panel answers "what is
+        // missing on this phone" without anybody having to read a stack trace.
+        console.log("Subsystems: world=" + (worldRenderer != null)
+                + " controls=" + (hud != null) + " map=" + (mapView != null)
+                + " travel=" + (teleport != null) + " raster=" + (rasterReady && raster != null));
         Gdx.app.log("GameScreen", "World ready: " + world.describe());
-        Gdx.app.log("GameScreen", "Map raster " + raster.width + "x" + raster.height + ", spawn "
+        Gdx.app.log("GameScreen", "Map raster " + (rasterReady && raster != null
+                ? raster.width + "x" + raster.height : "unavailable") + ", spawn "
                 + String.format(java.util.Locale.ROOT, "%.0f, %.0f local", rig.east, rig.north));
+    }
+
+    /**
+     * Runs one part of the setup, reporting a failure and carrying on without it.
+     *
+     * @return true when the part was built
+     */
+    private boolean step(String label, Runnable body) {
+        try {
+            body.run();
+            return true;
+        } catch (Throwable t) {
+            report(label, t);
+            return false;
+        }
+    }
+
+    /** Runs one part of the setup that the screen cannot do without. */
+    private boolean stepEssential(String label, Runnable body) {
+        return step(label, body);
+    }
+
+    /** Puts a setup failure where a person can read it: the panel, the journal, and the phone's own dialog. */
+    private void report(String label, Throwable t) {
+        ai.arena.qatar.boot.ScreenLog.GLOBAL.error("Could not build " + label, t);
+        ai.arena.qatar.boot.CrashJournal.record("game screen: " + label, t);
+        ai.arena.qatar.boot.Alerts.report("Qatar: part of the game did not start",
+                ai.arena.qatar.boot.Alerts.describe("Could not build " + label, t)
+                        + "\n\nEverything else still runs: the world, the buttons and the map are built "
+                        + "independently of each other.");
     }
 
     /** The player starts at a real place: a named car park or port, not the middle of the dunes. */
@@ -207,35 +281,74 @@ public final class GameScreen extends InputAdapter implements Disposable {
         worldRenderer.update(rig.east, rig.north, dt);
         updateCamera();
 
-        worldRenderer.render(camera);
-        if (controller.chase) {
-            // Drawn after the chunks, with the world program still bound: one more draw call per frame
-            // buys the player the sight of the machine they are in.
-            worldRenderer.drawActor(controller.state().eastM, controller.state().northM,
-                    controller.state().headingDegrees, controller.spinDegrees, controller.meshKind());
+        // The world and the controls are drawn under separate guards: whichever of them is broken, the
+        // other one still appears. Losing the buttons because a chunk would not draw -- or the world
+        // because a label would not -- is how a game turns into "nothing on the screen".
+        frameSection = "the world";
+        if (worldRenderer != null) {
+            worldRenderer.render(camera);
+            if (controller.chase) {
+                // Drawn after the chunks, with the world program still bound: one more draw call per
+                // frame buys the player the sight of the machine they are in.
+                worldRenderer.drawActor(controller.state().eastM, controller.state().northM,
+                        controller.state().headingDegrees, controller.spinDegrees,
+                        controller.meshKind());
+            }
         }
 
-        int width = Gdx.graphics.getWidth();
-        int height = Gdx.graphics.getHeight();
-        hud.begin();
-        if (layout.bigMapVisible()) {
-            hud.drawScrim(width, height);
-            Rect area = new Rect();
-            area.x = 0f;
-            area.y = height * 0.10f;
-            area.w = width;
-            area.h = height * 0.80f;
-            mapView.setViewport(area.x, area.y, area.w, area.h);
-            hud.drawBigMap(mapView, area, rig.east + offsetEastToBundle(),
-                    rig.north + offsetNorthToBundle());
-            drawMapButtons();
-        } else {
-            drawWorldButtons(width, height);
-            hud.drawMinimap(layout.minimap(), rig.east + offsetEastToBundle(),
-                    rig.north + offsetNorthToBundle(), rig.yawDegrees, 1f);
+        frameSection = "the controls";
+        if (hud != null) {
+            int width = Gdx.graphics.getWidth();
+            int height = Gdx.graphics.getHeight();
+            hud.begin();
+            try {
+                if (layout != null && layout.bigMapVisible() && mapView != null) {
+                    hud.drawScrim(width, height);
+                    Rect area = new Rect();
+                    area.x = 0f;
+                    area.y = height * 0.10f;
+                    area.w = width;
+                    area.h = height * 0.80f;
+                    mapView.setViewport(area.x, area.y, area.w, area.h);
+                    hud.drawBigMap(mapView, area, rig.east + offsetEastToBundle(),
+                            rig.north + offsetNorthToBundle());
+                    drawMapButtons();
+                } else if (layout != null) {
+                    drawWorldButtons(width, height);
+                    if (hud.hasMap()) {
+                        hud.drawMinimap(layout.minimap(), rig.east + offsetEastToBundle(),
+                                rig.north + offsetNorthToBundle(), rig.yawDegrees, 1f);
+                    }
+                }
+                drawStatusText(width, height, dt);
+            } finally {
+                // The batch is closed even when something inside threw: a batch left open makes the
+                // *next* frame fail too, which turns one broken label into a game that never draws again.
+                hud.end();
+            }
         }
-        drawStatusText(width, height, dt);
-        hud.end();
+        frameSection = "";
+    }
+
+    private String frameSection = "";
+    private int sectionFailures;
+    private String lastSectionFailure = "";
+
+    /** Called by the frame guard in {@code QatarGame} to name the part of the frame that threw. */
+    public String describeFrameFailure(Throwable t) {
+        String where = frameSection == null || frameSection.isEmpty() ? "while drawing" : frameSection;
+        String key = where + ": " + t;
+        if (!key.equals(lastSectionFailure)) {
+            lastSectionFailure = key;
+            sectionFailures = 0;
+        }
+        sectionFailures++;
+        if (sectionFailures <= 3) {
+            ai.arena.qatar.boot.ScreenLog.GLOBAL.error("Failed " + where, t);
+            ai.arena.qatar.boot.CrashJournal.record("frame " + where, t);
+        }
+        return "Failed " + where + (sectionFailures > 3 ? " (again, " + sectionFailures + " times)"
+                : "");
     }
 
     private void drawWorldButtons(int width, int height) {

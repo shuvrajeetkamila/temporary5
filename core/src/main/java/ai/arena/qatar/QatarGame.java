@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.math.Vector3;
 
+import ai.arena.qatar.boot.Alerts;
 import ai.arena.qatar.boot.BootSequence;
 import ai.arena.qatar.boot.CrashJournal;
 import ai.arena.qatar.boot.ScreenLog;
@@ -43,7 +44,7 @@ public final class QatarGame extends ApplicationAdapter {
      * that the panel reported, and the person installing the next one needs to see at a glance that it
      * is the next one and not the same file installed twice.
      */
-    public static final String VERSION = "0.1.0-m0+diag3";
+    public static final String VERSION = "0.1.0-m0+diag4";
 
     /**
      * Map raster resolution. 2048 covers the country at 126 m per pixel and cost seconds of blocking
@@ -89,9 +90,26 @@ public final class QatarGame extends ApplicationAdapter {
     /** How long the start-up trace stays on the screen once the game is running. */
     private static final float TRACE_SECONDS = 8f;
 
+    /**
+     * Roughly what the compiled country costs in heap once it is parsed: 16 MB of bundles inflate to
+     * about 60 MB of arrays, the map raster is 4 MB, and the resident chunks want tens of megabytes on
+     * top. Measured on the desktop build with the real bundles; used to warn a person before a phone's
+     * smaller heap turns into a failure that looks like a bug.
+     */
+    private static final int COUNTRY_HEAP_MB = 150;
+
     private float traceSeconds;
     /** Frames that threw. One is a bug; a thousand is a game that must stop trying. */
     private int frameFailures;
+    /**
+     * How many consecutive failed frames before the game screen is given up on.
+     *
+     * <p>About two seconds at sixty frames a second. One bad frame is a hiccup; two seconds of them is a
+     * subsystem that is not coming back. The third install disposed the screen on the first exception, so
+     * any single failure anywhere in a frame took the controls, the map and the world away with it.
+     */
+    private static final int PERSISTENT_FAILURE_FRAMES = 120;
+
     /** Failures inside the fallback scene, reported a few times and then left alone. */
     private int demoFailures;
     private LoadStage stage = LoadStage.GL_INFO;
@@ -139,6 +157,19 @@ public final class QatarGame extends ApplicationAdapter {
         log.log("Qatar: The Peninsula " + VERSION + " on " + Gdx.graphics.getWidth() + "x"
                 + Gdx.graphics.getHeight());
 
+        // How much heap the platform has granted this process, said out loud before the country is
+        // asked to fit in it. The third install failed at a launch stage and there was no way to tell
+        // from the screen whether that was a bug or a phone that was never going to hold 60 MB of
+        // compiled geometry -- the number below is the answer, and it is printed before anything heavy
+        // happens rather than after.
+        long heapLimitMb = Runtime.getRuntime().maxMemory() / (1024L * 1024L);
+        log.log("Heap for this app: " + heapLimitMb + " MB (needs about " + COUNTRY_HEAP_MB + " MB)");
+        if (heapLimitMb < COUNTRY_HEAP_MB * 2L) {
+            log.warn("This phone grants the app only " + heapLimitMb + " MB. If the country fails to "
+                    + "load with an OutOfMemoryError below, that is why, and it is the phone's limit "
+                    + "rather than a bug in the game.");
+        }
+
         // The demo scene is built now -- it is cheap -- but it is only drawn if the country cannot be.
         sceneRenderer = new SkyAndGroundRenderer();
 
@@ -171,11 +202,27 @@ public final class QatarGame extends ApplicationAdapter {
             renderFrame();
         } catch (Throwable t) {
             frameFailures++;
-            CrashJournal.record("frame " + frameFailures, t);
-            echoToPanel("frame " + frameFailures + " failed", t);
-            if (gameScreen != null) {
-                // Give up on the game screen and fall back to the demo behind the panel, which is what
-                // the panel was built to sit on. Freeing it here keeps the failure from repeating.
+            // The screen names the part of the frame that threw -- the world or the controls -- so the
+            // message says what broke rather than "a frame failed". The same failure is written once and
+            // then counted, because a frame is drawn sixty times a second and a message per frame is a
+            // wall of text in half a second, which is exactly what the third install showed.
+            String where = gameScreen == null
+                    ? ("while loading: " + t)
+                    : gameScreen.describeFrameFailure(t);
+            CrashJournal.record("frame " + frameFailures + " " + where, t);
+            echoToPanel(where, frameFailures == 1 ? t : null);
+            if (frameFailures == 1) {
+                // Once, and with the frames that matter: a frame that throws usually throws every frame,
+                // and three dialogs stacked on each other is worse than none.
+                Alerts.report("Qatar stopped drawing", Alerts.describe(where, t));
+            }
+            if (gameScreen != null && frameFailures > PERSISTENT_FAILURE_FRAMES) {
+                // Two seconds of failing every frame is not a glitch, it is a broken subsystem: give up
+                // on the game screen and fall back to the demo behind the panel, which is what the panel
+                // was built to sit on. One bad frame no longer ends the game -- that took the controls
+                // away from the player the moment anything anywhere in a frame went wrong.
+                echoToPanel("giving up on the game screen after " + frameFailures
+                        + " failed frames; the panel stays up", null);
                 try {
                     gameScreen.dispose();
                 } catch (Throwable ignored) {
@@ -217,7 +264,11 @@ public final class QatarGame extends ApplicationAdapter {
     /** Puts a failure on the panel from a place where the panel itself might be what is broken. */
     private void echoToPanel(String message, Throwable t) {
         try {
-            log.error(message, t);
+            if (t == null) {
+                log.error(message);          // already spelled out: the frames are in the record
+            } else {
+                log.error(message, t);
+            }
         } catch (Throwable ignored) {
             // The panel is the last resort, not a guarantee.
         }
@@ -274,6 +325,16 @@ public final class QatarGame extends ApplicationAdapter {
             CrashJournal.record("stage " + stage.label, t);
             log.error("Load stopped in stage '" + stage.label + "'", t);
             log.error("memory: " + CrashJournal.heapSummary());
+            // Out of memory is not a bug in the same way the rest of these are, and it is the one
+            // failure where the message is worth more than the stack: say what the limit was.
+            String reason = t instanceof OutOfMemoryError
+                    ? "This phone ran out of heap while loading the country.\n\n"
+                            + "The app's heap limit is "
+                            + (Runtime.getRuntime().maxMemory() / (1024L * 1024L)) + " MB and the compiled "
+                            + "country, the map and the first chunks need roughly " + COUNTRY_HEAP_MB
+                            + " MB or more.\n\n" + t
+                    : Alerts.describe("The launch stopped while: " + stage.label, t);
+            Alerts.report("Qatar could not load the country", reason);
             log.error("The toolchain demo is running behind this panel. GL: " + glSummary());
             if (sceneRenderer != null && sceneRenderer.shaderError() != null
                     && !sceneRenderer.shaderError().isEmpty()) {

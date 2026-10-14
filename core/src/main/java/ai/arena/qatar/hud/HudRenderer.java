@@ -256,6 +256,11 @@ public final class HudRenderer implements Disposable {
         return fontsReady;
     }
 
+    /** True when the country's raster is uploaded and the minimap and full map can be drawn. */
+    public boolean hasMap() {
+        return mapTexture != null;
+    }
+
     private void drawLine(float x0, float y0, float x1, float y1, float thickness, Color colour) {
         float dx = x1 - x0;
         float dy = y1 - y0;

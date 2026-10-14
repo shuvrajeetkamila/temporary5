@@ -166,20 +166,28 @@ public final class ScreenLog implements Disposable {
         }
     }
 
-    /** Records a throwable with the frames that matter, which is what a screenshot has to carry. */
+    /**
+     * Records a throwable, with as much of it as a person reading a phone screen can use.
+     *
+     * <p>Two lines, not twelve. An earlier version pushed the whole stack into the panel -- up to eight
+     * frames, plus a cause and four more -- and on the third install that turned the screen into a wall
+     * of text in which the one sentence that mattered was in the middle, under a boot log. The frames are
+     * not lost: {@link CrashJournal} has them, and the next launch shows them in a dialog that scrolls and
+     * can be copied, which is what the second line says.
+     */
     public void error(String message, Throwable cause) {
         error(message + ": " + cause);
-        StackTraceElement[] trace = cause == null ? new StackTraceElement[0] : cause.getStackTrace();
-        for (int i = 0; i < trace.length && i < 8; i++) {
-            add(Level.ERROR, "    at " + trace[i]);
+        if (cause == null) {
+            return;
         }
-        Throwable deeper = cause == null ? null : cause.getCause();
+        Throwable deeper = cause.getCause();
         if (deeper != null && deeper != cause) {
             add(Level.ERROR, "  caused by " + deeper);
-            StackTraceElement[] inner = deeper.getStackTrace();
-            for (int i = 0; i < inner.length && i < 4; i++) {
-                add(Level.ERROR, "    at " + inner[i]);
-            }
+        }
+        StackTraceElement[] trace = cause.getStackTrace();
+        if (trace.length > 0) {
+            add(Level.ERROR, "  at " + trace[0]
+                    + (trace.length > 1 ? "  (+" + (trace.length - 1) + " frames in the record)" : ""));
         }
     }
 
@@ -192,7 +200,9 @@ public final class ScreenLog implements Disposable {
         if (level == Level.ERROR) {
             hasError = true;
         }
-        while (lines.size() > 200) {
+        // The panel is a console, not a log file: what has just happened is what a person can read
+        // before the next frame paints over it. History lives in the journal.
+        while (lines.size() > 40) {
             lines.remove(0);
         }
     }
@@ -255,7 +265,7 @@ public final class ScreenLog implements Disposable {
                 wrapped.add(new Line(line.level, piece));
             }
         }
-        int capacity = Math.max(4, (int) ((height * 0.72f) / lineHeight));
+        int capacity = Math.max(4, Math.min(12, (int) ((height * 0.72f) / lineHeight)));
         int from = Math.max(0, wrapped.size() - capacity);
         float panelHeight = Math.min(height * 0.78f, (wrapped.size() - from) * lineHeight + 18f);
 

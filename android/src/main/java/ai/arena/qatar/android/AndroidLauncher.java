@@ -17,6 +17,7 @@ import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
 
 import ai.arena.qatar.QatarGame;
+import ai.arena.qatar.boot.Alerts;
 import ai.arena.qatar.boot.CrashJournal;
 
 /**
@@ -52,6 +53,11 @@ public final class AndroidLauncher extends AndroidApplication {
         CrashJournal.installHandler();
         CrashJournal.note("AndroidLauncher.onCreate");
 
+        // And a way for the game to say so while it is still on the screen: the panel is drawn by the
+        // thing that may be failing, and on the third install the only way to get its text off the phone
+        // was for somebody to photograph it. A dialog with a Copy button is how a failure gets sent on.
+        Alerts.install(this::showAlert);
+
         if (CrashJournal.hasCrash()) {
             showPreviousCrash();
         } else {
@@ -79,6 +85,40 @@ public final class AndroidLauncher extends AndroidApplication {
 
         View view = initializeForView(new QatarGame(), config);
         setContentView(view);
+    }
+
+    /**
+     * Shows a message from the game while it is running: the failure, with a Copy button.
+     *
+     * <p>Called from the GL thread, so the dialog is posted to the UI thread. The game keeps running
+     * behind it -- the panel is still there when the dialog is dismissed -- and a failure raised during
+     * the first frames is therefore readable without relaunching.
+     */
+    private void showAlert(String title, String body) {
+        runOnUiThread(() -> {
+            try {
+                TextView text = new TextView(this);
+                text.setText(body);
+                text.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
+                text.setTextIsSelectable(true);
+                text.setTypeface(android.graphics.Typeface.MONOSPACE);
+                text.setPadding(dp(16), dp(8), dp(16), dp(8));
+
+                ScrollView scroll = new ScrollView(this);
+                scroll.addView(text, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+
+                new AlertDialog.Builder(this)
+                        .setTitle(title)
+                        .setView(scroll)
+                        .setCancelable(true)
+                        .setPositiveButton("Copy", (dialog, which) -> copy(body))
+                        .setNegativeButton("Close", null)
+                        .show();
+            } catch (Throwable ignored) {
+                // The panel and the journal still have it; a dialog that cannot be shown is not the event.
+            }
+        });
     }
 
     /**
