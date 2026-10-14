@@ -137,19 +137,25 @@ final class BundlePackagingTest {
     @Test
     @DisplayName("the name a bundle is stored under is resolved, and the resolution is pure")
     void storedNamesResolve() {
-        Set<String> packaged = new LinkedHashSet<>();
+        // Only the short names exist in the packaged set, and both names exist in the set that stands for
+        // the repository, so the two cases are told apart by the set rather than by the code under test.
+        Set<String> shortNames = new LinkedHashSet<>();
         for (String name : BUNDLES) {
-            packaged.add(strip(name));
+            shortNames.add(strip(name));
+        }
+        Set<String> bothNames = new LinkedHashSet<>(shortNames);
+        for (String name : BUNDLES) {
+            bothNames.add(name);
         }
         for (String name : BUNDLES) {
-            assertEquals(name, WorldData.storedName(name, packaged::contains),
-                    "the exact name is used when it exists");
-            assertEquals(strip(name), WorldData.storedName(name, candidate -> packaged.contains(candidate)),
+            assertEquals(name, WorldData.storedName(name, bothNames::contains),
+                    "the name the manifest records wins when it is there: " + name);
+            assertEquals(strip(name), WorldData.storedName(name, shortNames::contains),
                     "the stripped name is used when only that one exists: " + name);
+            assertFalse(shortNames.contains(name), "the fixture is meant to hold short names only");
         }
         // A name with no .gz suffix is not guessed at: it either exists or the load fails honestly.
-        assertEquals("manifest.json", WorldData.storedName("manifest.json", packaged::contains));
-        assertFalse(packaged.contains(".gz"), "the fixture should not contain a bare .gz name");
+        assertEquals("manifest.json", WorldData.storedName("manifest.json", shortNames::contains));
         assertEquals("nothing.bin.gz", WorldData.storedName("nothing.bin.gz", name -> false),
                 "an unresolvable name comes back unchanged, so the error names what was asked for");
     }

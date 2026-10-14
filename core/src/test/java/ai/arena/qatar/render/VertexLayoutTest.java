@@ -86,12 +86,17 @@ final class VertexLayoutTest {
     @DisplayName("every attribute the layout declares is wired through both shaders")
     void shaderDeclaresEveryAttribute() {
         Set<String> outs = vertexOutputs();
+        Set<String> ins = fragmentInputs();
+        assertFalse(outs.isEmpty(), "the vertex shader declares no varyings, so this test proves nothing");
+        assertFalse(ins.isEmpty(), "the fragment shader declares no varyings, so this test proves nothing");
+        assertFalse(vertexInputs().isEmpty(),
+                "the vertex shader declares no attributes, so the attribute check below cannot fail");
         for (int i = 0; i < VertexFormat.attributes().size(); i++) {
             String alias = VertexFormat.attributes().get(i).alias;
             assertTrue(vertexInputs().contains(alias),
                     "the vertex shader never reads " + alias + ", so the driver fills nothing");
         }
-        assertEquals(vertexOutputs(), fragmentInputs(),
+        assertEquals(outs, ins,
                 "the fragment shader receives different varyings than the vertex shader writes");
         assertTrue(outs.contains("v_material"), "the material id does not reach the fragment shader");
         assertTrue(outs.contains("v_aux"), "the auxiliary data does not reach the fragment shader");
@@ -201,23 +206,38 @@ final class VertexLayoutTest {
         return materials;
     }
 
+    /**
+     * A declaration of an attribute or a varying, with or without a precision qualifier:
+     * {@code out vec3 v_position;} and {@code out highp vec3 v_position;} are the same declaration, and
+     * only the second one links on a driver that requires the qualifier to agree across a stage boundary.
+     *
+     * <p>This used to insist on exactly one word between the direction and the name, so the day the
+     * qualifiers were added it silently matched nothing -- and the comparison below still passed, because
+     * an empty set equals an empty set. The counts are asserted for that reason.
+     */
+    private static final Pattern DECLARATION = Pattern.compile(
+            "^\\s*(in|out)\\s+(?:lowp\\s+|mediump\\s+|highp\\s+)?\\w+\\s+(\\w+)\\s*;",
+            Pattern.MULTILINE);
+
     private static Set<String> vertexInputs() {
-        return matches(ShaderSources.VERTEX, Pattern.compile("^\\s*in\\s+\\w+\\s+(\\w+)\\s*;", Pattern.MULTILINE));
+        return matches(ShaderSources.VERTEX, "in");
     }
 
     private static Set<String> vertexOutputs() {
-        return matches(ShaderSources.VERTEX, Pattern.compile("^\\s*out\\s+\\w+\\s+(\\w+)\\s*;", Pattern.MULTILINE));
+        return matches(ShaderSources.VERTEX, "out");
     }
 
     private static Set<String> fragmentInputs() {
-        return matches(ShaderSources.FRAGMENT, Pattern.compile("^\\s*in\\s+\\w+\\s+(\\w+)\\s*;", Pattern.MULTILINE));
+        return matches(ShaderSources.FRAGMENT, "in");
     }
 
-    private static Set<String> matches(String shader, Pattern pattern) {
+    private static Set<String> matches(String shader, String direction) {
         Set<String> found = new LinkedHashSet<>();
-        Matcher matcher = pattern.matcher(shader);
+        Matcher matcher = DECLARATION.matcher(shader);
         while (matcher.find()) {
-            found.add(matcher.group(1));
+            if (matcher.group(1).equals(direction)) {
+                found.add(matcher.group(2));
+            }
         }
         return found;
     }

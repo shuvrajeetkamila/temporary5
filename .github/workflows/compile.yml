@@ -41,6 +41,9 @@ jobs:
       - name: Java symbol gate (names, before the compiler spends a minute on it)
         run: python3 tools/check_java_symbols.py
 
+      - name: Shader gate (the three failures a device reported, read out of the source)
+        run: python3 tools/check_shaders.py
+
       - name: Compile game code and tests
         run: |
           set -o pipefail
