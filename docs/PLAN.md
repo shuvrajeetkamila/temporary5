@@ -324,7 +324,9 @@ after the fix was the last one in the chain.
    190,000 buildings and 180,000 ways and a quad per doorway is millions of vertices: the street level of
    a wall now carries entrances and shopfronts every seven metres, a mosque wears its sandstone arcade, a
    landmark a curtain wall, and every road carries kerb stones with joints and two worn wheel tracks.
-   Still open: roof clutter, palms and vegetation, and a walking animation.
+   Still open: roof clutter, palms and vegetation, and a walking animation; and a road way is still drawn
+   whole in every chunk it overlaps, so a chunk next to a long highway carries vertices that belong to its
+   neighbour -- on the list as clipping the ribbon at the chunk edge.
 5. ~~Bilingual pass~~ done: every control (English above, Arabic below, shaped by `ArabicReshaper`), the
    map hint on two lines, the status line, and the data credit. What is left is not a translation but a
    reader: no native speaker has reviewed the Arabic, and that is stated in the report's limitations.

@@ -232,11 +232,16 @@ public class ChunkMeshBudgetTest {
      */
     private static void checkGeometryIsSane(ChunkMesher.ChunkMesh mesh, int chunkX, int chunkZ) {
         // Terrain takes one extra cell (100 m) of margin on each side so neighbouring chunks meet; a
-        // building that straddles the chunk edge keeps its whole footprint, which can be a block long.
+        // building that straddles the chunk edge keeps its whole footprint.
         checkPart(mesh.land, "land " + chunkX + "," + chunkZ, 160f);
         checkPart(mesh.water, "water " + chunkX + "," + chunkZ, 160f);
+        // Detail gets a much wider margin, and the reason is worth writing down: a road way is drawn
+        // whole when any part of it overlaps the chunk, and a way can run for kilometres. So a chunk can
+        // carry a ribbon that mostly belongs to its neighbour -- duplicated work that is on the list to
+        // fix -- and the thing this check is for is the failure it caught: geometry displaced by an
+        // entire origin distance, which is kilometres out, not metres.
         for (int i = 0; i < mesh.detail.size(); i++) {
-            checkPart(mesh.detail.get(i), "detail " + i + " of " + chunkX + "," + chunkZ, 400f);
+            checkPart(mesh.detail.get(i), "detail " + i + " of " + chunkX + "," + chunkZ, 5_000f);
         }
         assertTrue(mesh.buildings > 0 || mesh.roads > 0 || mesh.land.vertexCount() > 0,
                 "the chunk produced something");
