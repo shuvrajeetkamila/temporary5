@@ -1,50 +1,40 @@
+> Task :core:classes
 
-BodyMesherTest > every body is painted geometry the shader can colour PASSED
+> Task :core:compileTestJava
+/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/render/BodyMesherTest.java:110: error: variable contact is already defined in method bodiesArePlacedAtTheirOwnHeight()
+        Vector3 contact = new Vector3(0f, (float) -CarBody.WHEEL_RADIUS_M, 0f).mul(partAtHeight);
+                ^
+1 error
 
-BodyMesherTest > a body is placed at its own contact height, not at sea level FAILED
-    org.opentest4j.AssertionFailedError: a moving part ignores the body's height ==> expected: <7.5> but was: <7.829999923706055>
-        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
-        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
-        at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
-        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:86)
-        at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1024)
-        at app//ai.arena.qatar.render.BodyMesherTest.bodiesArePlacedAtTheirOwnHeight(BodyMesherTest.java:105)
-
-BodyMesherTest > a boat floats: hull below the waterline, cabin above it PASSED
-
---
-
-128 tests completed, 1 failed
-
-> Task :core:test FAILED
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1792003601864.json
+> Task :core:compileTestJava FAILED
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1792004303531.json
 
 FAILURE: Build failed with an exception.
 
 * What went wrong:
-Execution failed for task ':core:test'.
-> There were failing tests. See the report at: file:///home/runner/work/temporary5/temporary5/core/build/reports/tests/test/index.html
+Execution failed for task ':core:compileTestJava'.
+> Compilation failed; see the compiler error output for details.
 
 * Try:
-> Run with --scan to get full insights.
+> Run with --info option to get more log output.
 --
 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
-Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There were failing tests. See the report at: file:///home/runner/work/temporary5/temporary5/core/build/reports/tests/test/index.html
-	at org.gradle.api.tasks.testing.AbstractTestTask.handleTestFailures(AbstractTestTask.java:691)
-	at org.gradle.api.tasks.testing.AbstractTestTask.handleCollectedResults(AbstractTestTask.java:533)
-	at org.gradle.api.tasks.testing.AbstractTestTask.executeTests(AbstractTestTask.java:528)
-	at org.gradle.api.tasks.testing.Test.executeTests(Test.java:715)
-	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
-	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
-	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
-	at org.gradle.internal.reflect.JavaMethod.invoke(JavaMethod.java:125)
-	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.doExecute(StandardTaskAction.java:58)
-	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.execute(StandardTaskAction.java:51)
+Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Compilation failed; see the compiler error output for details.
+	at org.gradle.api.internal.tasks.compile.JdkJavaCompiler.execute(JdkJavaCompiler.java:61)
+	at org.gradle.api.internal.tasks.compile.JdkJavaCompiler.execute(JdkJavaCompiler.java:41)
+	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.delegateAndHandleErrors(NormalizingJavaCompiler.java:98)
+	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.execute(NormalizingJavaCompiler.java:52)
+	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.execute(NormalizingJavaCompiler.java:38)
+	at org.gradle.api.internal.tasks.compile.AnnotationProcessorDiscoveringCompiler.execute(AnnotationProcessorDiscoveringCompiler.java:52)
+	at org.gradle.api.internal.tasks.compile.AnnotationProcessorDiscoveringCompiler.execute(AnnotationProcessorDiscoveringCompiler.java:38)
+	at org.gradle.api.internal.tasks.compile.ModuleApplicationNameWritingCompiler.execute(ModuleApplicationNameWritingCompiler.java:46)
+	at org.gradle.api.internal.tasks.compile.ModuleApplicationNameWritingCompiler.execute(ModuleApplicationNameWritingCompiler.java:36)
+	at org.gradle.jvm.toolchain.internal.DefaultToolchainJavaCompiler.execute(DefaultToolchainJavaCompiler.java:57)
 --
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 19s
-4 actionable tasks: 4 executed
+BUILD FAILED in 16s
+2 actionable tasks: 2 executed
