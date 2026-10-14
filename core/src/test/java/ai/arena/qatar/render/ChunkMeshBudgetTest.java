@@ -154,24 +154,9 @@ public class ChunkMeshBudgetTest {
         Assumptions.assumeTrue(dir != null, "android/assets/world is not checked out");
         WorldData world = load(dir);
 
-        // Find the chunk with the most building footprints starting in it: the worst case the game can
-        // be asked to draw, found in the real data rather than guessed at.
-        Map<Integer, Integer> density = new HashMap<>();
-        int bestKey = 0;
-        int best = -1;
-        for (int ring = 0; ring < world.buildings.ringCount; ring++) {
-            int chunkX = ChunkMesher.chunkIndex(world.buildings.bounds[ring * 4]);
-            int chunkZ = ChunkMesher.chunkIndex(world.buildings.bounds[ring * 4 + 1]);
-            int key = chunkX * 4096 + chunkZ;
-            int count = density.merge(key, 1, Integer::sum);
-            if (count > best) {
-                best = count;
-                bestKey = key;
-            }
-        }
-        assertTrue(best > 40, "the densest chunk of Qatar holds a city block: " + best + " buildings");
-        int chunkX = bestKey / 4096;
-        int chunkZ = bestKey % 4096;
+        int[] capital = densestChunk(world);
+        int chunkX = capital[0];
+        int chunkZ = capital[1];
 
         ChunkMesher mesher = new ChunkMesher(world);
         ChunkMesher.ChunkMesh near = mesher.mesh(chunkX, chunkZ, 1.0);
@@ -211,6 +196,105 @@ public class ChunkMeshBudgetTest {
         // is still there: a distant chunk is terrain, not a hole.
         assertTrue(far.roads == 0, "no road ribbons at detail 0: " + far.roads);
         assertTrue(far.land.vertexCount() > 0, "the ground is drawn at any distance");
+    }
+
+    @Test
+    @DisplayName("the committed country meshes into finite geometry that stays inside its chunk")
+    void committedCountryProducesFiniteGeometry() {
+        Path dir = worldDir();
+        Assumptions.assumeTrue(dir != null, "android/assets/world is not checked out");
+        WorldData world = load(dir);
+        ChunkMesher mesher = new ChunkMesher(world);
+
+        // A neighbourhood of the capital, meshed at full detail -- the densest geometry the game ever
+        // asks a driver to draw. Every float is checked for being a number at all: a single NaN in a
+        // vertex position turns a triangle into nothing (or, depending on the driver, into a polygon
+        // across the whole screen), and no count-based test can see it.
+        int[] capital = densestChunk(world);
+        int originX = capital[0];
+        int originZ = capital[1];
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                checkGeometryIsSane(mesher.mesh(originX + dx, originZ + dz, 1.0), originX + dx,
+                        originZ + dz);
+            }
+        }
+    }
+
+    /**
+     * Everything a vertex buffer must be for a driver to draw it: numbers, in range, and indices that
+     * point at vertices that exist.
+     *
+     * <p>The chunk's own coordinates are local metres, so a position belongs inside the chunk plus the
+     * overhang a road ribbon or a wall can have at its edge. Heights are checked against Qatar's own
+     * range -- the country is flat and low, and anything outside it is a projection bug rather than a
+     * hill.
+     */
+    private static void checkGeometryIsSane(ChunkMesher.ChunkMesh mesh, int chunkX, int chunkZ) {
+        checkPart(mesh.land, "land " + chunkX + "," + chunkZ);
+        checkPart(mesh.water, "water " + chunkX + "," + chunkZ);
+        for (int i = 0; i < mesh.detail.size(); i++) {
+            checkPart(mesh.detail.get(i), "detail " + i + " of " + chunkX + "," + chunkZ);
+        }
+        assertTrue(mesh.buildings > 0 || mesh.roads > 0 || mesh.land.vertexCount() > 0,
+                "the chunk produced something");
+    }
+
+    private static void checkPart(MeshData part, String label) {
+        int floats = part.vertexCount() * MeshData.FLOATS_PER_VERTEX;
+        float[] vertices = part.vertices();
+        assertEquals(floats, vertices.length,
+                label + ": the array holds exactly the vertices written, and nothing that grew");
+        for (int i = 0; i < floats; i++) {
+            assertTrue(Float.isFinite(vertices[i]),
+                    label + ": vertex float " + i + " is " + vertices[i] + ", which no driver can draw");
+        }
+        for (int v = 0; v < part.vertexCount(); v++) {
+            int at = v * MeshData.FLOATS_PER_VERTEX;
+            float east = vertices[at];
+            float north = vertices[at + 2];
+            assertTrue(east > -120f && east < ChunkMesher.CHUNK_M + 120f,
+                    label + ": vertex " + v + " east " + east + " is outside its own chunk");
+            assertTrue(north > -120f && north < ChunkMesher.CHUNK_M + 120f,
+                    label + ": vertex " + v + " north " + north + " is outside its own chunk");
+            assertTrue(vertices[at + 1] > -120f && vertices[at + 1] < 400f,
+                    label + ": vertex " + v + " height " + vertices[at + 1]
+                            + " is outside anything Qatar could be");
+        }
+        assertEquals(0, part.indexCount() % 3, label + ": triangles come in threes");
+        short[] indices = part.indices();
+        assertEquals(part.indexCount(), indices.length, label + ": indices are trimmed too");
+        for (int i = 0; i < part.indexCount(); i++) {
+            // Unsigned: the index buffer is GL_UNSIGNED_SHORT, so the sign bit is part of the value.
+            int index = indices[i] & 0xFFFF;
+            assertTrue(index < part.vertexCount(),
+                    label + ": index " + index + " points past the " + part.vertexCount()
+                            + " vertices in this mesh");
+        }
+    }
+
+    /**
+     * The 500 m chunk with the most building footprints starting in it: the densest geometry the game can
+     * be asked to draw, found by counting the real data rather than by guessing a coordinate. The national
+     * frame starts at the compiled grid's origin, so a UTM figure written into a test would quietly point
+     * at the sea.
+     */
+    private static int[] densestChunk(WorldData world) {
+        Map<Integer, Integer> density = new HashMap<>();
+        int bestKey = 0;
+        int best = -1;
+        for (int ring = 0; ring < world.buildings.ringCount; ring++) {
+            int chunkX = ChunkMesher.chunkIndex(world.buildings.bounds[ring * 4]);
+            int chunkZ = ChunkMesher.chunkIndex(world.buildings.bounds[ring * 4 + 1]);
+            int key = chunkX * 4096 + chunkZ;
+            int count = density.merge(key, 1, Integer::sum);
+            if (count > best) {
+                best = count;
+                bestKey = key;
+            }
+        }
+        assertTrue(best > 40, "the densest chunk of Qatar holds a city block: " + best + " buildings");
+        return new int[]{bestKey / 4096, bestKey % 4096};
     }
 
     /**
