@@ -1,2 +1,0 @@
-/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/render/ChunkMeshBudgetTest.java:177: error: incompatible types: possible lossy conversion from double to float
-/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/render/ChunkMeshBudgetTest.java:178: error: incompatible types: possible lossy conversion from double to float
