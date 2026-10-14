@@ -165,7 +165,9 @@ public class ChunkMeshBudgetTest {
         }
 
         int ribbons = 0;
-        float worst = 0f;
+        // A double, because the chunk's own size is a double: `v[at] - CHUNK_M` is a double, and
+        // assigning that to a float is a compile error javac would have to be here to give.
+        double worst = 0.0;
         for (MeshData part : mesh.detail) {
             float[] v = part.vertices();
             for (int i = 0; i < part.vertexCount(); i++) {
