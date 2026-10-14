@@ -107,8 +107,8 @@ final class BodyMesherTest {
         // body's height reaches the part at all; the wheel was right when the body was wrong.
         assertEquals(7.5 + wheel.offsetY, new Vector3(0f, 0f, 0f).mul(partAtHeight).y, 1e-3,
                 "the wheel's axle is not one radius above the body's contact point");
-        Vector3 contact = new Vector3(0f, (float) -CarBody.WHEEL_RADIUS_M, 0f).mul(partAtHeight);
-        assertEquals(7.5, contact.y, 1e-3, "a moving part ignores the body's height");
+        Vector3 patch = new Vector3(0f, (float) -CarBody.WHEEL_RADIUS_M, 0f).mul(partAtHeight);
+        assertEquals(7.5, patch.y, 1e-3, "a moving part ignores the body's height");
     }
 
     @Test

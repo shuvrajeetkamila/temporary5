@@ -293,6 +293,58 @@ float finite, every position inside its own chunk, every height inside a range Q
 pointing at a vertex that exists, and one test that follows a real footprint from the compiled country to
 the wall vertex standing on it.
 
+## The fifth pass: an audit, after a report with no words in it
+
+"Having some problems" is a complete bug report when the person holding the phone has already sent three
+paragraphs and got a build that does not work. So this round was a read of every place where two systems
+meet -- which is where the three bugs before this one all lived -- and it found three more.
+
+**Every body was drawn at sea level.** `BodyMesher.transform` placed the player, the car, the aeroplane,
+the helicopter and the boat at y = 0 and ignored the height entirely, while every body mesh is modelled
+with y = 0 at what it stands on (feet, tyre contact patches, waterline, wheels) and the vehicle bodies keep
+that contact height in `VehicleState.heightM`. A player walking across Doha at 10 m of elevation was under
+the ground and invisible; a car on the sabkha was nowhere near its own shadow. The height is a required
+argument of every transform now, so a caller cannot forget it, and a test places a body at 12 m and checks
+its contact point, a shoulder and a wheel's axle.
+
+**The depth buffer was 16 bits.** The world draws with a near plane of 0.25 m -- a first-person view has
+to see its own feet -- and a far plane of 12 km, and it deliberately lifts roads, kerbs and markings by
+centimetres so they do not fight with the terrain under them. At 16 bits the depth of a distant chunk
+quantises to metres: terrain, roads and roofs interleave and shimmer as the camera moves. Every GLES 3
+device this runs on has 24 bits available, and it asks for them now.
+
+**The panel never went away.** As soon as anything had been logged as an error -- one failed chunk build,
+one missing font -- it stayed on the screen for the rest of the session. Errors have an age: the panel
+reports for thirty seconds after the last one and then gets out of the way. Nothing is lost, because the
+failure is in the journal and the next launch's dialog shows it in full.
+
+Reviewed and found correct, which is worth writing down because "I checked" is not evidence: the y-down
+touch conversion against the y-up HUD layout, the map raster's south-first rows against SpriteBatch's
+texture coordinates, the tap-to-travel chain from a screen pixel through the raster fraction to bundle
+metres and back to the rebased frame the player moves in, the minimap marker against the drawn image, the
+chunk-local convention against the renderer's per-chunk translation (the previous round's fix), the
+locomotion switch re-uploading the body mesh, the streaming radius against the camera's far plane, and the
+city spawn. A map that failed to build is now a sentence on the screen with a reason rather than a button
+that quietly does nothing.
+
+## Step three, finished: roofs and a person who walks
+
+Two more pieces of detail, both visible from every camera and neither of them costing geometry:
+
+  - **Roofs.** The mesher writes each roof vertex's offset from the roof centre in metres, where it used
+    to write 0..1, and the fragment shader draws on it: gravel and bitumen, the seams between precast
+    planks every 2.4 m, a plant housing and a galvanised water tank on a 6 m grid with the position
+    hashed from the cell so the roofs of a city do not all look printed. It is the view from an aeroplane,
+    on 190,000 buildings, and a test checks the offsets are metres on a footprint that is not the unit
+    square a 0..1 range would fake.
+  - **The person walks.** The legs and arms are moving parts now instead of one static box. Each limb is
+    built around its own joint -- the same convention a wheel follows around its axle -- and swings
+    through an amplitude driven by the body's spin phase: legs in opposite phase to each other, arms
+    counter to the leg on the same side, the phase advancing at two steps per cycle, so a person at
+    1.5 m/s takes a step every half second and stands still with still feet. `Part` gained a swing
+    amplitude for this; a wheel, a propeller and a rotor still turn all the way round, so the machinery
+    stayed one type rather than two.
+
 ## The workflow that started itself
 
 `data.yml` publishes its provenance into `data/geodata/**` and had that same directory among its push
@@ -324,9 +376,11 @@ after the fix was the last one in the chain.
    190,000 buildings and 180,000 ways and a quad per doorway is millions of vertices: the street level of
    a wall now carries entrances and shopfronts every seven metres, a mosque wears its sandstone arcade, a
    landmark a curtain wall, and every road carries kerb stones with joints and two worn wheel tracks.
-   Still open: roof clutter, palms and vegetation, and a walking animation; and a road way is still drawn
-   whole in every chunk it overlaps, so a chunk next to a long highway carries vertices that belong to its
-   neighbour -- on the list as clipping the ribbon at the chunk edge.
+   ~~Roof clutter~~ done in the shader, on the roof's own metre coordinates. ~~A walking animation~~ done
+   with hinged limbs and a stride phase driven by walking speed. Still open: palms and vegetation (the
+   land-use bundle knows where they are), and a road way is still drawn whole in every chunk it overlaps,
+   so a chunk beside a long highway carries vertices that belong to its neighbour -- on the list as
+   clipping the ribbon at the chunk edge.
 5. ~~Bilingual pass~~ done: every control (English above, Arabic below, shaped by `ArabicReshaper`), the
    map hint on two lines, the status line, and the data credit. What is left is not a translation but a
    reader: no native speaker has reviewed the Arabic, and that is stated in the report's limitations.

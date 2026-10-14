@@ -42,6 +42,13 @@ into a panel that dies with the process, then deleted the file.
 
 Nothing here needs a cable, a developer machine or `adb`.
 
+## How long the panel stays
+
+The panel is a report, not furniture. It is on the screen for the whole launch, and after that it stays
+while its news is recent: an error keeps it up for thirty seconds and then it gets out of the way, because
+the failure is in the journal and the next launch shows it in full. A launch that fails outright -- the
+world could not load -- leaves it up for good, behind the dialog that says why.
+
 ## What the panel's lines mean
 
 | Line | Meaning |
@@ -52,6 +59,8 @@ Nothing here needs a cable, a developer machine or `adb`.
 | `Country loaded in … ms` | The bundles were verified against their manifest digests and parsed |
 | `Map raster 1024x1024` | The map was painted |
 | `Playing: …` | The game screen started |
+| `Subsystems: world=true controls=false map=true …` | Which parts of the game screen were built. Every subsystem is now independent: this one line says which is missing, without anybody having to read a stack trace |
+| `Heap for this app: N MB (needs about 150 MB)` | How much heap the phone granted this app, printed before the country is asked to fit in it. If the country fails to load with an `OutOfMemoryError`, this is the number that explains it |
 | `stage … \| heap … of … MB` | A breadcrumb: which stage, and how much heap it was using. The last one before a silent close is the diagnosis |
 | `chunk X,Z could not be built (it is left empty, the rest of the world carries on)` | One 500 m chunk failed to mesh. It appears as a hole in the world; everything else keeps running. This is the failure that used to kill the whole app |
 | `chunk X,Z hit the vertex budget: its detail is …` | The chunk is dense enough to fill all three of its mesh parts: the largest buildings are drawn and the rest is left out. Not fatal; a sign the area is dense |

@@ -5,3 +5,7 @@ shapely==2.2.0
 pyproj==3.7.2
 rasterio==1.4.4
 osmium==4.2.0
+
+# Static gates that read Java source with a real parser (tools/check_local_names.py).
+tree-sitter==0.26.0
+tree-sitter-java==0.23.5
