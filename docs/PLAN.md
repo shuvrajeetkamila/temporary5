@@ -157,6 +157,25 @@ checksums), published on every green run to the rolling release
 `v0.1.0-m0` so the download link never rots. The build now packages the country and starts in the
 playable world; the remaining risk is what only a device can tell us (see open item 2).
 
+## The first run on a phone
+
+Installed on Android, the build showed a blue screen and nothing else. The world fragment shader declared
+a variable called `half`, which GLSL ES 3.00 reserves -- so a spec-following driver rejects the shader,
+the world program never links, and the renderer shut down quietly. The next frame then dereferenced a
+null program and killed the GL thread, and the only place the reason existed was logcat.
+
+Three things came out of it, and all three are in the build now:
+
+  - `half` is `halfway`, and `ShaderSourcesTest` lints every shader: reserved words, 1.00 syntax in a
+    300 es shader, a fragment shader without a float precision, calls to functions that are neither
+    built in nor declared, and vertex/fragment varyings that do not match by name and type.
+  - `ScreenLog` draws a console on the screen -- its own batch, its own font, three fallbacks -- and
+    `QatarGame` runs the launch as stages across frames, printing each one as it starts and printing any
+    failure with its stack frames and the GL strings. A crash is written to a file and printed by the
+    next launch.
+  - The map raster is built once, at 1024, in its own reported stage, and the spawn selection reuses it
+    instead of building a second one.
+
 ## The workflow that started itself
 
 `data.yml` publishes its provenance into `data/geodata/**` and had that same directory among its push
@@ -171,12 +190,12 @@ after the fix was the last one in the chain.
 
 1. ~~Fix the spawn points.~~ Done: the country now compiles 279 car, 6 helicopter, 51 boat and 30
    aeroplane spawn points, and `validate_game_world.py` passes 57/57 against the committed bundles.
-2. **Verify the shaders on a device**, then fix whatever the driver says. Note that the newest APK is
-   the one to test: the release is rolling and keeps only the newest build, and `docs/FINAL_REPORT.md` is
-   re-checked against it whenever a code commit changes it. This is the one thing no amount
-   of local work can do: there is no GPU here, so the GLSL is compiled for the first time on a phone. The
-   vertex layout and the shader's decoding of surface types and material ids were both wrong until
-   `VertexLayoutTest` pinned them together; a device may well find the next one.
+2. **Verify the shaders on a device.** Started: the first install showed a blue screen, the cause was a
+   reserved word in the world fragment shader (`half`), and the build that fixes it also reports every
+   launch stage on the screen so the next failure arrives with its reason attached. What is left is the
+   second install. The vertex layout, the shader's decoding of surface types and material ids, and now
+   the reserved word were all found this way, so the expectation is that a device may find more: the
+   launch trace says which stage and which driver message.
 3. ~~Buildings are solid.~~ Done, with tests. ~~Barriers as collision.~~ Done, with tests. Still open from
    step 2: collisions between vehicles, and profiling the streaming on a real phone (the warm-up builds up
    to 24 chunks per frame, and a dense urban chunk is heavy).

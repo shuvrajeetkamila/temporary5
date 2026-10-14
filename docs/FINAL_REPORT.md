@@ -9,13 +9,13 @@ repository, a CI run, or a byte count that can be re-derived.
 | | |
 |---|---|
 | **APK** | [`Qatar-The-Peninsula-v0.1.0-m0.apk`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk) |
-| **Bytes** | 19,073,854 |
-| **SHA-256** | `73e3f49da68a4ee80cea1c45d900cfe464995ac7ad33b727d425068c09956520` |
+| **Bytes** | 19,083,818 |
+| **SHA-256** | `0e77c063fe4d7ba5ec7038ae5303a43b568a4a574296d55a6030a5fdb5a70ceb` |
 | **Sidecar** | [`…apk.sha256`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256) |
 | **Release** | https://github.com/shuvrajeetkamila/temporary5/releases/tag/v0.1.0-m0 (rolling: each green run republishes it) |
-| **Built from** | commit `77af170`, branch `arena/4eb37624-temporary5` |
-| **CI runs for that commit** | Build APK [`38454241913`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38454241913) success. `77af170` is the world-data evidence commit and is byte-for-byte the code of `52ca4b4`, whose runs were also green: Compile gate [`38453269340`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38453269340), Build world data [`38453269358`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38453269358), Build APK [`38453269376`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38453269376), Protect the project [`38453269400`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38453269400) |
-| **Tests at that commit** | 101 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_STATUS.txt`, evidence commit `1cfcc0e`) |
+| **Built from** | commit `a5418c8`, branch `arena/4eb37624-temporary5` |
+| **CI runs for that commit** | Build APK [`38542401098`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38542401098) success · Compile gate [`38542400815`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38542400815) success · Protect the project [`38542400940`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38542400940) success |
+| **Tests at that commit** | 108 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_STATUS.txt`, evidence commit `112cc2a`) |
 | **Package** | `ai.arena.qatar.peninsula`, versionName `0.1.0-m0`, debug-signed, `minSdk 26`, `targetSdk 34` |
 | **ABIs** | `arm64-v8a`, `armeabi-v7a`, `x86_64` |
 | **Permissions** | none: no `INTERNET`, nothing to phone home to. The country is inside the APK. |
@@ -82,7 +82,7 @@ The map is interactable: buildings and barriers are solid at the altitude the bo
 chest height is stopped by a wall; an aircraft above its top is not), terrain that has not streamed in
 is not walked onto, and taps on the map move the player.
 
-Evidence: `VehicleDynamicsTest`, `BuildingCollisionTest`, `BarrierCollisionTest` — part of the 101 passing
+Evidence: `VehicleDynamicsTest`, `BuildingCollisionTest`, `BarrierCollisionTest` — part of the 108 passing
 tests.
 
 ## 3. Detail assets
@@ -138,14 +138,50 @@ country inside it (16 MB of compiled bundles in a 19 MB package). Validation is 
 dex files, native libraries per ABI, world bundle presence and manifest checksums, licence files,
 signature, zip integrity.
 
+## The first run on a phone, and what it found
+
+The APK was installed on an Android phone, and it showed a blue screen with nothing on it. That is worth
+writing down properly, because every part of it was avoidable in a different way:
+
+1. **A reserved word.** The world fragment shader declared a variable called `half`. It is an ordinary
+   English word and an ordinary identifier in desktop GLSL, and it is **reserved in GLSL ES 3.00**, which
+   keeps it for a future 16-bit float. A driver that follows the spec rejects the whole shader for it; the
+   world program then never links, and the country cannot be drawn by anything. It is now `halfway`, and
+   `ShaderSourcesTest` reads every shader in the project and fails on a reserved word, on 1.00 syntax in a
+   300 es shader, on a fragment shader without a float precision, on a call to a function that is neither
+   built in nor declared, and on a vertex shader whose outputs do not match what the fragment shader
+   reads. Reintroducing `half` fails that test with the line that matters.
+2. **Nobody could see the failure.** The renderer logged "shader compilation failed" with the driver's
+   own message and then returned false, and the caller ignored it: the next frame dereferenced a null
+   program and killed the GL thread. The screen said nothing, and the reason -- the only sentence that
+   mattered -- was in logcat, which the person holding the phone cannot read.
+3. **Launch was one long silent block.** The map raster was built inside the first frame at 2048 x 2048
+   (4.2 million pixels covering the whole country), and the spawn selection built a second raster at 512
+   to look at. On a desktop that is a pause; on a phone it is a long block with nothing on the screen to
+   say a launch is happening at all.
+
+All three are fixed. The launch now runs as stages, one per frame, each of them printed on the screen as
+it starts -- GL context, crash file, manifest, bundles, map raster, game screen -- and any failure prints
+the exception, its first stack frames and the GL strings and stays there. `ScreenLog` draws that console
+with its own batch and its own font (the HUD font, then libGDX's built-in one, then coloured bars if no
+font can be loaded at all), so it works when the thing that is broken is the thing it is reporting on. A
+crash handler writes the throwable into the app's own storage and the next launch prints it, so a crash
+comes back as a stack trace instead of "it closed itself". If the world's shaders fail again, the screen
+shows the driver's message and the game keeps running with a flat grey world rather than nothing.
+
+The honest position on the device: the first install failed, the reason is now known and fixed, and the
+second install is the first real test of the fix. Nothing in this repository can compile GLSL, so the
+shader lint and the on-screen reporting are what stand in for a GPU until then.
+
 ## Honest limitations
 
-1. **Nothing has ever run on a device.** There is no GPU and no Android emulator in the build
-   environment, so the GLSL in this project has never been compiled by a real driver. The first launch on
-   a phone is the first test of it. This is the largest single risk in the project, and everything that
-   *can* be checked without a GPU is checked — including one bug that only a device would have shown
-   (the vertex stride and the shader's decoding of surface types and material ids were both wrong, and
-   are both fixed and now asserted by `VertexLayoutTest`).
+1. **The build has run on a device once, and that run failed.** There is no GPU and no Android emulator
+   in the build environment, so the GLSL in this project is compiled for the first time on a phone, and
+   the first time it was, the world shader was rejected for using a reserved word (section above). The
+   fix is in `a5418c8`, and the launch now reports what it is doing and what breaks, on the screen, which
+   is what the next install is for. Two earlier bugs of the same family were found without a device: the
+   vertex stride and the shader's decoding of surface types and material ids were both wrong, and are both
+   fixed and asserted by `VertexLayoutTest`.
 2. No sound.
 3. Buildings collide as their bounding box, not as their drawn ring: a courtyard is walkable through.
 4. The world is drawn only within the streaming radius: beyond roughly 6 km it fades into fog and stops.
@@ -186,7 +222,7 @@ signature, zip integrity.
 
 ```bash
 git clone https://github.com/shuvrajeetkamila/temporary5 && cd temporary5
-git checkout 77af170
+git checkout a5418c8
 # world data (downloads OSM + SRTM, compiles the country, validates it):
 python3 tools/fetch_sources.py && python3 tools/build_world.py && python3 tools/game_world.py
 python3 tools/validate_game_world.py --world android/assets/world     # 57/57
