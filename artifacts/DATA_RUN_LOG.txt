@@ -2,8 +2,8 @@ Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.11.17/x64/li
 Installing collected packages: urllib3, tree-sitter-java, tree-sitter, pyparsing, numpy, idna, click, charset_normalizer, certifi, attrs, shapely, scipy, requests, pyproj, cligj, click-plugins, affine, rasterio, osmium
 
 Successfully installed affine-3.0.1 attrs-26.1.0 certifi-2026.7.22 charset_normalizer-3.5.2 click-8.5.0 click-plugins-1.1.1.2 cligj-0.7.2 idna-3.20 numpy-2.4.6 osmium-4.2.0 pyparsing-3.3.3 pyproj-3.7.2 rasterio-1.4.4 requests-2.34.2 scipy-1.17.1 shapely-2.2.0 tree-sitter-0.26.0 tree-sitter-java-0.23.5 urllib3-2.8.0
-head_sha=3e489137a51b2fb2ad70f8f5615dae0d2802e602
-head_subject=test: fix the duplicate local, and gate the mistake so it cannot be pushed again
+head_sha=0af05948a9f4a9debfb6567e6dc2e215aee81bc6
+head_subject=tools: gate the narrowing conversion that cost this round a run
 tool_build_world_sha256=8bd9968bdc2562c8dc73fbb807688a4493d5a7abafe2e6493717b9db099d51fe
 tool_fetch_sources_sha256=5be8f297bdf6015d5429d22ce04a9726daa0fd3166baf64ac2eb83d2f8671270
 PASS  no unresolved function names in the compiler (found: [])
@@ -249,19 +249,19 @@ PASS  no undefined names in tools/ (0 found)
 GAME WORLD CONTRACTS PASSED
 missing assets/world/manifest.json
 total 16272
-drwxr-xr-x 2 runner runner    4096 Oct 14 19:04 .
-drwxr-xr-x 5 runner runner    4096 Oct 14 19:04 ..
--rw-r--r-- 1 runner runner      65 Oct 14 19:11 COMPILER_SHA256
--rw-r--r-- 1 runner runner   36150 Oct 14 19:13 barriers.bin.gz
--rw-r--r-- 1 runner runner 5576709 Oct 14 19:13 buildings.bin.gz
--rw-r--r-- 1 runner runner  125625 Oct 14 19:11 coast.bin.gz
--rw-r--r-- 1 runner runner  678898 Oct 14 19:13 landuse.bin.gz
--rw-r--r-- 1 runner runner   26159 Oct 14 19:13 manifest.json
--rw-r--r-- 1 runner runner   87483 Oct 14 19:11 material_l1.bin.gz
--rw-r--r-- 1 runner runner    7422 Oct 14 19:13 pois.bin.gz
--rw-r--r-- 1 runner runner 8763013 Oct 14 19:11 roads.bin.gz
--rw-r--r-- 1 runner runner  114282 Oct 14 19:13 strings.bin.gz
--rw-r--r-- 1 runner runner  103521 Oct 14 19:11 terrain_l0.bin.gz
--rw-r--r-- 1 runner runner  876807 Oct 14 19:11 terrain_l1.bin.gz
--rw-r--r-- 1 runner runner  231815 Oct 14 19:13 water.bin.gz
+drwxr-xr-x 2 runner runner    4096 Oct 14 19:49 .
+drwxr-xr-x 5 runner runner    4096 Oct 14 19:49 ..
+-rw-r--r-- 1 runner runner      65 Oct 14 19:53 COMPILER_SHA256
+-rw-r--r-- 1 runner runner   36150 Oct 14 19:54 barriers.bin.gz
+-rw-r--r-- 1 runner runner 5576709 Oct 14 19:54 buildings.bin.gz
+-rw-r--r-- 1 runner runner  125625 Oct 14 19:53 coast.bin.gz
+-rw-r--r-- 1 runner runner  678898 Oct 14 19:54 landuse.bin.gz
+-rw-r--r-- 1 runner runner   26159 Oct 14 19:54 manifest.json
+-rw-r--r-- 1 runner runner   87483 Oct 14 19:53 material_l1.bin.gz
+-rw-r--r-- 1 runner runner    7422 Oct 14 19:54 pois.bin.gz
+-rw-r--r-- 1 runner runner 8763013 Oct 14 19:53 roads.bin.gz
+-rw-r--r-- 1 runner runner  114282 Oct 14 19:54 strings.bin.gz
+-rw-r--r-- 1 runner runner  103521 Oct 14 19:53 terrain_l0.bin.gz
+-rw-r--r-- 1 runner runner  876807 Oct 14 19:53 terrain_l1.bin.gz
+-rw-r--r-- 1 runner runner  231815 Oct 14 19:54 water.bin.gz
 16M	android/assets/world/
