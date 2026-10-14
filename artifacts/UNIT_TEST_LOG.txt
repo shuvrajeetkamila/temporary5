@@ -1,0 +1,66 @@
+> Task :core:processResources NO-SOURCE
+> Task :core:classes
+
+> Task :core:compileTestJava FAILED
+/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/hud/FontCoverageTest.java:109: error: cannot find symbol
+            assertEquals(0x89, png[0] & 0xFF, name + ": the page is not a PNG");
+            ^
+  symbol:   method assertEquals(int,int,String)
+  location: class FontCoverageTest
+/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/hud/FontCoverageTest.java:110: error: cannot find symbol
+            assertEquals('P', png[1]);
+            ^
+  symbol:   method assertEquals(char,byte)
+  location: class FontCoverageTest
+/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/hud/FontCoverageTest.java:111: error: cannot find symbol
+            assertEquals('N', png[2]);
+            ^
+  symbol:   method assertEquals(char,byte)
+  location: class FontCoverageTest
+/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/hud/FontCoverageTest.java:112: error: cannot find symbol
+            assertEquals('G', png[3]);
+            ^
+  symbol:   method assertEquals(char,byte)
+  location: class FontCoverageTest
+/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/hud/FontCoverageTest.java:115: error: cannot find symbol
+            assertEquals(8, depth, name + ": the page is not 8 bits per channel");
+            ^
+  symbol:   method assertEquals(int,int,String)
+  location: class FontCoverageTest
+/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/hud/FontCoverageTest.java:116: error: cannot find symbol
+            assertEquals(6, colourType, name + ": the page is not RGBA (colour type " + colourType
+            ^
+  symbol:   method assertEquals(int,int,String)
+  location: class FontCoverageTest
+/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/hud/FontCoverageTest.java:142: error: cannot find symbol
+            assertEquals(declared, glyphs,
+            ^
+  symbol:   method assertEquals(int,int,String)
+  location: class FontCoverageTest
+7 errors
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791972198213.json
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+--
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
+Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Compilation failed; see the compiler error output for details.
+	at org.gradle.api.internal.tasks.compile.JdkJavaCompiler.execute(JdkJavaCompiler.java:61)
+	at org.gradle.api.internal.tasks.compile.JdkJavaCompiler.execute(JdkJavaCompiler.java:41)
+	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.delegateAndHandleErrors(NormalizingJavaCompiler.java:98)
+	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.execute(NormalizingJavaCompiler.java:52)
+	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.execute(NormalizingJavaCompiler.java:38)
+	at org.gradle.api.internal.tasks.compile.AnnotationProcessorDiscoveringCompiler.execute(AnnotationProcessorDiscoveringCompiler.java:52)
+	at org.gradle.api.internal.tasks.compile.AnnotationProcessorDiscoveringCompiler.execute(AnnotationProcessorDiscoveringCompiler.java:38)
+	at org.gradle.api.internal.tasks.compile.ModuleApplicationNameWritingCompiler.execute(ModuleApplicationNameWritingCompiler.java:46)
+	at org.gradle.api.internal.tasks.compile.ModuleApplicationNameWritingCompiler.execute(ModuleApplicationNameWritingCompiler.java:36)
+	at org.gradle.jvm.toolchain.internal.DefaultToolchainJavaCompiler.execute(DefaultToolchainJavaCompiler.java:57)
+--
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
+
+
+BUILD FAILED in 22s
+2 actionable tasks: 2 executed
