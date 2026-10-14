@@ -202,6 +202,58 @@ set that never contained it), and the first push of the round never reached the 
 called `assertEquals` without importing it -- which is what `tools/check_java_symbols.py` now catches in a
 second. 117 tests green, `validation=PASSED`, and the third install is the test of all of it.
 
+## The third run on a phone
+
+The third install of the round-two build closed immediately. No panel, no message, nothing to
+photograph -- which is itself information: the crash was happening after the last frame that could have
+drawn a reason, or before the first one. The cause was in the chunk meshing path, and there were two
+things wrong with it, one fatal and one that would have been fatal on a phone with less memory.
+
+**The fatal one: a primitive started on a full mesh.** A GPU mesh addresses 65,000 vertices with 16-bit
+indices. The meshers asked `MeshData.isFull()` -- which means *do four more vertices fit?* -- once before
+adding a whole primitive, and a building costs four vertices per wall edge plus its roof (forty or more),
+while a road ribbon costs eight vertices per segment of the way (hundreds for a long one). So a building
+could start on a mesh with four vertices left, `addVertex` threw as it was designed to, and the throw
+escaped `GameWorldRenderer.update()` and `QatarGame.render()`: the GL thread died and Android killed the
+process with it. The previous two instalments never reached this code -- the country did not load at all
+in round one, and in round two the bundle name stopped it before chunks were meshed -- so a bug that had
+been sitting in the mesher for two rounds finally got a chance to run on a device.
+
+Three rules now, and all three are needed:
+
+  1. Every primitive is **sized before it is placed** (`MeshData.hasRoom(n)`, with the cost helpers on
+     `BuildingMesher` and `RoadMesher` reported unclamped so "too big for any part" is a different answer
+     from "fits the part I am about to use").
+  2. A chunk's detail is a **list of parts** that roll over, up to three of them, instead of one mesh that
+     fills up and stops -- so a dense chunk of Doha keeps its detail rather than losing its middle.
+  3. Past that cap the mesher **stops cleanly and says so** (`ChunkMesh.truncated`) rather than throwing.
+     A chunk missing a shed is a bug; a chunk that kills the app is worse.
+
+**The one underneath it: the window was costing more memory than the phone would allow.** Every chunk
+allocated three 4,096-vertex arrays -- 540 KB each, mostly empty -- and the resident window allowed 420
+chunks: about 220 MB of geometry allocated before a single building was extruded, on top of 60 MB of
+compiled country. A phone kills an app that does that without an exception, a stack trace or a chance to
+say goodbye, which is one of the ways this round could have presented as an instant close. Meshes now
+start small and grow, are trimmed to what they used, hand their CPU arrays over to the GPU and drop them,
+and the window is bounded by a vertex budget (1,000,000) as well as by distance -- evicting the farthest
+chunk rather than the one under the camera. Warm-up builds six chunks a frame instead of twenty-four.
+
+**And the diagnostics, because a silent close must not be possible.** The crash journal is installed by
+`AndroidLauncher` *before* libGDX is created -- the old recorder was created inside `create()`, one of
+the things that can fail, and wrote through libGDX file handles, which need a context that a fatal
+failure may never have produced. It writes breadcrumbs with the heap in use before every launch stage,
+and on the next launch the app shows the previous run's record in a scrollable, selectable dialog and
+starts the game only when a person has read it. Nothing deletes it: the old code printed the trace into
+the panel and then deleted the file, so a repeating crash showed its reason for the fraction of a second
+before it died again. `create()`, every frame, every launch stage and every chunk build are guarded now:
+a failure is a sentence on the screen and a hole in the world, not a dead thread.
+
+`ChunkMeshBudgetTest` meshes the densest chunk of the committed country at full detail -- found by
+counting the footprints in every 500 m chunk of the real data, not guessed -- and holds every part inside
+the index limit; `ChunkMeshCacheBudgetTest` holds the resident window inside its memory budget and checks
+that the chunk taken back is the farthest one. Both would have failed on the code that shipped in round
+two.
+
 ## The workflow that started itself
 
 `data.yml` publishes its provenance into `data/geodata/**` and had that same directory among its push
@@ -229,7 +281,11 @@ after the fix was the last one in the chain.
 4. Detail assets (step 3): ~~the visible bodies for the human and the four vehicles~~ done, with tests,
    and drawn through the new VIEW button. ~~Moving parts — wheels that turn, a propeller and a rotor that
    spin~~ done: the wheels roll at v/r, the propeller idles and winds up, the rotors spin at governed head
-   speed. Still open: doors and roof clutter, kerbs, palms, and a walking animation.
+   speed. ~~Doors and kerbs~~ done in the fragment shader rather than in geometry, because the country has
+   190,000 buildings and 180,000 ways and a quad per doorway is millions of vertices: the street level of
+   a wall now carries entrances and shopfronts every seven metres, a mosque wears its sandstone arcade, a
+   landmark a curtain wall, and every road carries kerb stones with joints and two worn wheel tracks.
+   Still open: roof clutter, palms and vegetation, and a walking animation.
 5. ~~Bilingual pass~~ done: every control (English above, Arabic below, shaped by `ArabicReshaper`), the
    map hint on two lines, the status line, and the data credit. What is left is not a translation but a
    reader: no native speaker has reviewed the Arabic, and that is stated in the report's limitations.

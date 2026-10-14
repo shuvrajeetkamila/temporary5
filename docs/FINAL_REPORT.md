@@ -9,14 +9,14 @@ repository, a CI run, or a byte count that can be re-derived.
 | | |
 |---|---|
 | **APK** | [`Qatar-The-Peninsula-v0.1.0-m0.apk`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk) |
-| **Bytes** | 19,177,634 |
-| **SHA-256** | `ac264f851f0d5b49957540805b640ce6dce326bfd877fe09c1d7822f0a351a57` |
+| **Bytes** | 19,187,414 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset |
+| **SHA-256** | `ad86d27242bbd758fa4ab1f4a06a0827a1db5e76e8128d00dd35db176ee50733` |
 | **Sidecar** | [`…apk.sha256`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256) |
 | **Release** | https://github.com/shuvrajeetkamila/temporary5/releases/tag/v0.1.0-m0 (rolling: each green run republishes it) |
-| **Built from** | commit `3992b87`, branch `arena/4eb37624-temporary5` |
-| **CI runs for that commit** | Build APK [`38560132516`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38560132516) success · Compile gate [`38560132567`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38560132567) success · Protect the project [`38560132320`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38560132320) success |
-| **Tests at that commit** | 117 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_STATUS.txt`, evidence commit `f89ec4c`) |
-| **Build stamp on screen** | `0.1.0-m0+diag2` — the release asset keeps its name, so this is how two builds are told apart on a phone |
+| **Built from** | commit `c979ca5`, branch `arena/4eb37624-temporary5` |
+| **CI runs for that commit** | Build APK [`38594372887`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38594372887) success · Compile gate [`38594372883`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38594372883) success · Protect the project [`38594372888`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38594372888) success |
+| **Tests at that commit** | 124 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_STATUS.txt`) |
+| **Build stamp on screen** | `0.1.0-m0+diag3` — the release asset keeps its name, so this is how two builds are told apart on a phone: the diagnostics panel prints the stamp on its first line |
 | **Package** | `ai.arena.qatar.peninsula`, versionName `0.1.0-m0`, debug-signed, `minSdk 26`, `targetSdk 34` |
 | **ABIs** | `arm64-v8a`, `armeabi-v7a`, `x86_64` |
 | **Permissions** | none: no `INTERNET`, nothing to phone home to. The country is inside the APK. |
@@ -228,6 +228,38 @@ The honest position now: two installs made, two failures, four causes — a rese
 a file section order and a missing precision — each one named by the app itself on the phone's screen and
 each one now fixed where a test can hold it: 117 tests green, `validation=PASSED`. Two of the four are
 checked in the shipped artefact by `validate_apk.sh`, and none of them is left to a promise.
+
+### Third install: it closed immediately
+
+The round-two build closed on launch. Nothing was on the screen and nothing was in the panel, because the
+failure happened after the last frame that could have drawn anything: this is the crash the journalled
+record exists for, and it is now visible from the phone itself.
+
+Two things were wrong in the chunk mesher, and both are fixed:
+
+1. **A primitive could be started on a full mesh.** A mesh holds 65,000 vertices; the meshers asked
+   `isFull()` -- "do four more fit?" -- once before adding a whole primitive, and a building needs four
+   vertices per wall edge plus a roof while a road ribbon needs eight per segment. A building could start
+   with four vertices left, `addVertex` threw, the exception escaped the render loop, and the GL thread
+   died with the process. Primitives are now sized before they are placed, a chunk's detail is split into
+   up to three parts that roll over, and geometry that fits no part is dropped and flagged instead of
+   throwing.
+2. **The resident window was too large for a phone's memory.** Three 4,096-vertex arrays per chunk, 420
+   chunks: about 220 MB of mostly empty geometry on top of 60 MB of compiled country. A phone kills an
+   app that does that with no exception and nothing to read. Meshes now start small, grow, are trimmed,
+   hand their CPU arrays to the GPU and forget them, and the window is bounded by a vertex budget
+   (1,000,000) as well as by distance -- taking back the farthest chunk, never the one under the camera.
+
+**If this build ever closes silently again, it will not be silent the next time.** A crash journal is
+installed by the Android entry point before libGDX exists; it writes one breadcrumb line per launch stage
+with the heap in use, and the next launch shows the previous record in a dialog, with a **Copy** button so
+the text can be pasted into a message. The record is kept until someone clears it. That is what to send
+back if anything goes wrong: the dialog's text.
+
+`ChunkMeshBudgetTest` now meshes the densest 500 m chunk of the committed country at full detail -- found
+by counting footprints in the real data, 40+ in a single chunk -- and fails if any mesh part leaves the
+index limit; `ChunkMeshCacheBudgetTest` holds the resident window to its memory budget. Both fail against
+the code that shipped in round two, which is the point of writing them.
 
 ## Honest limitations
 

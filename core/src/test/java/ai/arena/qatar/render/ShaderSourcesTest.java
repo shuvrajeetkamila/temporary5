@@ -307,6 +307,32 @@ final class ShaderSourcesTest {
         return names;
     }
 
+    @Test
+    @DisplayName("the wall shades the mesher writes are the ones the shader reads back")
+    void wallShadesDriveTheShadersDetail() {
+        // Step three's detail is procedural: entrances along the street level of a wall, a sandstone
+        // arcade on a mosque, a curtain wall on a landmark, kerbs and wheel tracks along every road.
+        // The wall branches are selected by the shade the mesher puts in the vertex tint, so those
+        // three constants and the shader's threshold are one decision written in two files. This test
+        // keeps them from drifting apart silently: changing the shade here and not the threshold there
+        // loses a whole kind of detail, which nothing else would notice without a phone in the hand.
+        assertTrue(BuildingMesher.SHADE_MOSQUE < 0.62f,
+                "a mosque's shade is below the shader's sandstone threshold: "
+                        + BuildingMesher.SHADE_MOSQUE);
+        assertTrue(BuildingMesher.SHADE_LANDMARK >= 0.62f && BuildingMesher.SHADE_LANDMARK < 1.0f,
+                "a landmark's shade is above it and below the plain one: "
+                        + BuildingMesher.SHADE_LANDMARK);
+        assertEquals(1.0f, BuildingMesher.SHADE_PLAIN, "ordinary buildings shade at nothing at all");
+        assertTrue(ShaderSources.FRAGMENT.contains("shade < 0.62"),
+                "the fragment shader still branches on that threshold");
+        assertTrue(ShaderSources.FRAGMENT.contains("tintFactor(v_aux.w)"),
+                "and it still reads the shade the mesher wrote");
+        assertTrue(ShaderSources.FRAGMENT.contains("door") && ShaderSources.FRAGMENT.contains("kerb"),
+                "the street-level doorways and the road kerbs are still in the shader: they are what "
+                        + "this step's detail is made of, and deleting them would cost nothing and "
+                        + "look like nothing");
+    }
+
     private static Map<String, String> declarations(String source, String keyword) {
         Map<String, String> found = new LinkedHashMap<>();
         for (String line : strip(source).split("\n")) {

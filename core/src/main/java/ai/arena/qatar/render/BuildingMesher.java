@@ -83,6 +83,20 @@ public final class BuildingMesher {
                 && buildings.bounds[ring * 4 + 1] <= maxNorth && buildings.bounds[ring * 4 + 3] >= minNorth;
     }
 
+    /**
+     * Wall shades, written into the vertex tint the fragment shader reads back: a mosque is 0.55, a
+     * landmark 0.8, everything else 1.0.
+     *
+     * <p>They are public because the shader's wall branches are chosen by them -- a mosque gets a
+     * sandstone arcade, a landmark a curtain wall, the rest limestone render with doorways along the
+     * street level -- so the two files have to agree on the same three numbers.
+     * {@code ShaderSourcesTest.wallShadesDriveTheShadersDetail} holds them together: changing a shade
+     * here without changing the threshold there is a silent loss of detail, not a compile error.
+     */
+    public static final float SHADE_MOSQUE = 0.55f;
+    public static final float SHADE_LANDMARK = 0.8f;
+    public static final float SHADE_PLAIN = 1.0f;
+
     /** Adds one building; returns true when anything was emitted. */
     public boolean addBuilding(int ring, MeshData mesh) {
         int start = buildings.ringStart[ring];
@@ -106,7 +120,8 @@ public final class BuildingMesher {
         boolean counterClockwise = signedArea(start, vertices) > 0;
         float type = buildings.type[ring];
         float roof = buildings.roof[ring];
-        float tint = type == Buildings.TYPE_MOSQUE ? 0.55f : (buildings.isLandmark(ring) ? 0.8f : 1.0f);
+        float tint = type == Buildings.TYPE_MOSQUE ? SHADE_MOSQUE
+                : (buildings.isLandmark(ring) ? SHADE_LANDMARK : SHADE_PLAIN);
 
         // --- walls: one quad per ring edge ------------------------------------------------
         for (int i = 0; i < vertices; i++) {
