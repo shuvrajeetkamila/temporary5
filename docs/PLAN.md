@@ -209,6 +209,16 @@ set that never contained it), and the first push of the round never reached the 
 called `assertEquals` without importing it -- which is what `tools/check_java_symbols.py` now catches in a
 second. 117 tests green, `validation=PASSED`, and the third install is the test of all of it.
 
+Three more gates have since been written for the same reason -- each one is a mistake that cost a run
+before it cost anything else. `tools/check_local_names.py` finds a local declared twice in one scope (the
+`contact` in a test, which is the compiler's error and not the test's). `tools/check_float_narrowing.py`
+finds a double-typed expression assigned to a float, which Java will not convert: on the road-clipping
+push, `float worst = Math.max(worst, v - CHUNK_M)` was the only thing the compile gate had to say, and it
+said it after six minutes of building. Its first draft read expressions as text and reported sixty-four
+innocent lines -- every one of them a cast, a comparison, or a ternary -- so it was thrown away for one
+that reads the parse tree and reports only what it can prove is a double. A gate that cries wolf is a gate
+that gets switched off.
+
 ## The third run on a phone
 
 The third install of the round-two build closed immediately. No panel, no message, nothing to

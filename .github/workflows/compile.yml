@@ -49,6 +49,9 @@ jobs:
           python3 -m pip install --quiet tree-sitter tree-sitter-java
           python3 tools/check_local_names.py
 
+      - name: Narrowing gate (a double assigned to a float is a compile error too)
+        run: python3 tools/check_float_narrowing.py
+
       - name: Compile game code and tests
         run: |
           set -o pipefail

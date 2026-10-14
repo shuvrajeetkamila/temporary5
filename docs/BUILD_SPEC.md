@@ -62,9 +62,12 @@ and the core engine contracts**, with the remaining systems layered on top of th
   section order, ABIs, licences, signature).
 * Source gates that run without a JVM, which this build environment has no Java compiler for:
   `tools/check_java_symbols.py` (an unqualified JUnit assertion with no import -- the compiler's own
-  error, in a second) and `tools/check_shaders.py` (reserved words, version directive first, and the
-  precision of every varying and shared uniform across each stage boundary). Both run their own failure
-  samples before they look at the tree; both run first in the compile job.
+  error, in a second), `tools/check_shaders.py` (reserved words, version directive first, and the
+  precision of every varying and shared uniform across each stage boundary),
+  `tools/check_local_names.py` (a local declared twice in one scope) and
+  `tools/check_float_narrowing.py` (a double-typed expression assigned to a float, which Java will not
+  convert). Each runs its own failure samples before it looks at the tree, and all four run first in the
+  compile job; three of them exist because a red run taught the project what `javac` would have said.
 * Bundle formats `QTT1` (terrain), `QTM1` (material), `QTR1` (roads), `QTB1` (buildings), `QTC1`
   (checkpoints), `QTS1` (strings), little-endian, deterministic gzip. Row 0 is **south**.
 * `SHA256SUMS` for sources and per-file digests inside `manifest.json`; the compiler writes a

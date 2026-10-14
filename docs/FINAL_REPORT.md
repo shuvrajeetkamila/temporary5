@@ -9,13 +9,13 @@ repository, a CI run, or a byte count that can be re-derived.
 | | |
 |---|---|
 | **APK** | [`Qatar-The-Peninsula-v0.1.0-m0.apk`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk) |
-| **Bytes** | 19,196,378 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset |
-| **SHA-256** | `c28fb11d2831b1cfe8d4ea3424b07d5471a933cf0f737d011af45fcf89178635` (the release API reports the same digest for the asset) |
+| **Bytes** | 19,198,618 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset |
+| **SHA-256** | `0a2731dbed707cd4d207a6517b935daa78c2f262c9b5a6dd97e69332bf466ff5` (the release API reports the same digest for the asset) |
 | **Sidecar** | [`…apk.sha256`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256) |
 | **Release** | https://github.com/shuvrajeetkamila/temporary5/releases/tag/v0.1.0-m0 (rolling: each green run republishes it) |
-| **Built from** | commit `b5d753c`, branch `arena/4eb37624-temporary5` |
-| **CI runs for that commit** | Build APK [`38622650793`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38622650793) success · Compile gate [`38622650981`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38622650981) success · Protect the project [`38622650870`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38622650870) success |
-| **Tests at that commit** | 130 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_STATUS.txt`) |
+| **Built from** | commit `cf5ac2c`, branch `arena/4eb37624-temporary5` |
+| **CI runs for that commit** | Build APK [`38625231600`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38625231600) success · Compile gate [`38625231571`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38625231571) success · Protect the project [`38625231519`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38625231519) success |
+| **Tests at that commit** | 136 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_STATUS.txt`) |
 | **Build stamp on screen** | `0.1.0-m0+diag5` — the release asset keeps its name, so this is how two builds are told apart on a phone: the diagnostics panel prints the stamp on its first line |
 | **Package** | `ai.arena.qatar.peninsula`, versionName `0.1.0-m0`, debug-signed, `minSdk 26`, `targetSdk 34` |
 | **ABIs** | `arm64-v8a`, `armeabi-v7a`, `x86_64` |
@@ -309,8 +309,10 @@ done without adding a vertex to a country with 187,000 buildings:
 Three builds were lost to red gates in this pass, and every one of them was mine, not the game's: a wheel
 assertion that expected the contact patch where the axle is, a local variable declared twice in one method
 — a compile error only `javac` sees, which now has its own gate, `tools/check_local_names.py`, a
-tree-sitter shadowing check — and a symmetry assertion made of a leg, which is not a wheel and was never
-built to be one. The last one is why the mesher's own contract is now written down: a part is built
+tree-sitter shadowing check — a narrowing conversion (`Math.max(float, double)` into a `float`), which now
+has `tools/check_float_narrowing.py`, a gate that types expressions from the parse tree and refuses to
+report anything it cannot prove — and a symmetry assertion made of a leg, which is not a wheel and was
+never built to be one. The last one is why the mesher's own contract is now written down: a part is built
 *around* its pivot, and `swingDegrees` is what tells a wheel that goes round from a limb that hangs.
 
 ## Honest limitations
@@ -365,7 +367,7 @@ built to be one. The last one is why the mesher's own contract is now written do
 
 ```bash
 git clone https://github.com/shuvrajeetkamila/temporary5 && cd temporary5
-git checkout b5d753c            # the commit the published APK was built from
+git checkout cf5ac2c            # the commit the published APK was built from
 # world data (downloads OSM + SRTM, compiles the country, validates it):
 python3 tools/fetch_sources.py && python3 tools/build_world.py && python3 tools/game_world.py
 python3 tools/validate_game_world.py --world android/assets/world     # 57/57
