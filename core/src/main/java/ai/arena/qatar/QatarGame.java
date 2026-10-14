@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.math.Vector3;
 
 import ai.arena.qatar.boot.BootSequence;
+import ai.arena.qatar.boot.CrashJournal;
 import ai.arena.qatar.boot.ScreenLog;
 import ai.arena.qatar.boot.StartupReport;
 import ai.arena.qatar.game.GameScreen;
@@ -42,7 +43,7 @@ public final class QatarGame extends ApplicationAdapter {
      * that the panel reported, and the person installing the next one needs to see at a glance that it
      * is the next one and not the same file installed twice.
      */
-    public static final String VERSION = "0.1.0-m0+diag2";
+    public static final String VERSION = "0.1.0-m0+diag3";
 
     /**
      * Map raster resolution. 2048 covers the country at 126 m per pixel and cost seconds of blocking
@@ -50,8 +51,6 @@ public final class QatarGame extends ApplicationAdapter {
      * radius needs, and the big map's 16x zoom is still usable.
      */
     private static final int MAP_RESOLUTION = 1024;
-
-    private static final String CRASH_FILE = "last-crash.txt";
 
     /** The stages of a launch, in order. One runs per frame while the panel is on the screen. */
     private enum LoadStage {
@@ -91,6 +90,10 @@ public final class QatarGame extends ApplicationAdapter {
     private static final float TRACE_SECONDS = 8f;
 
     private float traceSeconds;
+    /** Frames that threw. One is a bug; a thousand is a game that must stop trying. */
+    private int frameFailures;
+    /** Failures inside the fallback scene, reported a few times and then left alone. */
+    private int demoFailures;
     private LoadStage stage = LoadStage.GL_INFO;
     private boolean stagePending = true;
     private boolean failed;
@@ -98,9 +101,11 @@ public final class QatarGame extends ApplicationAdapter {
     private boolean disposed;
     private StartupReport startup;
 
-    @Override
-    public void create() {
-        installCrashRecorder();
+    private void createInternal() {
+        // The crash handler and the breadcrumb trail are installed by the platform entry point before
+        // libGDX exists (see AndroidLauncher): this method is one of the things that can fail, and a
+        // recorder that is created here would die with the failure it was meant to record.
+        CrashJournal.note("create");
 
         boot = new BootSequence();
         boot.begin();
@@ -142,10 +147,51 @@ public final class QatarGame extends ApplicationAdapter {
     }
 
     @Override
+    public void create() {
+        try {
+            createInternal();
+        } catch (Throwable t) {
+            // The GL thread is the process's life-support: an exception escaping create() kills it and
+            // Android kills the app with it, before a single frame can be drawn. So this is the last
+            // place where a failure can still be written down, and it is written down twice -- in the
+            // journal for the next launch's dialog, and in the panel in case a frame still gets drawn.
+            failed = true;
+            CrashJournal.record("create", t);
+            echoToPanel("create failed", t);
+        }
+    }
+
+    @Override
     public void render() {
+        // Every frame on the GL thread runs through this guard. Round three of this game died with a
+        // silent close: an exception in the streaming code escaped render(), the GL thread died, and
+        // the process went with it -- no panel, no message, nothing to photograph. A game that cannot
+        // draw the world must still be able to draw the reason.
+        try {
+            renderFrame();
+        } catch (Throwable t) {
+            frameFailures++;
+            CrashJournal.record("frame " + frameFailures, t);
+            echoToPanel("frame " + frameFailures + " failed", t);
+            if (gameScreen != null) {
+                // Give up on the game screen and fall back to the demo behind the panel, which is what
+                // the panel was built to sit on. Freeing it here keeps the failure from repeating.
+                try {
+                    gameScreen.dispose();
+                } catch (Throwable ignored) {
+                    // It has already failed; disposing it is a courtesy, not a requirement.
+                }
+                gameScreen = null;
+            }
+        }
+    }
+
+    private void renderFrame() {
         float frameDt = Math.min(Gdx.graphics.getDeltaTime(), 0.1f);
         elapsedSeconds += frameDt;
-        boot.advance(frameDt);
+        if (boot != null) {
+            boot.advance(frameDt);
+        }
 
         if (stagePending) {
             stagePending = false;
@@ -163,13 +209,25 @@ public final class QatarGame extends ApplicationAdapter {
         // The trace stays up for a few seconds after a good start -- long enough to photograph and read,
         // and gone afterwards. A failure leaves it up for good.
         traceSeconds = Math.max(0f, traceSeconds - frameDt);
-        if (failed || log.hasError() || traceSeconds > 0f) {
+        if (failed || log.hasError() || traceSeconds > 0f || frameFailures > 0) {
             log.render();
+        }
+    }
+
+    /** Puts a failure on the panel from a place where the panel itself might be what is broken. */
+    private void echoToPanel(String message, Throwable t) {
+        try {
+            log.error(message, t);
+        } catch (Throwable ignored) {
+            // The panel is the last resort, not a guarantee.
         }
     }
 
     /** Runs the current stage's work, then moves to the next. A failure stops the walk and stays visible. */
     private void runStage() {
+        // A breadcrumb per stage, with the heap in use: if the process is killed outright -- which is
+        // what a phone does to an app that grows too large -- this trail is the only evidence there is.
+        CrashJournal.note(stage.label);
         try {
             switch (stage) {
                 case GL_INFO:
@@ -213,7 +271,9 @@ public final class QatarGame extends ApplicationAdapter {
         } catch (Throwable t) {
             failed = true;
             worldError = t.toString();
+            CrashJournal.record("stage " + stage.label, t);
             log.error("Load stopped in stage '" + stage.label + "'", t);
+            log.error("memory: " + CrashJournal.heapSummary());
             log.error("The toolchain demo is running behind this panel. GL: " + glSummary());
             if (sceneRenderer != null && sceneRenderer.shaderError() != null
                     && !sceneRenderer.shaderError().isEmpty()) {
@@ -232,14 +292,28 @@ public final class QatarGame extends ApplicationAdapter {
         stage = following;
         // RUNNING is not a stage with work in it: arriving there means the walk is over.
         stagePending = following != LoadStage.RUNNING;
+        // One line per stage transition: the country is about 60 MB of geometry in, and the raster,
+        // the chunk cache and the GPU copies all come after it. A phone that runs out of memory kills
+        // the process without an exception, so the number that was reached before the kill is the
+        // diagnosis. It is on the panel, where a photograph can carry it.
+        log.log("stage " + following.label + " | " + CrashJournal.heapSummary());
     }
 
     private void drawLoadingFrame(float frameDt) {
-        ScreenLog.clearTo(0.10f, 0.13f, 0.18f);
+        try {
+            ScreenLog.clearTo(0.10f, 0.13f, 0.18f);
+        } catch (Throwable ignored) {
+            // No GL to clear: the panel below is still worth attempting.
+        }
         log.render();
 
-        if (gameScreen == null) {
-            // Something to look at while the country arrives: the demo scene, still on the toolchain.
+        if (gameScreen != null) {
+            return;
+        }
+        // Something to look at while the country arrives: the demo scene, still on the toolchain.
+        // Guarded, because the demo is not allowed to be the reason a failure is invisible: the panel
+        // has already been drawn by the time this runs, and it stays drawn whatever happens next.
+        try {
             int steps = boot.clock().beginFrame(frameDt);
             for (int i = 0; i < steps; i++) {
                 physics.step(ai.arena.qatar.physics.FixedStepClock.FIXED_DT);
@@ -249,6 +323,12 @@ public final class QatarGame extends ApplicationAdapter {
                     (float) testCrate.position.z);
             sceneRenderer.render(camera, cameraFocus, elapsedSeconds,
                     (float) boot.clock().alpha(), testCrate);
+        } catch (Throwable t) {
+            demoFailures++;
+            if (demoFailures <= 3) {
+                log.error("The fallback scene failed (" + demoFailures + ")", t);
+                CrashJournal.record("demo scene", t);
+            }
         }
     }
 
@@ -285,52 +365,36 @@ public final class QatarGame extends ApplicationAdapter {
     }
 
     /**
-     * A crash on a phone leaves nothing behind that the person holding it can read. The handler writes
-     * the throwable to a file in the app's own storage, and the next launch prints it -- so "it closed
-     * itself" comes back as an exception and a line number.
+     * Prints what the last launch left behind: the crash record from {@link CrashJournal}, which is
+     * written by the platform entry point's handler even when this class never got a chance to run.
+     *
+     * <p>The record is deliberately <b>not</b> deleted here. The previous version of this method printed
+     * the trace and then removed the file, so a crash that repeats showed its reason for as long as it
+     * took to die again -- a fraction of a second, and impossible to photograph. Now the Android
+     * launcher shows it in a dialog before the game starts and only a person clears it.
      */
-    private void installCrashRecorder() {
-        final Thread.UncaughtExceptionHandler previous = Thread.getDefaultUncaughtExceptionHandler();
-        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
-            try {
-                StringBuilder text = new StringBuilder();
-                text.append("thread ").append(thread.getName()).append('\n');
-                text.append(throwable).append('\n');
-                Throwable cause = throwable;
-                while (cause != null) {
-                    for (StackTraceElement frame : cause.getStackTrace()) {
-                        text.append("    at ").append(frame).append('\n');
-                    }
-                    cause = cause.getCause() == cause ? null : cause.getCause();
-                }
-                Gdx.files.local(CRASH_FILE).writeString(text.toString(), false, "UTF-8");
-            } catch (Throwable ignored) {
-                // Nothing can be done from here, and an exception in a crash handler hides the crash.
-            }
-            if (previous != null) {
-                previous.uncaughtException(thread, throwable);
-            }
-        });
-    }
-
     private void reportPreviousCrash() {
         try {
-            com.badlogic.gdx.files.FileHandle file = Gdx.files.local(CRASH_FILE);
-            if (!file.exists()) {
+            String text = CrashJournal.readCrash();
+            if (text == null || text.isEmpty()) {
                 log.log("No crash recorded by a previous run");
-                return;
+            } else {
+                log.error("PREVIOUS RUN REPORTED A PROBLEM (kept for the next launch):");
+                for (String line : text.split("\n")) {
+                    log.add(ScreenLog.Level.ERROR, line);
+                }
             }
-            String text = file.readString("UTF-8");
-            if (text.length() > 1200) {
-                text = text.substring(0, 1200);
+            String trace = CrashJournal.readTrace();
+            if (trace != null && !trace.isEmpty()) {
+                String[] lines = trace.split("\n");
+                int from = Math.max(0, lines.length - 6);
+                log.warn("where the last launch had got to:");
+                for (int i = from; i < lines.length; i++) {
+                    log.add(ScreenLog.Level.WARN, lines[i]);
+                }
             }
-            log.error("PREVIOUS RUN CRASHED:");
-            for (String line : text.split("\n")) {
-                log.add(ScreenLog.Level.ERROR, line);
-            }
-            file.delete();
         } catch (Throwable t) {
-            log.warn("could not read the crash file: " + t);
+            log.warn("could not read the crash record: " + t);
         }
     }
 

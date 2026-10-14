@@ -20,9 +20,15 @@ import com.badlogic.gdx.utils.LongMap;
  * surface this small is deliberate: it is the part that cannot be tested headlessly, so it is the part
  * that must be trivially simple.
  *
- * <p>Per chunk it keeps three meshes -- ground, water and detail (buildings, walls, roads) -- because
+ * <p>Per chunk it keeps ground, water and detail (buildings, walls, roads) as separate meshes, because
  * they need different render state: water is drawn without back-face culling so a lake is visible from
  * a boat, and closing that state again after every chunk would cost more than the extra draw call.
+ *
+ * <p>Detail is an <b>array</b> of meshes, because a dense chunk of a capital city needs more than the
+ * 65,000 vertices a 16-bit index buffer holds: {@link ChunkMesher.ChunkMesh} splits it into parts, and
+ * this class uploads and draws each part. The alternative -- one mesh, cut off at the limit -- either
+ * loses the middle of Doha or, as the third install of this game discovered the hard way, throws
+ * halfway through a frame and takes the process with it.
  */
 public final class WorldRenderer implements Disposable {
 
@@ -54,7 +60,24 @@ public final class WorldRenderer implements Disposable {
     private static final class GpuChunk {
         Mesh land;
         Mesh water;
-        Mesh detail;
+        /** One mesh per CPU part of the chunk's detail; empty when the chunk has none. */
+        Mesh[] detail = new Mesh[0];
+
+        int vertices() {
+            int vertices = 0;
+            if (land != null) {
+                vertices += land.getNumVertices();
+            }
+            if (water != null) {
+                vertices += water.getNumVertices();
+            }
+            for (Mesh part : detail) {
+                if (part != null) {
+                    vertices += part.getNumVertices();
+                }
+            }
+            return vertices;
+        }
     }
 
     public boolean isReady() {
@@ -145,7 +168,7 @@ public final class WorldRenderer implements Disposable {
         worldProgram.setUniformf("u_time", time);
     }
 
-    /** Uploads (or reuses) the GPU meshes for one chunk and remembers its world offset. */
+    /** Uploads the GPU meshes for one chunk. Re-uploading a resident chunk replaces its meshes. */
     public void upload(long key, ChunkMesh mesh) {
         GpuChunk gpu = chunks.get(key);
         if (gpu == null) {
@@ -154,7 +177,15 @@ public final class WorldRenderer implements Disposable {
         }
         gpu.land = upload(gpu.land, mesh.land);
         gpu.water = upload(gpu.water, mesh.water);
-        gpu.detail = upload(gpu.detail, mesh.detail);
+        for (Mesh existing : gpu.detail) {
+            if (existing != null) {
+                existing.dispose();
+            }
+        }
+        gpu.detail = new Mesh[mesh.detail.size()];
+        for (int i = 0; i < gpu.detail.length; i++) {
+            gpu.detail[i] = upload(null, mesh.detail.get(i));
+        }
     }
 
     private Mesh upload(Mesh existing, MeshData data) {
@@ -189,10 +220,13 @@ public final class WorldRenderer implements Disposable {
             drawCalls++;
             drawnTriangles += gpu.land.getNumIndices() / 3;
         }
-        if (gpu.detail != null) {
-            gpu.detail.render(worldProgram, GL20.GL_TRIANGLES);
+        for (Mesh part : gpu.detail) {
+            if (part == null) {
+                continue;
+            }
+            part.render(worldProgram, GL20.GL_TRIANGLES);
             drawCalls++;
-            drawnTriangles += gpu.detail.getNumIndices() / 3;
+            drawnTriangles += part.getNumIndices() / 3;
         }
         if (gpu.water != null) {
             // Water is visible from both sides (a boat, a bridge, a plane), so culling is off for it.
@@ -279,8 +313,10 @@ public final class WorldRenderer implements Disposable {
         if (gpu.water != null) {
             gpu.water.dispose();
         }
-        if (gpu.detail != null) {
-            gpu.detail.dispose();
+        for (Mesh part : gpu.detail) {
+            if (part != null) {
+                part.dispose();
+            }
         }
     }
 
@@ -294,6 +330,15 @@ public final class WorldRenderer implements Disposable {
 
     public int residentChunks() {
         return chunks.size;
+    }
+
+    /** Vertices the GPU is holding for resident chunks: the number that grows until a phone complains. */
+    public int residentVertices() {
+        int vertices = 0;
+        for (LongMap.Entry<GpuChunk> entry : chunks.entries()) {
+            vertices += entry.value.vertices();
+        }
+        return vertices;
     }
 
     private void shutdown() {
@@ -330,8 +375,10 @@ public final class WorldRenderer implements Disposable {
             if (entry.value.water != null) {
                 entry.value.water.dispose();
             }
-            if (entry.value.detail != null) {
-                entry.value.detail.dispose();
+            for (Mesh part : entry.value.detail) {
+                if (part != null) {
+                    part.dispose();
+                }
             }
         }
         chunks.clear();

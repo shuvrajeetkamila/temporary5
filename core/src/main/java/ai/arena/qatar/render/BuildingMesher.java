@@ -50,7 +50,9 @@ public final class BuildingMesher {
             if (!overlaps(ring, minEast, minNorth, maxEast, maxNorth)) {
                 continue;
             }
-            if (mesh.isFull()) {
+            if (!mesh.hasRoom(vertexCost(buildings, ring))) {
+                // Four vertices per wall edge plus the roof: asking "does a quad fit" would let a
+                // forty-vertex building start on a mesh with four vertices left.
                 break;
             }
             if (addBuilding(ring, mesh)) {
@@ -58,6 +60,22 @@ public final class BuildingMesher {
             }
         }
         return emitted;
+    }
+
+    /**
+     * Vertices a footprint will need: four per wall edge, plus a roof of at most four more per edge.
+     *
+     * <p>Reported without clamping. The caller has to be able to tell "this fits in the part I am about
+     * to use" from "this cannot fit in any part at all", and a value quietly capped at the limit would
+     * make those two look the same -- which is exactly how a primitive ends up on a full mesh.
+     */
+    public static int vertexCost(Buildings buildings, int ring) {
+        int length = buildings.ringLength[ring];
+        if (length <= 0) {
+            return 0;
+        }
+        long cost = 8L * length + 24L;
+        return cost > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) cost;
     }
 
     private boolean overlaps(int ring, double minEast, double minNorth, double maxEast, double maxNorth) {

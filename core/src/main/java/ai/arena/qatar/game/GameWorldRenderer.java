@@ -29,15 +29,30 @@ import com.badlogic.gdx.utils.LongMap;
  * <p>The update is deliberately budgeted. Building a 500 m chunk costs a few milliseconds, so streaming
  * is spread over frames, nearest chunk first: the ground under the player appears immediately and the
  * horizon fills in over the next second or two, which is the difference between a stutter and a game.
+ *
+ * <p>And it is <b>isolated per chunk</b>. This is the code that killed the third install: one chunk of
+ * dense city geometry threw while being built, the exception escaped through the render loop and killed
+ * the GL thread, and Android killed the process with it -- no panel, no message. A chunk that cannot be
+ * built is now a hole in the world with a sentence in the diagnostics panel, and the other four hundred
+ * and fifty chunks are built anyway.
  */
 public final class GameWorldRenderer implements Disposable {
 
     /** Chunks built per frame during normal play. */
-    public static final int STREAM_BUDGET = 4;
-    /** Chunks built per frame during the first seconds, while the world is still filling in. */
-    public static final int WARMUP_BUDGET = 24;
+    public static final int STREAM_BUDGET = 3;
+    /**
+     * Chunks built per frame during the first seconds, while the world is still filling in.
+     *
+     * <p>This used to be 24, which built a fifth of the resident window before the first frame was
+     * finished: a quarter of a gigabyte of geometry allocated in three seconds, on a device that was
+     * also holding the compiled country. Fewer per frame costs a second or two of filling in and keeps
+     * the allocator, and the phone, out of trouble.
+     */
+    public static final int WARMUP_BUDGET = 6;
     /** How long the warm-up budget is used, in seconds. */
-    public static final float WARMUP_SECONDS = 3.0f;
+    public static final float WARMUP_SECONDS = 4.0f;
+    /** How many chunk failures are reported before the log is left alone (the holes still stay). */
+    private static final int MAX_REPORTED_FAILURES = 5;
     private final WorldData world;
     private final WorldOrigin origin;
     private final ChunkMesher mesher;
@@ -52,6 +67,8 @@ public final class GameWorldRenderer implements Disposable {
     private float lastDelta = 0.016f;
     private int uploadedChunks;
     private int releasedChunks;
+    private int failedChunks;
+    private int reportedFailures;
     private double bundleOffsetEast;
     private double bundleOffsetNorth;
 
@@ -91,16 +108,46 @@ public final class GameWorldRenderer implements Disposable {
         double bundleNorth = localNorth + bundleOffsetNorth;
 
         int budget = elapsed < WARMUP_SECONDS ? WARMUP_BUDGET : STREAM_BUDGET;
-        for (ChunkMeshCache.Entry entry : cache.update(bundleEast, bundleNorth, budget)) {
+        for (ChunkMeshCache.Entry chosen : cache.update(bundleEast, bundleNorth, budget)) {
+            build(chosen, bundleEast, bundleNorth);
+        }
+        releaseDepartedChunks();
+    }
+
+    /**
+     * Builds and uploads one chunk, and refuses to let it take the game with it.
+     *
+     * <p>Everything is inside the guard: meshing (which reads the compiled country and can meet a ring,
+     * a way or a wall it cannot use), uploading, and the bookkeeping. A failure is reported once per
+     * chunk, counted, and the chunk is remembered as failed so the next frame does not try it again --
+     * and, crucially, so the frames after that still draw the other four hundred chunks.
+     */
+    private void build(ChunkMeshCache.Entry entry, double bundleEast, double bundleNorth) {
+        try {
             double detail = ChunkMeshCache.detailAt(bundleEast, bundleNorth, entry.centreEast,
                     entry.centreNorth);
             ChunkMesh mesh = mesher.mesh(entry.chunkX, entry.chunkZ, detail);
-            cache.put(entry.chunkX, entry.chunkZ, mesh);
+            ChunkMeshCache.Entry stored = cache.put(entry.chunkX, entry.chunkZ, mesh);
             renderer.upload(entry.key(), mesh);
+            // The GPU has its own copy now: drop the CPU arrays and record the count for the budget.
+            cache.markUploaded(stored);
             uploaded.put(entry.key(), Boolean.TRUE);
             uploadedChunks++;
+            if (mesh.truncated && reportedFailures < MAX_REPORTED_FAILURES) {
+                reportedFailures++;
+                ai.arena.qatar.boot.ScreenLog.GLOBAL.warn("chunk " + entry.chunkX + "," + entry.chunkZ
+                        + " hit the vertex budget: its detail is " + mesh.describe());
+            }
+        } catch (Throwable t) {
+            failedChunks++;
+            cache.putFailed(entry.chunkX, entry.chunkZ);
+            if (reportedFailures < MAX_REPORTED_FAILURES) {
+                reportedFailures++;
+                ai.arena.qatar.boot.ScreenLog.GLOBAL.error("chunk " + entry.chunkX + ","
+                        + entry.chunkZ + " could not be built (it is left empty, the rest of the "
+                        + "world carries on)", t);
+            }
         }
-        releaseDepartedChunks();
     }
 
     /** Releases GPU meshes for chunks the cache has dropped. */
@@ -133,8 +180,8 @@ public final class GameWorldRenderer implements Disposable {
     public void render(Camera camera) {
         renderer.begin(camera, lastDelta);
         for (ChunkMeshCache.Entry entry : cache.resident()) {
-            if (entry.mesh == null) {
-                continue;
+            if (!entry.uploaded) {
+                continue;                     // failed, or not yet built: an empty chunk, not a hole
             }
             double offsetEast = ChunkMesher.chunkOrigin(entry.chunkX) - bundleOffsetEast;
             double offsetNorth = ChunkMesher.chunkOrigin(entry.chunkZ) - bundleOffsetNorth;
@@ -188,10 +235,26 @@ public final class GameWorldRenderer implements Disposable {
         return renderer.drawnTriangles();
     }
 
-    /** One-line streaming status for the debug overlay. */
+    /** Chunks whose build failed: reported in the panel, because a hole in the world is a bug. */
+    public int failedChunks() {
+        return failedChunks;
+    }
+
+    /** Vertices resident on the GPU, and the memory budget the chunk cache keeps them inside. */
+    public int residentVertices() {
+        return renderer.residentVertices();
+    }
+
+    public int geometryBudgetVertices() {
+        return ChunkMeshCache.MAX_RESIDENT_VERTICES;
+    }
+
+    /** One-line streaming status for the debug overlay and the launch trace. */
     public String describe() {
         return "chunks " + residentChunks() + " resident / " + pendingChunks() + " pending, "
-                + drawCalls() + " draws, " + (drawnTriangles() / 1000) + "k tris";
+                + drawCalls() + " draws, " + (drawnTriangles() / 1000) + "k tris, "
+                + (residentVertices() / 1000) + "k verts of " + (geometryBudgetVertices() / 1000)
+                + "k" + (failedChunks() > 0 ? ", " + failedChunks() + " FAILED" : "");
     }
 
     @Override

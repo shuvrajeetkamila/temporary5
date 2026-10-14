@@ -208,12 +208,35 @@ public final class ScreenLog implements Disposable {
     /**
      * Draws the console: a dark panel across the top of the screen, oldest line first, always ending
      * with the most recent one -- because the most recent line is the one that says what just happened.
+     *
+     * <p>Defensive by construction, and now actually so. This is the code that has to work when
+     * something else does not, so every failure inside it is caught and the panel falls back to
+     * coloured bars: a console that throws while reporting a problem turns a diagnosable run into a
+     * silent one, which is exactly the bug this whole file exists to prevent. The bars-only path used
+     * to end with an unguarded {@code font.setColor(...)} and take the whole app down with a
+     * NullPointerException when no font could be loaded at all.
      */
     public void render() {
         if (lines.isEmpty() || batch == null) {
             // Nothing to say: draw nothing. A running game is not covered by an empty panel.
             return;
         }
+        try {
+            draw();
+        } catch (Throwable t) {
+            // Whatever went wrong, the next frame draws bars instead of text -- see the flag below.
+            font = null;
+            ready = false;
+            try {
+                batch.end();
+            } catch (Throwable ignored) {
+                // A batch that cannot be closed is a batch that was never opened.
+            }
+            echo(true, "the diagnostics panel failed to draw and fell back to bars: " + t);
+        }
+    }
+
+    private void draw() {
         float width = Gdx.graphics.getWidth();
         float height = Gdx.graphics.getHeight();
 
@@ -250,6 +273,9 @@ public final class ScreenLog implements Disposable {
                 batch.draw(white(), 8f, y + lineHeight * 0.25f, width - 16f, lineHeight * 0.4f);
                 continue;
             }
+            if (font == null) {
+                continue;
+            }
             font.setColor(colour(line.level));
             float markerWidth = 0f;
             if (line.level != Level.INFO) {
@@ -262,7 +288,9 @@ public final class ScreenLog implements Disposable {
             batch.setColor(edge(line.level));
             batch.draw(white(), 4f, y - lineHeight * 0.15f, 4f, lineHeight * 0.85f);
         }
-        font.setColor(Color.WHITE);
+        if (font != null) {
+            font.setColor(Color.WHITE);
+        }
         batch.setColor(Color.WHITE);
         batch.end();
     }

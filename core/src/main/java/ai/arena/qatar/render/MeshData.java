@@ -16,13 +16,35 @@ package ai.arena.qatar.render;
  * Eleven floats, and the GPU layout must agree with that exactly: the vertex stride comes from
  * {@link VertexFormat}, so a mismatch here would feed the driver a different story about where each
  * vertex starts. {@code VertexLayoutTest} holds the two together.
- * A chunk with more than {@link #MAX_VERTICES} vertices must be split into several parts, because the
- * index buffer uses unsigned shorts: 65,536 vertices is a hard limit of the format, not a preference.
+ *
+ * <p>A mesh holds at most {@link #MAX_VERTICES} vertices, because the index buffer uses unsigned
+ * shorts: 65,536 is a hard limit of the format, not a preference. A chunk that needs more is split into
+ * parts -- and the way that limit is respected matters more than the limit itself. The third install of
+ * this game closed immediately, and the reason was here: the meshers asked {@link #isFull()} once
+ * <em>before</em> a whole primitive (a building of forty vertices, a road of three hundred) and then
+ * added it, so a primitive could start on a mesh with four vertices left and run off the end. That
+ * threw, the exception escaped the render loop, and the GL thread -- and the app -- died with it. The
+ * rule now is that a caller asks {@link #hasRoom(int)} for the primitive it is about to add, and the
+ * throw below is a backstop that should be unreachable.
  */
 public final class MeshData {
 
     public static final int FLOATS_PER_VERTEX = 11;
     public static final int MAX_VERTICES = 65_000;
+
+    /**
+     * What a fresh mesh allocates before it grows.
+     *
+     * <p>This was 4096 vertices -- 180 KB -- and every chunk allocated three of them, so four hundred
+     * resident chunks held a quarter of a gigabyte of mostly empty arrays. A phone kills an app that
+     * does that, without an exception and without a stack trace. Small by default, grown by doubling,
+     * and trimmed to size by {@link #compact()} as soon as the mesher is done with it.
+     */
+    private static final int DEFAULT_VERTEX_CAPACITY = 1024;
+    private static final int DEFAULT_INDEX_CAPACITY = 2048;
+
+    private static final float[] NO_VERTICES = new float[0];
+    private static final short[] NO_INDICES = new short[0];
 
     private float[] vertices;
     private short[] indices;
@@ -37,7 +59,7 @@ public final class MeshData {
     private float maxZ = -Float.MAX_VALUE;
 
     public MeshData() {
-        this(4096, 8192);
+        this(DEFAULT_VERTEX_CAPACITY, DEFAULT_INDEX_CAPACITY);
     }
 
     public MeshData(int vertexCapacity, int indexCapacity) {
@@ -61,8 +83,66 @@ public final class MeshData {
         return indexCount == 0;
     }
 
+    /** True when a four-vertex quad no longer fits: the conservative question the meshers used to ask. */
     public boolean isFull() {
-        return vertexCount + 4 > MAX_VERTICES;
+        return !hasRoom(4);
+    }
+
+    /**
+     * Whether {@code vertices} more vertices fit.
+     *
+     * <p>This is the question a mesher must ask, and it must ask it for the primitive it is about to
+     * add rather than for a generic quad: a building wall is four vertices per ring edge, a road ribbon
+     * is four per centre-line point plus its markings. Asking the wrong question is what killed the
+     * third build.
+     */
+    public boolean hasRoom(int vertices) {
+        return vertices >= 0 && vertexCount + vertices <= MAX_VERTICES;
+    }
+
+    /** How many more vertices still fit. */
+    public int remainingVertices() {
+        return MAX_VERTICES - vertexCount;
+    }
+
+    /**
+     * Trims the backing arrays to exactly what was written.
+     *
+     * <p>A mesh that grew to 65,536 vertices while producing 900 of them should not keep the array it
+     * grew into: the resident chunk cache holds tens of meshes, and each one's unused tail is memory
+     * the phone cannot use for anything else.
+     */
+    public void compact() {
+        int used = vertexCount * FLOATS_PER_VERTEX;
+        if (vertices.length != used) {
+            float[] trimmed = new float[used];
+            System.arraycopy(vertices, 0, trimmed, 0, used);
+            vertices = trimmed;
+        }
+        if (indices.length != indexCount) {
+            short[] trimmed = new short[indexCount];
+            System.arraycopy(indices, 0, trimmed, 0, indexCount);
+            indices = trimmed;
+        }
+    }
+
+    /**
+     * Drops the vertex data after it has been uploaded to the GPU.
+     *
+     * <p>The GPU has its own copy and nothing reads the CPU one again, so keeping it means holding
+     * every chunk's geometry twice. The counts are the caller's business from here on (the chunk cache
+     * records them before calling this), and the mesh must not be uploaded twice.
+     */
+    public void releaseArrays() {
+        vertices = NO_VERTICES;
+        indices = NO_INDICES;
+        vertexCount = 0;
+        indexCount = 0;
+    }
+
+    /** Bytes of vertex and index data currently held, used to budget the resident chunk cache. */
+    public int memoryBytes() {
+        return vertices.length * 4 + indices.length * 2;
     }
 
     public float[] vertices() {

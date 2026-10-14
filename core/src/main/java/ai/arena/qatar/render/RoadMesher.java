@@ -44,7 +44,9 @@ public final class RoadMesher {
             if (!overlaps(line, minEast, minNorth, maxEast, maxNorth)) {
                 continue;
             }
-            if (mesh.isFull()) {
+            if (!mesh.hasRoom(vertexCost(roads, line))) {
+                // A way is a polyline: one way can need hundreds of vertices, so the budget question
+                // has to be asked about the way, not about a generic quad.
                 break;
             }
             addRoad(line, mesh);
@@ -53,9 +55,28 @@ public final class RoadMesher {
         return emitted;
     }
 
-    private boolean overlaps(int line, double minEast, double minNorth, double maxEast, double maxNorth) {
+    /**
+     * Whether this way overlaps the rectangle at all.
+     *
+     * <p>Public because {@link ChunkMesher} walks the ways itself: it has to size each one before
+     * adding it (8 vertices per segment, ribbon and markings) so a nearly full mesh is never handed a
+     * long polyline to overflow. The loop in {@link #mesh} below asks {@code isFull()} once per way,
+     * which is safe only for the callers that use it with a whole range instead of a chunk.
+     */
+    public boolean overlaps(int line, double minEast, double minNorth, double maxEast, double maxNorth) {
         return roads.bounds[line * 4] <= maxEast && roads.bounds[line * 4 + 2] >= minEast
                 && roads.bounds[line * 4 + 1] <= maxNorth && roads.bounds[line * 4 + 3] >= minNorth;
+    }
+
+    /**
+     * Vertices a way will need: four per segment for the ribbon, four more when it is marked.
+     *
+     * <p>Reported without clamping, so the caller can tell a way that fits a part from a way that fits
+     * no part at all -- the second kind must be dropped, not started.
+     */
+    public static int vertexCost(Roads roads, int line) {
+        long cost = 8L * roads.lineLength[line] + 8L;
+        return cost > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) cost;
     }
 
     /** Adds one road: surface ribbon, plus a centre line when it is wide enough to have one. */
