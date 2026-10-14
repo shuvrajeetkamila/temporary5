@@ -43,8 +43,8 @@ PASS  road classes map to integer material/geometry ids
 WORLD SELF-TEST PASSED
 selftest_exit=0
 probe: https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf -> 206 size=512 redirect=
-probe: https://download.bbbike.org/osm/bbbike/Qatar/Qatar.osm.pbf -> 000 size=0 redirect=CURLFAIL
-probe: https://download.geofabrik.de/asia/gcc-states-latest.osm.pbf -> 307 size=270 redirect=https://download.geofabrik.de/asia/gcc-states-261013.osm.pbf
+probe: https://download.bbbike.org/osm/bbbike/Qatar/Qatar.osm.pbf -> 404 size=2236 redirect=
+probe: https://download.geofabrik.de/asia/gcc-states-latest.osm.pbf -> 307 size=270 redirect=https://download.geofabrik.de/asia/gcc-states-261012.osm.pbf
 probe: https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E051.hgt.gz -> 206 size=512 redirect=
 [1/2] SRTM 1 arc-second elevation tiles (public domain)
   fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N24/N24E050.hgt.gz
@@ -230,21 +230,18 @@ WORLD_VALIDATION=PASSED
   ways visited: 410293
   national boundary assembled from relation 305095 (Qatar)
   packing buildings (real footprints)
-    buildings: 186,996 rings, 2,137 named
-  packing land use
-    land use: 5,779 polygons
-  packing water
-    water: 1,130 polygons
-  packing barriers
-    barriers: 421 lines
-  packing points of interest and spawn points
-    node features: 531
-    points: 784
-  strings: 17,717 entries after appending game names
-  manifest: android/assets/world/manifest.json (26,159 bytes)
-  checksums: 12 files
-== game world: stage 2 complete ==
-game_compile_exit=0
+Traceback (most recent call last):
+  File "/home/runner/work/temporary5/temporary5/tools/game_world.py", line 665, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/runner/work/temporary5/temporary5/tools/game_world.py", line 564, in main
+    buildings_payload, building_stats = pack_buildings(build_buildings(data, strings), strings)
+                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/temporary5/temporary5/tools/game_world.py", line 411, in build_buildings
+    for feature in data.buildings:
+                   ^^^^^^^^^^^^^^
+AttributeError: 'tuple' object has no attribute 'buildings'
+game_compile_exit=1
 PASS  material_l1.bin.gz digest matches the manifest
 PASS  terrain_l1.bin.gz digest matches the manifest
 PASS  attribution is present
