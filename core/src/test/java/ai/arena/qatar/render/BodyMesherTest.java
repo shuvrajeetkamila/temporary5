@@ -331,25 +331,35 @@ final class BodyMesherTest {
     }
 
     @Test
-    @DisplayName("a moving part is centred on its own pivot, so it turns where it is")
-    void partsSpinInPlace() {
+    @DisplayName("a wheel turns on its axle and a limb on its joint, and neither drifts off it")
+    void partsTurnWhereTheyAre() {
         for (BodyMesher.Body kind : BodyMesher.Body.values()) {
             for (BodyMesher.Part part : BodyMesher.parts(kind)) {
                 float[] b = part.mesh.bounds();
-                // Across the spin axis the part must be centred on (0,0), or it would wobble.
-                switch (part.axis) {
-                    case BodyMesher.AXIS_X:
-                        assertEquals(0.0, b[1] + b[4], 0.05, part.name + " is not centred vertically");
-                        assertEquals(0.0, b[2] + b[5], 0.05, part.name + " is not centred lengthways");
-                        break;
-                    case BodyMesher.AXIS_Z:
-                        assertEquals(0.0, b[0] + b[3], 0.05, part.name + " is not centred sideways");
-                        assertEquals(0.0, b[1] + b[4], 0.05, part.name + " is not centred vertically");
-                        break;
-                    default:
-                        assertEquals(0.0, b[0] + b[3], 0.05, part.name + " is not centred sideways");
-                        assertEquals(0.0, b[2] + b[5], 0.05, part.name + " is not centred lengthways");
-                        break;
+                if (part.swingDegrees == 0.0) {
+                    // Something that goes round and round has to be balanced across its own axis, or the
+                    // wheel, the propeller or the rotor would wobble its way around instead of turning.
+                    switch (part.axis) {
+                        case BodyMesher.AXIS_X:
+                            assertEquals(0.0, b[1] + b[4], 0.05, part.name + " is not centred vertically");
+                            assertEquals(0.0, b[2] + b[5], 0.05, part.name + " is not centred lengthways");
+                            break;
+                        case BodyMesher.AXIS_Z:
+                            assertEquals(0.0, b[0] + b[3], 0.05, part.name + " is not centred sideways");
+                            assertEquals(0.0, b[1] + b[4], 0.05, part.name + " is not centred vertically");
+                            break;
+                        default:
+                            assertEquals(0.0, b[0] + b[3], 0.05, part.name + " is not centred sideways");
+                            assertEquals(0.0, b[2] + b[5], 0.05, part.name + " is not centred lengthways");
+                            break;
+                    }
+                } else {
+                    // A limb swings, and a limb is made downward from its joint: the pivot is its top,
+                    // not its middle. A leg balanced on its hip would be half buried in the torso.
+                    assertEquals(0.0, b[4], 0.05,
+                            part.name + " does not hang from its joint: its top is " + b[4] + " m");
+                    assertTrue(b[1] < -0.15,
+                            part.name + " hangs nowhere below its joint: its lowest point is " + b[1] + " m");
                 }
                 // And whatever the spin, the part's pivot stays exactly where the body put it.
                 for (double spin : new double[]{0.0, 37.5, 180.0, 359.0}) {
