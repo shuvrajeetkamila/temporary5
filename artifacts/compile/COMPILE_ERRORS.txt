@@ -1,1 +1,0 @@
-/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/render/BodyMesherTest.java:110: error: variable contact is already defined in method bodiesArePlacedAtTheirOwnHeight()
