@@ -70,8 +70,14 @@ public final class BodyMesher {
     public static final double WHEELBASE_M = 2.79;
 
     /**
-     * A part of a body that moves: its geometry is centred on its own pivot, and the caller rotates it
-     * about {@link #axis} at {@code spinDegrees * rateScale} to make it turn where it is.
+     * A part of a body that moves: its geometry is <b>built around its own pivot</b> -- the axle of a
+     * wheel, the mast of a rotor, the hip of a leg -- and the caller rotates it about {@link #axis} at
+     * {@code spinDegrees * rateScale} to make it turn where it is.
+     *
+     * <p>Built around, not centred on. A wheel is centred on its axle because a wheel that was not
+     * would wobble; a leg hangs from its hip, so most of the leg is below the pivot and none of it is
+     * above. Both are the same contract -- the pivot is the point that stays put -- and the difference
+     * is what the part is for, which is why {@link #swingDegrees} tells them apart.
      */
     public static final class Part {
         public final String name;
