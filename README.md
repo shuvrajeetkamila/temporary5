@@ -12,7 +12,7 @@ you can walk, drive, fly and sail through.
 | **Step 2 — human, car, aeroplane, helicopter, boat, interactable map** | Done. Five bodies with real physics (a 1.62 t car on a 2.79 m wheelbase, an 11 m wing that stalls and recovers, rotor thrust with collective lag, Froude-number hull resistance), switched from the HUD and driven through the compiled terrain. Buildings are solid: a walker refuses the step, a car stops at the wall. |
 | **Step 3 — windows, bodies, assets** | Partly done, and honest about the rest. Walls band their glazing procedurally in metres from the compiled heights, roads are drawn with painted lane markings, barriers extrude with the buildings — and the player now has a body: a person, a car, an aeroplane, a helicopter and a boat, built in metres from the dimensions of the real machines and painted per part from a palette in the shader. Still open: doors, roof clutter, kerbs, palms, and moving parts (wheels that turn, rotors that spin). |
 | **Step 4 — minimap, buttons, press-to-teleport map** | Done. A minimap in the top-right, a button for every locomotion type, and the map is interactable: pressing it opens the big map, which zooms about the fingers, and touching a place teleports the whole stable of vehicles there — to a road or a named place, never into the sea. |
-| **Step 5 — the installable APK** | Done and green in CI: debug-signed, `arm64-v8a`/`armeabi-v7a`/`x86_64`, no INTERNET permission, with the country inside it. Published on the rolling release `v0.1.0-m0` with its byte count and SHA-256. What remains is what only a device can answer: the shaders have never been compiled by a real driver. |
+| **Step 5 — the installable APK** | Done and green in CI: debug-signed, `arm64-v8a`/`armeabi-v7a`/`x86_64`, no INTERNET permission, with the country inside it. Published on the rolling release `v0.1.0-m0` with its byte count and SHA-256. Two installs have been made on a real phone; the second drew its own diagnostics panel and named three failures — a bundle that was in the package under a different name, a font libGDX refused to parse, and a precision mismatch a Mali driver refused to link. All three are fixed, and the third install is the test. |
 
 Honest limits, so nobody has to find them the hard way: the first on-device run is also the first time the
 GLSL is compiled (there is no GPU in CI), there is no sound, buildings collide as boxes rather than as
@@ -24,9 +24,16 @@ their drawn ring, and the world stops being drawn beyond the streaming radius ar
 Download and install on an Android phone (6.0+):
 
 **[Qatar-The-Peninsula-v0.1.0-m0.apk](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk)** —
-19,083,818 bytes, SHA-256 `0e77c063fe4d7ba5ec7038ae5303a43b568a4a574296d55a6030a5fdb5a70ceb`
+19,177,634 bytes, SHA-256 `ac264f851f0d5b49957540805b640ce6dce326bfd877fe09c1d7822f0a351a57`
 (the sidecar `.sha256` is next to it). Debug-signed, so Android will ask you to allow installation from
 this source. No network permission: the country is inside the package.
+
+The build stamp on the top line of the screen says which build you are running — this one reads
+`Qatar: The Peninsula 0.1.0-m0+diag2`. The panel that line belongs to stays up if anything fails, and
+says what failed in words on the screen, because the phone is the only thing here that can compile a
+shader. What to expect this time: the panel lists the GL driver, reads the manifest, loads the country
+(the bundles are inflated from the APK, which takes a few seconds), builds the map, and then the world
+appears. If it stops, the reason is on the screen in a sentence — please photograph it.
 
 Controls: drag to look, drag on the lower-left to move, the buttons on the right open the map (tap a
 place on it to be put there), and `VIEW` switches between the driver's eyes and a camera behind the
@@ -44,8 +51,14 @@ machine. The status line and every control are in English and Arabic, and the da
 * `tools/game_world.py` — stage 2: real building footprints with heights and roof shapes, land use,
   water to carve, barriers and points of interest (including a spawn point for every vehicle type).
 * `tools/validate_world.py`, `tools/validate_game_world.py`, `tools/selftest_world.py`,
-  `tools/selftest_game_world.py` — the gates: nothing reaches an APK that has not been proven to
-  describe the real country.
+  `tools/selftest_game_world.py`, `tools/validate_apk.sh` — the gates: nothing reaches an APK that has
+  not been proven to describe the real country, and the APK is checked as an artefact (bundles under
+  either packaged name, font files parsed the way libGDX parses them, ABIs, licences, signature).
+* `tools/check_shaders.py`, `tools/check_java_symbols.py` — the two gates that run where there is no
+  Java compiler: one reads the shader sources and enforces what a device had to teach us (version
+  directive first, no reserved words, matching explicit precisions across every stage boundary), the
+  other resolves the names in the Java sources and fails on an unqualified JUnit call with no import.
+  Both demonstrate their own failures on built-in samples before they look at the tree.
 * `core/` — the engine and the world runtime: bundle loaders with SHA-256 verification, spatial indexes,
   the mesh generators, the fixed-step physics, and the Arabic text shaper. Deliberately testable without
   a device: the mesh generators contain no GL calls, so triangle counts, winding, widths and heights are
