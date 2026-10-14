@@ -45,6 +45,45 @@ public final class BundleReader {
         return new BundleReader(name, payload);
     }
 
+    /**
+     * Opens a bundle file that may arrive in either of the two shapes the same build produces.
+     *
+     * <p>In the repository, and in the tests, a bundle is a gzip member called {@code roads.bin.gz}. On a
+     * phone it is neither: the Android asset tooling unpacks a {@code .gz} member at package time and
+     * drops the suffix, so {@code assets/world/roads.bin} holds the inflated bytes under the shorter name.
+     * The first device build died on exactly that -- {@code world bundle missing: strings.bin.gz} -- with
+     * the whole file present in the APK, one extension away from being found.
+     *
+     * <p>So the rule is: if it is gzip, verify the manifest digest and inflate it; if it is already
+     * inflated, use it, and say once that the digest could not be checked here, because the bytes that
+     * were hashed are not the bytes that were packaged. Both are honest; neither is a silent lie.
+     */
+    public static BundleReader openPackaged(String name, byte[] bytes, String expectedSha256) {
+        if (isGzip(bytes)) {
+            return open(name, bytes, expectedSha256);
+        }
+        if (expectedSha256 != null && !expectedSha256.isEmpty()) {
+            notePackaged(name);
+        }
+        return ofRaw(name, bytes);
+    }
+
+    /** True when the bytes begin with the gzip magic number, and so still need inflating. */
+    public static boolean isGzip(byte[] bytes) {
+        return bytes != null && bytes.length > 2
+                && (bytes[0] & 0xFF) == 0x1F && (bytes[1] & 0xFF) == 0x8B;
+    }
+
+    /** Says once per bundle which of the two shapes arrived, so a screenshot can settle the question. */
+    private static void notePackaged(String name) {
+        if (packagedNotes.add(name)) {
+            ai.arena.qatar.boot.ScreenLog.GLOBAL.warn(name + " arrived inflated (the Android packager "
+                    + "unpacks .gz assets): the manifest digest cannot be checked on this device");
+        }
+    }
+
+    private static final java.util.Set<String> packagedNotes = new java.util.concurrent.ConcurrentSkipListSet<>();
+
     public static byte[] inflate(String name, byte[] gzipBytes) {
         try (GZIPInputStream in = new GZIPInputStream(new ByteArrayInputStream(gzipBytes), 1 << 16)) {
             ByteArrayOutputStream out = new ByteArrayOutputStream(Math.max(1024, gzipBytes.length * 3));

@@ -32,10 +32,10 @@ public final class ShaderSources {
             "in float a_material;       // compiled material id, 0 when the surface has none",
             "uniform mat4 u_projView;",
             "uniform mat4 u_model;      // chunk-local metres -> national frame",
-            "out vec3 v_position;",
-            "out vec3 v_normal;",
-            "out vec4 v_aux;",
-            "out float v_material;",
+            "out highp vec3 v_position;",
+            "out highp vec3 v_normal;",
+            "out highp vec4 v_aux;",
+            "out highp float v_material;",
             "void main() {",
             "    vec4 world = u_model * vec4(a_position, 1.0);",
             "    v_position = world.xyz;",
@@ -48,10 +48,10 @@ public final class ShaderSources {
     public static final String FRAGMENT = String.join("\n",
             "#version 300 es",
             "precision highp float;",
-            "in vec3 v_position;",
-            "in vec3 v_normal;",
-            "in vec4 v_aux;",
-            "in float v_material;",
+            "in highp vec3 v_position;",
+            "in highp vec3 v_normal;",
+            "in highp vec4 v_aux;",
+            "in highp float v_material;",
             "uniform vec3 u_camera;",
             "uniform vec3 u_sunDirection;     // points from the world towards the sun",
             "uniform vec3 u_sunColour;",
@@ -220,7 +220,7 @@ public final class ShaderSources {
     public static final String SKY_VERTEX = String.join("\n",
             "#version 300 es",
             "in vec2 a_position;       // clip-space corner, -1..1",
-            "out vec2 v_ndc;",
+            "out highp vec2 v_ndc;",
             "void main() {",
             "    v_ndc = a_position;",
             "    gl_Position = vec4(a_position, 1.0, 1.0);   // pinned to the far plane",
@@ -229,7 +229,7 @@ public final class ShaderSources {
     public static final String SKY_FRAGMENT = String.join("\n",
             "#version 300 es",
             "precision highp float;",
-            "in vec2 v_ndc;",
+            "in highp vec2 v_ndc;",
             "uniform mat4 u_invProjView;",
             "uniform vec3 u_camera;",
             "uniform vec3 u_sunDirection;",
@@ -261,11 +261,11 @@ public final class ShaderSources {
                     + "attribute vec3 a_biome;\n"          // x = material blend, y = wetness, z = detail noise
                     + "uniform mat4 u_projView;\n"
                     + "uniform mat4 u_model;\n"
-                    + "uniform vec3 u_cameraLocal;\n"
-                    + "varying vec3 v_normal;\n"
-                    + "varying vec3 v_world;\n"
-                    + "varying vec3 v_biome;\n"
-                    + "varying float v_distance;\n"
+                    + "uniform mediump vec3 u_cameraLocal;\n"
+                    + "varying mediump vec3 v_normal;\n"
+                    + "varying mediump vec3 v_world;\n"
+                    + "varying mediump vec3 v_biome;\n"
+                    + "varying mediump float v_distance;\n"
                     + "void main() {\n"
                     + "  vec4 world = u_model * vec4(a_position, 1.0);\n"
                     + "  v_world = world.xyz;\n"
@@ -283,11 +283,11 @@ public final class ShaderSources {
                     + "uniform vec3 u_fogColor;\n"
                     + "uniform float u_fogDensity;\n"
                     + "uniform float u_heatHaze;\n"
-                    + "uniform vec3 u_cameraLocal;\n"
-                    + "varying vec3 v_normal;\n"
-                    + "varying vec3 v_world;\n"
-                    + "varying vec3 v_biome;\n"
-                    + "varying float v_distance;\n"
+                    + "uniform mediump vec3 u_cameraLocal;\n"
+                    + "varying mediump vec3 v_normal;\n"
+                    + "varying mediump vec3 v_world;\n"
+                    + "varying mediump vec3 v_biome;\n"
+                    + "varying mediump float v_distance;\n"
                     + "void main() {\n"
                     + "  vec3 n = normalize(v_normal);\n"
                     + "  vec3 base = v_biome;\n"
@@ -308,9 +308,9 @@ public final class ShaderSources {
                     + "uniform mat4 u_model;\n"
                     + "uniform float u_time;\n"
                     + "uniform float u_waveScale;\n"
-                    + "varying vec3 v_world;\n"
-                    + "varying vec3 v_normal;\n"
-                    + "varying float v_wave;\n"
+                    + "varying mediump vec3 v_world;\n"
+                    + "varying mediump vec3 v_normal;\n"
+                    + "varying mediump float v_wave;\n"
                     + "void main() {\n"
                     + "  vec4 world = u_model * vec4(a_position, 1.0);\n"
                     + "  float w1 = sin(world.x * 0.11 + u_time * 0.9) * 0.5;\n"
@@ -334,10 +334,10 @@ public final class ShaderSources {
                     + "uniform vec3 u_deepColor;\n"
                     + "uniform float u_fogDensity;\n"
                     + "uniform float u_depthBlend;\n"
-                    + "uniform vec3 u_cameraLocal;\n"
-                    + "varying vec3 v_world;\n"
-                    + "varying vec3 v_normal;\n"
-                    + "varying float v_wave;\n"
+                    + "uniform mediump vec3 u_cameraLocal;\n"
+                    + "varying mediump vec3 v_world;\n"
+                    + "varying mediump vec3 v_normal;\n"
+                    + "varying mediump float v_wave;\n"
                     + "void main() {\n"
                     + "  vec3 n = normalize(v_normal);\n"
                     + "  vec3 view = normalize(u_cameraLocal - v_world);\n"
@@ -358,8 +358,8 @@ public final class ShaderSources {
                     + "attribute vec3 a_normal;\n"
                     + "uniform mat4 u_projView;\n"
                     + "uniform mat4 u_model;\n"
-                    + "varying vec3 v_normal;\n"
-                    + "varying vec3 v_world;\n"
+                    + "varying mediump vec3 v_normal;\n"
+                    + "varying mediump vec3 v_world;\n"
                     + "void main() {\n"
                     + "  vec4 world = u_model * vec4(a_position, 1.0);\n"
                     + "  v_world = world.xyz;\n"
@@ -375,11 +375,11 @@ public final class ShaderSources {
                     + "uniform vec3 u_skyColor;\n"
                     + "uniform vec3 u_fogColor;\n"
                     + "uniform float u_fogDensity;\n"
-                    + "uniform vec3 u_cameraLocal;\n"
+                    + "uniform mediump vec3 u_cameraLocal;\n"
                     + "uniform float u_roughness;\n"
                     + "uniform float u_metallic;\n"
-                    + "varying vec3 v_normal;\n"
-                    + "varying vec3 v_world;\n"
+                    + "varying mediump vec3 v_normal;\n"
+                    + "varying mediump vec3 v_world;\n"
                     + "void main() {\n"
                     + "  vec3 n = normalize(v_normal);\n"
                     + "  vec3 l = normalize(u_sunDirection);\n"

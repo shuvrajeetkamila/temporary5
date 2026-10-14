@@ -105,6 +105,7 @@ public final class ScreenLog implements Disposable {
             return hud;
         } catch (Throwable t) {
             fontFallback = true;
+            com.badlogic.gdx.Gdx.app.error("ScreenLog", "the HUD font did not load: " + t);
         }
         // Second: the font libGDX compiles into itself. ASCII only, and always present.
         try {
@@ -134,18 +135,35 @@ public final class ScreenLog implements Disposable {
 
     public void log(String message) {
         add(Level.INFO, message);
-        Gdx.app.log("Qatar", message);
+        echo(false, message);
     }
 
     public void warn(String message) {
         add(Level.WARN, message);
-        Gdx.app.error("Qatar", "WARNING: " + message);
+        echo(false, "WARNING: " + message);
     }
 
     public void error(String message) {
         add(Level.ERROR, message);
         hasError = true;
-        Gdx.app.error("Qatar", "ERROR: " + message);
+        echo(true, "ERROR: " + message);
+    }
+
+    /**
+     * Echoes to logcat, when there is a logcat. The panel is written to from code that also runs without
+     * an application behind it -- the world loader reports which name a bundle arrived under, and the
+     * tests load the same bundles through the same code -- so the platform call must never be the thing
+     * that throws.
+     */
+    private static void echo(boolean asError, String message) {
+        if (Gdx.app == null) {
+            return;
+        }
+        if (asError) {
+            Gdx.app.error("Qatar", message);
+        } else {
+            Gdx.app.log("Qatar", message);
+        }
     }
 
     /** Records a throwable with the frames that matter, which is what a screenshot has to carry. */

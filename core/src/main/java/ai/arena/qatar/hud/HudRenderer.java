@@ -67,10 +67,14 @@ public final class HudRenderer implements Disposable {
             large.setUseIntegerPositions(false);
             fontsReady = true;
             Gdx.app.log("HudRenderer", "HUD fonts loaded: small + large");
-        } catch (RuntimeException e) {
-            // A missing font must not end the game: the world still draws, labels are just absent.
+        } catch (Throwable e) {
+            // A missing font must not end the game: the world still draws, labels are just absent. Say
+            // what was thrown though -- a NullPointerException has no message, and "labels disabled: null"
+            // is exactly the kind of log line that costs a day.
             fontsReady = false;
-            Gdx.app.error("HudRenderer", "HUD fonts unavailable, labels disabled: " + e.getMessage());
+            Gdx.app.error("HudRenderer", "HUD fonts unavailable, labels disabled: " + e);
+            ai.arena.qatar.boot.ScreenLog.GLOBAL.warn("HUD fonts unavailable: " + e
+                    + " (labels are off; the world still draws)");
         }
     }
 

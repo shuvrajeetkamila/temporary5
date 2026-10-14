@@ -71,6 +71,83 @@ final class FontCoverageTest {
     }
 
     @Test
+    @DisplayName("the .fnt files parse the way libGDX parses them, and the font the HUD wants is in them")
+    void fontsParseTheWayLibGdxDoes() throws IOException {
+        // This is the test that would have caught the second device failure. libGDX reads a .fnt as a
+        // stream: after the page definitions it loops over lines, and it STOPS at the first line that
+        // begins with "kernings". Write "kernings count=0" above the character lines -- which the
+        // generator did -- and zero glyphs are parsed; BitmapFont then looks up a fallback glyph to
+        // measure a space, gets null, and throws a NullPointerException. The font does not load, the HUD
+        // has no text, and nothing says why. So: parse it here, the same way, and require glyphs.
+        for (String name : new String[]{"hud_small.fnt", "hud_large.fnt"}) {
+            Path file = font(name);
+            String text = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
+            java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.StringReader(text));
+
+            String info = reader.readLine();
+            assertTrue(info != null && info.startsWith("info "), name + ": no info line");
+            assertTrue(info.contains("padding="), name + ": the info line has no padding");
+
+            String common = reader.readLine();
+            assertTrue(common != null && common.startsWith("common "), name + ": no common line");
+            assertTrue(common.contains("lineHeight=") && common.contains("base="),
+                    name + ": the common line lacks lineHeight or base");
+
+            String page = reader.readLine();
+            assertTrue(page != null && page.startsWith("page "), name + ": no page line");
+            assertTrue(page.contains("file=\""), name + ": the page line names no file");
+            String pageFile = page.substring(page.indexOf("file=\"") + 6);
+            pageFile = pageFile.substring(0, pageFile.indexOf('"'));
+            assertTrue(Files.isRegularFile(file.getParent().resolve(pageFile)),
+                    name + " points at a page image that does not exist: " + pageFile);
+
+            // The page is RGBA with the coverage in the alpha channel: the shape libGDX's own font tool
+            // writes and the one a BitmapFont is built to consume. Read the PNG header rather than trust
+            // it, because a greyscale page only works if the decoder happens to map it to alpha, and that
+            // is the kind of "it works on my device" that wastes a day.
+            byte[] png = Files.readAllBytes(file.getParent().resolve(pageFile));
+            assertEquals(0x89, png[0] & 0xFF, name + ": the page is not a PNG");
+            assertEquals('P', png[1]);
+            assertEquals('N', png[2]);
+            assertEquals('G', png[3]);
+            int depth = png[24] & 0xFF;
+            int colourType = png[25] & 0xFF;
+            assertEquals(8, depth, name + ": the page is not 8 bits per channel");
+            assertEquals(6, colourType, name + ": the page is not RGBA (colour type " + colourType
+                    + "). It must carry white pixels with coverage in alpha.");
+
+            String chars = reader.readLine();
+            assertTrue(chars != null && chars.startsWith("chars count="), name + ": no chars line");
+            int declared = Integer.parseInt(chars.substring("chars count=".length()).trim());
+
+            int glyphs = 0;
+            boolean spaceFound = false;
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("kernings ") || line.startsWith("metrics ")) {
+                    break;                       // exactly where libGDX stops
+                }
+                if (!line.startsWith("char ")) {
+                    continue;
+                }
+                glyphs++;
+                if (line.startsWith("char id=32 ")) {
+                    spaceFound = true;
+                    int advance = Integer.parseInt(line.substring(line.indexOf("xadvance=") + 9)
+                            .split(" ")[0]);
+                    assertTrue(advance > 0, name + ": the space glyph advances nothing, so words "
+                            + "would run together");
+                }
+            }
+            assertEquals(declared, glyphs,
+                    name + " declares " + declared + " characters and lists " + glyphs
+                            + " before the section libGDX stops at");
+            assertTrue(glyphs > 300, name + " parses to only " + glyphs + " glyphs");
+            assertTrue(spaceFound, name + " has no space glyph: every word would be run together");
+        }
+    }
+
+    @Test
     @DisplayName("the credit is credited: it names OpenStreetMap, the licence and the elevation source")
     void theCreditIsComplete() {
         String english = Credits.english(null);

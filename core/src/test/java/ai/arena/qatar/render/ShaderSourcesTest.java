@@ -145,6 +145,72 @@ final class ShaderSourcesTest {
     }
 
     @Test
+    @DisplayName("every varying, and every uniform two stages share, carries the same explicit precision")
+    void precisionsMatch() {
+        // The third device failure. Terrain declared "uniform vec3 u_cameraLocal" with no qualifier: the
+        // vertex language defaults float to highp and the fragment language -- after "precision mediump
+        // float" -- to mediump, so the two declarations of ONE uniform disagreed, and a Mali driver
+        // refused to link the program with "the precision does not match". The fix is to say the
+        // precision out loud on anything that crosses a stage boundary, and this is the check that keeps
+        // it said.
+        for (String[] pair : new String[][]{
+                {"world vertex", "world fragment", "out", "in"},
+                {"sky vertex", "sky fragment", "out", "in"},
+                {"demo terrain vertex", "demo terrain fragment", "varying", "varying"},
+                {"demo water vertex", "demo water fragment", "varying", "varying"},
+                {"demo solid vertex", "demo solid fragment", "varying", "varying"}}) {
+            Map<String, String[]> written = qualified(shaders().get(pair[0]), pair[2]);
+            Map<String, String[]> read = qualified(shaders().get(pair[1]), pair[3]);
+            assertFalse(read.isEmpty(), pair[1] + " reads no varyings at all");
+
+            for (Map.Entry<String, String[]> wanted : read.entrySet()) {
+                String[] provided = written.get(wanted.getKey());
+                assertTrue(provided != null, pair[1] + " reads '" + wanted.getKey() + "' but "
+                        + pair[0] + " never writes it: " + written.keySet());
+                assertEquals(provided[0], wanted.getValue()[0],
+                        "the type of '" + wanted.getKey() + "' differs between the stages");
+                assertTrue(provided[1] != null && wanted.getValue()[1] != null,
+                        "'" + wanted.getKey() + "' crosses a stage boundary without an explicit "
+                                + "precision qualifier: " + pair[0] + "=" + provided[1] + ", "
+                                + pair[1] + "=" + wanted.getValue()[1]);
+                assertEquals(provided[1], wanted.getValue()[1],
+                        "'" + wanted.getKey() + "' is " + provided[1] + " in " + pair[0] + " but "
+                                + wanted.getValue()[1] + " in " + pair[1]
+                                + ": a driver will refuse to link the program");
+            }
+            // Uniforms declared in both stages are one uniform: same precision or no program.
+            Map<String, String[]> vertexUniforms = qualified(shaders().get(pair[0]), "uniform");
+            Map<String, String[]> fragmentUniforms = qualified(shaders().get(pair[1]), "uniform");
+            for (String name : vertexUniforms.keySet()) {
+                String[] other = fragmentUniforms.get(name);
+                if (other == null) {
+                    continue;
+                }
+                assertTrue(vertexUniforms.get(name)[1] != null && other[1] != null,
+                        "uniform '" + name + "' is declared in both stages without an explicit "
+                                + "precision");
+                assertEquals(vertexUniforms.get(name)[1], other[1],
+                        "uniform '" + name + "' is " + vertexUniforms.get(name)[1] + " in " + pair[0]
+                                + " and " + other[1] + " in " + pair[1]
+                                + ": this is exactly the mismatch a device found");
+            }
+        }
+    }
+
+    /** name -> {type, precision or null} for declarations with one keyword. */
+    private static Map<String, String[]> qualified(String source, String keyword) {
+        Map<String, String[]> found = new LinkedHashMap<>();
+        Matcher matcher = Pattern.compile(
+                "^\\s*" + keyword + "\\s+(?:(highp|mediump|lowp)\\s+)?([A-Za-z_0-9]+)\\s+"
+                        + "([A-Za-z_][A-Za-z_0-9]*)\\s*(?:\\[[^]]*])?\\s*;",
+                Pattern.MULTILINE).matcher(strip(source));
+        while (matcher.find()) {
+            found.put(matcher.group(3), new String[]{matcher.group(2), matcher.group(1)});
+        }
+        return found;
+    }
+
+    @Test
     @DisplayName("what a vertex shader sends, the fragment shader receives, with matching types")
     void stagesAgree() {
         // Types must match exactly between stages or the program fails to link -- on the device, and not

@@ -111,27 +111,40 @@ def build(ttf: Path, out_base: Path, size_px: int, padding: int = 1) -> dict:
     while atlas_w < atlas_w:  # noqa - placeholder to keep the width fixed
         break
 
-    atlas = Image.new("L", (atlas_w, atlas_h), 0)
+    # The atlas is written RGBA, with white where the glyph is and the coverage in the alpha channel.
+    # libGDX's own font tool writes exactly this, and it is the shape a BitmapFont is built to consume:
+    # the texture is multiplied by the vertex colour, so white-with-alpha tints correctly and anti-aliases
+    # against whatever is behind it. The alternative -- an 8-bit greyscale page, which is what this
+    # generator used to write -- only works if the decoder happens to map it to an alpha-only pixmap, and
+    # a font that loads on one device and not another is a font nobody can debug from here.
+    atlas = Image.new("RGBA", (atlas_w, atlas_h), (255, 255, 255, 0))
     for g, spot in zip(glyphs, placements):
         if g["img"] is None or spot is None:
             continue
-        atlas.paste(g["img"], spot)
+        coverage = g["img"]
+        tile = Image.new("RGBA", coverage.size, (255, 255, 255, 0))
+        tile.putalpha(coverage)
+        atlas.paste(tile, spot)          # replaces the region: the tile carries its own clear pixels
 
     png_path = out_base.with_suffix(".png")
     fnt_path = out_base.with_suffix(".fnt")
     # libGDX expects the page file name to sit next to the .fnt.
-    atlas.point(lambda v: v).save(png_path)
+    atlas.save(png_path)
 
+    # THE ORDER OF THESE SECTIONS IS PART OF THE FORMAT, and it cost a device build to learn it. libGDX
+    # reads the file as a stream: after the page definitions it loops over lines, and it *stops at the
+    # first line beginning "kernings"*. Writing "kernings count=0" before the character lines therefore
+    # parses zero glyphs, and BitmapFont then dereferences the null that comes back from looking up its
+    # fallback glyph: a NullPointerException, a font that never loads, and a HUD with no text on it.
+    # Counted, not assumed: characters with neither ink nor advance are dropped, so the count is what is
+    # actually written.
     lines = [
         f'info face="{ttf.stem}" size={size_px} bold=0 italic=0 charset="" unicode=1 stretchH=100 '
         f'smooth=1 aa=1 padding=0,0,0,0 spacing=1,1',
         f'common lineHeight={line_height} base={ascent} scaleW={atlas_w} scaleH={atlas_h} pages=1 '
         f'packed=0',
         f'page id=0 file="{png_path.name}"',
-        # Counted, not assumed: three of the glyphs in the list carry neither ink nor advance and are
-        # dropped, and a .fnt that claims more characters than it lists is a lie libGDX has to survive.
         f'chars count={sum(1 for g, spot in zip(glyphs, placements) if g["img"] is not None and spot is not None)}',
-        'kernings count=0',
     ]
     for g, spot in zip(glyphs, placements):
         if g["img"] is None or spot is None:
@@ -140,6 +153,8 @@ def build(ttf: Path, out_base: Path, size_px: int, padding: int = 1) -> dict:
             f'char id={g["id"]} x={spot[0]} y={spot[1]} width={g["w"]} height={g["h"]} '
             f'xoffset={g["xoff"]} yoffset={g["yoff"]} xadvance={round(g["adv"])} page=0 chnl=15'
         )
+    # Last, always: nothing may follow the first section the reader stops at.
+    lines.append('kernings count=0')
     fnt_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     return {"ttf": str(ttf.relative_to(REPO)) if str(ttf).startswith(str(REPO)) else str(ttf),

@@ -113,19 +113,58 @@ public final class WorldData {
     public static WorldData load(String assetDir) {
         GameManifest manifest = GameManifest.load(assetDir);
         return fromSource(manifest, fileName -> {
-            FileHandle handle = Gdx.files.internal(assetDir + "/" + fileName);
+            // The manifest names the file as it is in the repository. The packager may have stored it
+            // under a different name: see BundleReader.openPackaged for what it does with a ".gz" member.
+            String stored = storedName(fileName, candidate -> {
+                FileHandle handle = Gdx.files.internal(assetDir + "/" + candidate);
+                return handle.exists();
+            });
+            FileHandle handle = Gdx.files.internal(assetDir + "/" + stored);
             if (!handle.exists()) {
-                throw new IllegalStateException("world bundle missing: " + fileName);
+                throw new IllegalStateException("world bundle missing: " + fileName
+                        + " (also looked for it without the .gz suffix)");
+            }
+            if (!stored.equals(fileName)) {
+                ai.arena.qatar.boot.ScreenLog.GLOBAL.log("world/" + stored + " stands in for " + fileName);
             }
             return handle.readBytes();
         });
     }
 
+    /**
+     * The name a bundle is actually stored under, given the name the manifest records and a way to ask
+     * whether a name exists. Pure, so it can be tested without a device: the Android packager strips a
+     * ".gz" suffix from assets it unpacks, and that single difference is what stopped the country from
+     * loading on a phone while every test and every desktop run was green.
+     */
+    public static String storedName(String wanted, java.util.function.Predicate<String> exists) {
+        if (exists.test(wanted)) {
+            return wanted;
+        }
+        if (wanted != null && wanted.endsWith(".gz")) {
+            String stripped = wanted.substring(0, wanted.length() - 3);
+            if (exists.test(stripped)) {
+                return stripped;
+            }
+        }
+        return wanted;
+    }
+
     /** Loads and verifies every bundle the manifest names, from whatever holds them. */
-    public static WorldData fromSource(GameManifest manifest, BundleSource source) {
+    public static WorldData fromSource(GameManifest manifest, BundleSource rawSource) {
+        // A source that cannot produce a bundle must say which one, and the only way to say it from here
+        // is to be the one that throws: this is also the path a null-returning source takes, which is what
+        // a test or a tool does when it has a missing file and no exception of its own.
+        BundleSource source = fileName -> {
+            byte[] bytes = rawSource.read(fileName);
+            if (bytes == null) {
+                throw new IllegalStateException("world bundle missing: " + fileName);
+            }
+            return bytes;
+        };
         long started = System.nanoTime();
         StringTable strings = manifest.strings.present()
-                ? StringTable.parseUncompressed(BundleReader.open("strings",
+                ? StringTable.parseUncompressed(BundleReader.openPackaged("strings",
                         source.read(manifest.strings.file), manifest.strings.sha256))
                 : StringTable.empty();
 
@@ -142,27 +181,27 @@ public final class WorldData {
                 manifest.originEast, manifest.originNorth);
 
         Roads roads = manifest.roads.present()
-                ? Roads.parse(BundleReader.open("roads", source.read(manifest.roads.file),
+                ? Roads.parse(BundleReader.openPackaged("roads", source.read(manifest.roads.file),
                         manifest.roads.sha256), manifest.originEast, manifest.originNorth)
                 : null;
         Buildings buildings = manifest.buildings.present()
-                ? Buildings.parse(BundleReader.open("buildings", source.read(manifest.buildings.file),
+                ? Buildings.parse(BundleReader.openPackaged("buildings", source.read(manifest.buildings.file),
                         manifest.buildings.sha256), manifest.originEast, manifest.originNorth)
                 : null;
         Areas landuse = manifest.landuse.present()
-                ? Areas.parse(BundleReader.open("landuse", source.read(manifest.landuse.file),
+                ? Areas.parse(BundleReader.openPackaged("landuse", source.read(manifest.landuse.file),
                         manifest.landuse.sha256), "QLU1", manifest.originEast, manifest.originNorth)
                 : null;
         Areas water = manifest.water.present()
-                ? Areas.parse(BundleReader.open("water", source.read(manifest.water.file),
+                ? Areas.parse(BundleReader.openPackaged("water", source.read(manifest.water.file),
                         manifest.water.sha256), "QWA1", manifest.originEast, manifest.originNorth)
                 : null;
         Barriers barriers = manifest.barriers.present()
-                ? Barriers.parse(BundleReader.open("barriers", source.read(manifest.barriers.file),
+                ? Barriers.parse(BundleReader.openPackaged("barriers", source.read(manifest.barriers.file),
                         manifest.barriers.sha256), manifest.originEast, manifest.originNorth)
                 : null;
         Points points = manifest.pois.present()
-                ? Points.parse(BundleReader.open("pois", source.read(manifest.pois.file),
+                ? Points.parse(BundleReader.openPackaged("pois", source.read(manifest.pois.file),
                         manifest.pois.sha256), manifest.originEast, manifest.originNorth)
                 : null;
 
@@ -173,15 +212,8 @@ public final class WorldData {
 
     /** Verifies a bundle file against the manifest and returns its inflated payload. */
     private static byte[] payload(GameManifest.Bundle bundle, BundleSource source) {
-        byte[] compressed = source.read(bundle.file);
-        if (bundle.sha256 != null && !bundle.sha256.isEmpty()) {
-            String actual = BundleReader.sha256(compressed);
-            if (!actual.equalsIgnoreCase(bundle.sha256)) {
-                throw new IllegalStateException(bundle.file + ": SHA-256 mismatch (expected "
-                        + bundle.sha256 + ", got " + actual + ")");
-            }
-        }
-        return BundleReader.inflate(bundle.file, compressed);
+        return BundleReader.openPackaged(bundle.file, source.read(bundle.file), bundle.sha256)
+                .payloadBytes();
     }
 
     /** Human readable summary for the loading screen and the startup report. */

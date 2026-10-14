@@ -82,6 +82,66 @@ else
   add "warning: licenses not packaged"
 fi
 
+# Every bundle the manifest names has to be findable INSIDE the APK, under the name the manifest gives
+# or under that name without a ".gz" suffix. The Android packager unpacks a ".gz" asset at package time
+# and drops the suffix, and the first device build died on exactly that: "world bundle missing:
+# strings.bin.gz", with the whole country sitting in the APK one extension away. The runtime resolves
+# both forms; this makes sure it never has to explain a failure that a build could have caught.
+MANIFEST=""
+for candidate in android/assets/world/manifest.json ../android/assets/world/manifest.json; do
+  if [[ -f "$candidate" ]]; then MANIFEST="$candidate"; break; fi
+done
+if [[ -n "$MANIFEST" ]]; then
+  BUNDLES=$(python3 -c '
+import json, sys
+manifest = json.load(open(sys.argv[1]))
+names = [b.get("file", "") for b in (manifest.get("gameBundles", {}) or {}).values()]
+for key in ("strings", "terrain_l0", "terrain_l1", "materials", "roads"):
+    entry = manifest.get(key)
+    if isinstance(entry, dict) and entry.get("file"):
+        names.append(entry["file"])
+print("\n".join(sorted(set(n for n in names if n))))
+' "$MANIFEST")
+  LISTING=$(unzip -l "$APK")
+  MISSING_BUNDLES=0
+  FOUND_BUNDLES=0
+  for bundle in $BUNDLES; do
+    if echo "$LISTING" | grep -q "assets/world/${bundle}$" \
+       || echo "$LISTING" | grep -q "assets/world/${bundle%.gz}$"; then
+      FOUND_BUNDLES=$((FOUND_BUNDLES + 1))
+    else
+      fail "world bundle is not in the APK under either name: $bundle"
+      MISSING_BUNDLES=$((MISSING_BUNDLES + 1))
+    fi
+  done
+  if [[ "$MISSING_BUNDLES" -eq 0 && "$FOUND_BUNDLES" -gt 0 ]]; then
+    add "world_bundles_findable=yes (${FOUND_BUNDLES} bundles, by name or without .gz)"
+  fi
+else
+  add "warning: world manifest not on disk, bundle findability check skipped"
+fi
+
+# The HUD font is a text file with a strict section order: libGDX stops reading characters at the first
+# "kernings" line, so a .fnt that puts that section first parses to zero glyphs and the HUD ends up with
+# no text at all (and a NullPointerException while loading it). Check the order here, in the artefact.
+for font in hud_small hud_large; do
+  unzip -p "$APK" "assets/fonts/${font}.fnt" > "/tmp/${font}.fnt" 2>/dev/null || true
+  if [[ ! -s "/tmp/${font}.fnt" ]]; then
+    fail "HUD font missing from APK: assets/fonts/${font}.fnt"
+    continue
+  fi
+  DECLARED=$(grep -m1 '^chars count=' "/tmp/${font}.fnt" | cut -d= -f2)
+  PARSED=$(awk '/^kernings |^metrics /{exit} /^char /{n++} END{print n+0}' "/tmp/${font}.fnt")
+  PAGE=$(grep -m1 '^page ' "/tmp/${font}.fnt" | sed 's/.*file="\([^"]*\)".*/\1/')
+  if [[ "$DECLARED" != "$PARSED" || "$PARSED" -lt 1 ]]; then
+    fail "${font}.fnt declares $DECLARED characters but lists $PARSED before its kernings section"
+  elif ! unzip -l "$APK" | grep -q "assets/fonts/${PAGE}$"; then
+    fail "${font}.fnt points at a page image that is not in the APK: $PAGE"
+  else
+    add "font_${font}=ok (${PARSED} glyphs, page ${PAGE})"
+  fi
+done
+
 # Signature: APK Signature Scheme v2/v3 lives in the signing block; v1 uses META-INF entries.
 SIGNED=no
 if command -v apksigner >/dev/null 2>&1; then
