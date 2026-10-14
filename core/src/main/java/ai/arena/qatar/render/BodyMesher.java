@@ -83,9 +83,23 @@ public final class BodyMesher {
         public final int axis;
         /** Spins faster than the body's own rate when this is more than one: a tail rotor does. */
         public final double rateScale;
+        /**
+         * Degrees either side of the pivot when this part <b>swings</b> instead of turning; zero for a
+         * wheel, a propeller or a rotor, which go round and round.
+         *
+         * <p>A leg is not a wheel: it goes forward and back through {@code ±amplitude} and returns,
+         * because the angle is a sine of the body's spin phase rather than the phase itself. The same
+         * machinery drives both, which is why there is one moving-part type and not two.
+         */
+        public final double swingDegrees;
 
         Part(String name, MeshData mesh, double offsetEastM, double offsetY, double offsetNorth,
              int axis, double rateScale) {
+            this(name, mesh, offsetEastM, offsetY, offsetNorth, axis, rateScale, 0.0);
+        }
+
+        Part(String name, MeshData mesh, double offsetEastM, double offsetY, double offsetNorth,
+             int axis, double rateScale, double swingDegrees) {
             this.name = name;
             this.mesh = mesh;
             this.offsetEastM = offsetEastM;
@@ -93,13 +107,41 @@ public final class BodyMesher {
             this.offsetNorth = offsetNorth;
             this.axis = axis;
             this.rateScale = rateScale;
+            this.swingDegrees = swingDegrees;
+        }
+
+        /** The angle this part is turned through, given the body's accumulated spin phase. */
+        public double angleDegrees(double spinDegrees) {
+            double phase = spinDegrees * rateScale;
+            return swingDegrees == 0.0 ? phase : Math.sin(Math.toRadians(phase)) * swingDegrees;
         }
     }
 
     private BodyMesher() {
     }
 
-    /** The geometry that does not move: everything except the wheels, propeller and rotors. */
+    /**
+     * Four limbs, hinged at their joints: the legs swing one way and the arms the other, which is what
+     * walking looks like from behind the body. The phase is the body's spin, advanced by the walking
+     * speed (see {@code PlayerController.spinRateDegPerSec}), so the feet move faster when the person
+     * does and stand still when the person is standing still.
+     */
+    private static List<Part> limbs() {
+        List<Part> parts = new ArrayList<>(4);
+        parts.add(new Part("left leg", leg(true), 0.0, HIP_HEIGHT_M, 0.0, AXIS_X, 1.0,
+                LEG_SWING_DEGREES));
+        parts.add(new Part("right leg", leg(false), 0.0, HIP_HEIGHT_M, 0.0, AXIS_X, -1.0,
+                LEG_SWING_DEGREES));
+        parts.add(new Part("left arm", arm(true), 0.0, SHOULDER_HEIGHT_M, 0.0, AXIS_X, -1.0,
+                ARM_SWING_DEGREES));
+        parts.add(new Part("right arm", arm(false), 0.0, SHOULDER_HEIGHT_M, 0.0, AXIS_X, 1.0,
+                ARM_SWING_DEGREES));
+        return parts;
+    }
+
+    /**
+     * The geometry that does not move: everything except the wheels, propeller, rotors and limbs.
+     */
     public static MeshData mesh(Body body) {
         switch (body) {
             case HUMAN:
@@ -117,9 +159,15 @@ public final class BodyMesher {
         }
     }
 
-    /** The parts that move. Empty for a person and a boat, which have nothing to turn. */
+    /**
+     * The parts that move: wheels, a propeller, rotors -- and a person's legs and arms, which swing.
+     *
+     * <p>Empty only for the boat, whose hull has nothing to turn.
+     */
     public static List<Part> parts(Body body) {
         switch (body) {
+            case HUMAN:
+                return limbs();
             case CAR:
                 return wheels();
             case PLANE:
@@ -182,15 +230,16 @@ public final class BodyMesher {
                                     double headingDegrees, double spinDegrees) {
         transform(out, eastM, heightM, northM, headingDegrees);
         out.translate((float) part.offsetEastM, (float) part.offsetY, (float) part.offsetNorth);
+        float angle = (float) part.angleDegrees(spinDegrees);
         switch (part.axis) {
             case AXIS_X:
-                out.rotate(1f, 0f, 0f, (float) (spinDegrees * part.rateScale));
+                out.rotate(1f, 0f, 0f, angle);
                 break;
             case AXIS_Z:
-                out.rotate(0f, 0f, 1f, (float) (spinDegrees * part.rateScale));
+                out.rotate(0f, 0f, 1f, angle);
                 break;
             default:
-                out.rotate(0f, 1f, 0f, (float) (spinDegrees * part.rateScale));
+                out.rotate(0f, 1f, 0f, angle);
                 break;
         }
         return out;
@@ -198,16 +247,49 @@ public final class BodyMesher {
 
     // ------------------------------------------------------------------ the five bodies -----------
 
-    /** Seven boxes: legs, torso, head, two arms, two shoes. 1.75 m tall. */
+    /**
+     * What does not move: the torso and the head. 1.75 m tall with the legs, which swing.
+     *
+     * <p>Split so the person can walk. The legs hang from {@link #HIP_HEIGHT_M} and the arms from
+     * {@link #SHOULDER_HEIGHT_M}, each swinging about its own joint through
+     * {@link #LEG_SWING_DEGREES}, driven by the same spin phase that turns a car's wheels. Nothing in the
+     * simulation reads any of it: the stride is visual, and the body still walks at the speed
+     * {@code HumanBody} says it does.
+     */
     private static MeshData human() {
         MeshData mesh = new MeshData();
-        box(mesh, 0, 0.425, 0, 0.40, 0.85, 0.18, MATERIAL_CLOTH, 0.45f);    // legs, dark cloth
         box(mesh, 0, 1.175, 0, 0.44, 0.65, 0.24, MATERIAL_CLOTH, 1.0f);     // torso, white thobe
         box(mesh, 0, 1.625, 0, 0.19, 0.25, 0.19, MATERIAL_SKIN, 1.0f);      // head
-        box(mesh, 0.215, 1.16, 0, 0.09, 0.52, 0.16, MATERIAL_CLOTH, 0.8f);  // arms
-        box(mesh, -0.215, 1.16, 0, 0.09, 0.52, 0.16, MATERIAL_CLOTH, 0.8f);
-        box(mesh, 0.10, 0.045, 0.04, 0.16, 0.09, 0.30, MATERIAL_TYRE, 1.0f);   // shoes
-        box(mesh, -0.10, 0.045, 0.04, 0.16, 0.09, 0.30, MATERIAL_TYRE, 1.0f);
+        return mesh;
+    }
+
+    /** Hip height: where a leg pivots, for a 1.75 m person. */
+    public static final double HIP_HEIGHT_M = 0.85;
+    /** Shoulder height, where an arm pivots. */
+    public static final double SHOULDER_HEIGHT_M = 1.42;
+    /** How far a leg swings either side of vertical when walking. */
+    public static final double LEG_SWING_DEGREES = 26.0;
+    /** And an arm, counter to the leg on the same side: a person does not walk with stiff arms. */
+    public static final double ARM_SWING_DEGREES = 17.0;
+
+    /**
+     * One leg with its shoe on it, built around its own hip joint: the mesh's origin is the pivot, which
+     * is the convention every moving part here follows -- a wheel is built around its axle for the same
+     * reason. So a leg hangs downward from zero, and a swing takes the shoe with it.
+     */
+    private static MeshData leg(boolean left) {
+        MeshData mesh = new MeshData();
+        double x = left ? 0.11 : -0.11;
+        box(mesh, x, -0.425, 0, 0.20, 0.85, 0.18, MATERIAL_CLOTH, 0.45f);        // hip to ankle
+        box(mesh, x * 0.9, -0.805, 0.04, 0.16, 0.09, 0.30, MATERIAL_TYRE, 1.0f); // shoe, on the ankle
+        return mesh;
+    }
+
+    /** One arm, built around its shoulder joint: it hangs downward from zero, like a leg from a hip. */
+    private static MeshData arm(boolean left) {
+        MeshData mesh = new MeshData();
+        double x = left ? 0.215 : -0.215;
+        box(mesh, x, -0.26, 0, 0.09, 0.52, 0.16, MATERIAL_CLOTH, 0.8f);
         return mesh;
     }
 

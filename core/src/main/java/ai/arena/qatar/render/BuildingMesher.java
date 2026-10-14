@@ -173,8 +173,11 @@ public final class BuildingMesher {
                 // Apex over the centroid: a dome is a pyramid with a wider base and a rounded look from
                 // the shading, which is honest for a first pass and costs 2n triangles.
                 float apex = roofShape == Buildings.ROOF_DOME ? topY + 3.0f : topY + 1.5f;
+                // Roof coordinates in the auxiliary pair are metres from the roof centre, not 0..1: the
+                // fragment shader tiles roof plant, tanks and panel seams at real sizes on them, and a
+                // 0..1 range would stretch a different amount on every building in the country.
                 int apexIndex = mesh.addVertex((float) centreE, apex, (float) centreN, 0, 1, 0,
-                        SURFACE_ROOF, 0.5f, 0.5f, tint);
+                        SURFACE_ROOF, 0f, 0f, tint);
                 for (int i = 0; i < vertices; i++) {
                     int a = start + i;
                     int b = start + (i + 1) % vertices;
@@ -187,8 +190,10 @@ public final class BuildingMesher {
                     float length = (float) Math.sqrt(nx * nx + nz * nz);
                     nx = length > 0.01f ? nx / length : 0;
                     nz = length > 0.01f ? nz / length : 0;
-                    int ia = mesh.addVertex(ax, topY, az, nx, 0.6f, nz, SURFACE_ROOF, 0, 1, tint);
-                    int ib = mesh.addVertex(bx, topY, bz, nx, 0.6f, nz, SURFACE_ROOF, 1, 1, tint);
+                    int ia = mesh.addVertex(ax, topY, az, nx, 0.6f, nz, SURFACE_ROOF,
+                            (float) (ax - centreE), (float) (az - centreN), tint);
+                    int ib = mesh.addVertex(bx, topY, bz, nx, 0.6f, nz, SURFACE_ROOF,
+                            (float) (bx - centreE), (float) (bz - centreN), tint);
                     if (counterClockwise) {
                         mesh.addTriangle(ia, apexIndex, ib);
                     } else {
@@ -219,9 +224,11 @@ public final class BuildingMesher {
                 float ridgeHalf = (float) (best * 0.5);
                 float ridgeY = roofShape == Buildings.ROOF_GABLE ? topY + 1.2f : topY + 0.8f;
                 int r1 = mesh.addVertex((float) (centreE - axisE * ridgeHalf), ridgeY,
-                        (float) (centreN - axisN * ridgeHalf), 0, 1, 0, SURFACE_ROOF, 0, 0.5f, tint);
+                        (float) (centreN - axisN * ridgeHalf), 0, 1, 0, SURFACE_ROOF,
+                        (float) (-axisE * ridgeHalf), (float) (-axisN * ridgeHalf), tint);
                 int r2 = mesh.addVertex((float) (centreE + axisE * ridgeHalf), ridgeY,
-                        (float) (centreN + axisN * ridgeHalf), 0, 1, 0, SURFACE_ROOF, 1, 0.5f, tint);
+                        (float) (centreN + axisN * ridgeHalf), 0, 1, 0, SURFACE_ROOF,
+                        (float) (axisE * ridgeHalf), (float) (axisN * ridgeHalf), tint);
                 for (int i = 0; i < vertices; i++) {
                     int a = start + i;
                     int b = start + (i + 1) % vertices;
@@ -240,8 +247,10 @@ public final class BuildingMesher {
                     float rl = (float) Math.sqrt(rnx * rnx + rnz * rnz);
                     rnx = rl > 0.01f ? rnx / rl : 0;
                     rnz = rl > 0.01f ? rnz / rl : 0;
-                    int ia = mesh.addVertex(ax, topY, az, rnx, 0.6f, rnz, SURFACE_ROOF, 0, 1, tint);
-                    int ib = mesh.addVertex(bx, topY, bz, rnx, 0.6f, rnz, SURFACE_ROOF, 1, 1, tint);
+                    int ia = mesh.addVertex(ax, topY, az, rnx, 0.6f, rnz, SURFACE_ROOF,
+                            (float) (ax - centreE), (float) (az - centreN), tint);
+                    int ib = mesh.addVertex(bx, topY, bz, rnx, 0.6f, rnz, SURFACE_ROOF,
+                            (float) (bx - centreE), (float) (bz - centreN), tint);
                     if (counterClockwise) {
                         mesh.addTriangle(ia, near, ib);
                     } else {
@@ -260,11 +269,17 @@ public final class BuildingMesher {
                 EarClipper clipper = new EarClipper(buildings.xz, ringIndices, vertices);
                 while (clipper.next(triangle)) {
                     int i0 = mesh.addVertex(buildings.xz[triangle[0] * 2], topY,
-                            buildings.xz[triangle[0] * 2 + 1], 0, 1, 0, SURFACE_ROOF, 0, 0, tint);
+                            buildings.xz[triangle[0] * 2 + 1], 0, 1, 0, SURFACE_ROOF,
+                            (float) (buildings.xz[triangle[0] * 2] - centreE),
+                            (float) (buildings.xz[triangle[0] * 2 + 1] - centreN), tint);
                     int i1 = mesh.addVertex(buildings.xz[triangle[1] * 2], topY,
-                            buildings.xz[triangle[1] * 2 + 1], 0, 1, 0, SURFACE_ROOF, 1, 0, tint);
+                            buildings.xz[triangle[1] * 2 + 1], 0, 1, 0, SURFACE_ROOF,
+                            (float) (buildings.xz[triangle[1] * 2] - centreE),
+                            (float) (buildings.xz[triangle[1] * 2 + 1] - centreN), tint);
                     int i2 = mesh.addVertex(buildings.xz[triangle[2] * 2], topY,
-                            buildings.xz[triangle[2] * 2 + 1], 0, 1, 0, SURFACE_ROOF, 0, 1, tint);
+                            buildings.xz[triangle[2] * 2 + 1], 0, 1, 0, SURFACE_ROOF,
+                            (float) (buildings.xz[triangle[2] * 2] - centreE),
+                            (float) (buildings.xz[triangle[2] * 2 + 1] - centreN), tint);
                     if (counterClockwise) {
                         mesh.addTriangle(i0, i1, i2);
                     } else {

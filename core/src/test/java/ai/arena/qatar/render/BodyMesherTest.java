@@ -108,16 +108,74 @@ final class BodyMesherTest {
     }
 
     @Test
-    @DisplayName("a person is 1.75 m tall and stands on their feet")
+    @DisplayName("a person is 1.75 m tall and stands on their feet, legs included")
     void humanIsAHeight() {
+        // The person is a body plus four limbs now: the torso and head do not move, and the legs and
+        // arms swing from their joints. So the height a person has is the height of everything that
+        // makes them up, and the feet are at the bottom of a leg rather than of the mesh.
         MeshData mesh = BodyMesher.mesh(BodyMesher.Body.HUMAN);
         float[] b = mesh.bounds();
-        assertEquals(1.75, b[4], TOLERANCE, "the person is not 1.75 m tall");
-        assertEquals(0.0, b[1], 0.001, "the person does not stand on the ground");
-        assertEquals(0.0, b[0] + b[3], 0.001, "the person is not centred on their own spine");
-        assertTrue(b[3] - b[0] < 0.60, "the person is wider than a person: " + (b[3] - b[0]));
-        assertTrue(BodyMesher.parts(BodyMesher.Body.HUMAN).isEmpty(),
-                "a person has something that spins");
+        float minY = b[1];
+        float maxY = b[4];
+        float minX = b[0];
+        float maxX = b[3];
+        for (BodyMesher.Part part : BodyMesher.parts(BodyMesher.Body.HUMAN)) {
+            float[] p = part.mesh.bounds();
+            // A part's own bounds are in the body's frame once its pivot is added.
+            minY = Math.min(minY, p[1] + (float) part.offsetY);
+            maxY = Math.max(maxY, p[4] + (float) part.offsetY);
+            minX = Math.min(minX, p[0]);
+            maxX = Math.max(maxX, p[3]);
+        }
+        assertEquals(1.75, maxY, TOLERANCE, "the person is not 1.75 m tall");
+        assertEquals(0.0, minY, 0.01, "the person does not stand on the ground");
+        assertEquals(0.0, minX + maxX, 0.01, "the person is not centred on their own spine");
+        assertTrue(maxX - minX < 0.60, "the person is wider than a person: " + (maxX - minX));
+
+        List<BodyMesher.Part> limbs = BodyMesher.parts(BodyMesher.Body.HUMAN);
+        assertEquals(4, limbs.size(), "two legs and two arms swing: " + limbs.size());
+    }
+
+    @Test
+    @DisplayName("walking swings one leg forward while the other goes back, feet near the ground")
+    void legsSwingWhenWalking() {
+        List<BodyMesher.Part> limbs = BodyMesher.parts(BodyMesher.Body.HUMAN);
+        BodyMesher.Part left = limbs.get(0);
+        BodyMesher.Part right = limbs.get(1);
+        assertEquals("left leg", left.name, "the first limb is the left leg");
+        assertEquals("right leg", right.name, "and the second is the right leg");
+        assertTrue(left.swingDegrees > 10 && right.swingDegrees > 10,
+                "a leg swings rather than turning all the way round: " + left.swingDegrees);
+
+        // A quarter of the way through a stride cycle both legs are at full swing, and they are at full
+        // swing in *opposite* directions: that is what a stride is, and it is the whole reason the two
+        // legs are given opposite phases instead of the same one.
+        assertEquals(BodyMesher.LEG_SWING_DEGREES, left.angleDegrees(90.0), 0.01,
+                "the left leg is not fully forward at a quarter cycle");
+        assertEquals(-BodyMesher.LEG_SWING_DEGREES, right.angleDegrees(90.0), 0.01,
+                "the right leg should be fully back when the left is forward");
+        // Half a cycle later they have changed places, and through the whole cycle the angle stays
+        // inside its amplitude: a leg is not a wheel and never goes round.
+        assertEquals(-BodyMesher.LEG_SWING_DEGREES, left.angleDegrees(270.0), 0.01,
+                "the left leg is not fully back half a cycle later");
+        for (double phase = 0; phase < 360.0; phase += 5.0) {
+            assertTrue(Math.abs(left.angleDegrees(phase)) <= BodyMesher.LEG_SWING_DEGREES + 1e-6,
+                    "a leg is turned " + left.angleDegrees(phase) + " degrees at phase " + phase);
+        }
+
+        // And the foot stays near the ground while it swings. A limb mesh is built around its own joint,
+        // so the foot is the lowest point of the leg in the leg's own frame -- and after a full swing
+        // it should have moved forwards or backwards by a stride's worth and risen only a few
+        // centimetres, which is what a step looks like rather than what a swim looks like.
+        Vector3 footAtRest = new Vector3(0f, (float) -BodyMesher.HIP_HEIGHT_M, 0f);
+        Vector3 rest = new Vector3(footAtRest).mul(BodyMesher.transform(left, 0.0, 0.0, 0.0, 0.0, 0.0));
+        Vector3 swung = new Vector3(footAtRest)
+                .mul(BodyMesher.transform(left, 0.0, 0.0, 0.0, 0.0, 90.0));
+        assertEquals(0.0, rest.y, 0.01, "a leg at rest does not reach the ground");
+        double forward = Math.abs(swung.z - rest.z);
+        assertTrue(forward > 0.20, "the foot has not moved fore or aft: " + forward);
+        assertTrue(swung.y > -0.02 && swung.y < 0.15,
+                "the foot left the ground: " + swung.y + " m above it");
     }
 
     @Test

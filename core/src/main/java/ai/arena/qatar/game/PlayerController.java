@@ -276,6 +276,12 @@ public final class PlayerController {
      */
     public double spinRateDegPerSec(VehicleState state) {
         switch (loco) {
+            case HUMAN:
+                // A stride is a swing cycle: one step is half of it, so the phase advances at two steps
+                // per cycle. At a walking pace of 1.5 m/s and a 0.75 m stride that is 2 steps a second
+                // and one full cycle a second -- a real walking cadence, and it stops dead when the
+                // person does, which is what "the feet are not moving" looks like.
+                return 180.0 * Math.abs(state.speedMS) / 0.75;
             case CAR:
                 // Rolling without slipping: one radius of travel is one radian of rotation.
                 return Math.toDegrees(state.speedMS / CarBody.WHEEL_RADIUS_M);

@@ -199,6 +199,41 @@ final class MeshersTest {
     }
 
     @Test
+    @DisplayName("roof vertices carry metres from the roof centre, which is what the roof detail draws on")
+    void roofsCarryMetreCoordinates() {
+        // The fragment shader lays out roof plant, water tanks and plank seams on the auxiliary pair of
+        // a roof vertex, at real sizes: a 6 m grid of units and a 2.4 m seam. That only works if the
+        // pair is metres from the roof centre -- so this asserts it is, on a footprint that is not the
+        // unit square a 0..1 range would happily fake.
+        Buildings buildings = new Buildings(1, new int[]{0}, new int[]{5},
+                new float[]{0, 0, 18, 0, 18, 24, 0, 24, 0, 0},
+                new float[]{12f}, new float[]{0f}, new byte[]{1}, new byte[]{0}, new int[]{0},
+                new byte[]{0}, new float[]{0, 0, 18, 24});
+        MeshData mesh = new MeshData();
+        assertTrue(new BuildingMesher(buildings, terrain).addBuilding(0, mesh),
+                "the footprint produced geometry");
+
+        int roofVertices = 0;
+        float widest = 0f;
+        for (int v = 0; v < mesh.vertexCount(); v++) {
+            int at = v * MeshData.FLOATS_PER_VERTEX;
+            if (mesh.vertices()[at + 6] != BuildingMesher.SURFACE_ROOF) {
+                continue;
+            }
+            roofVertices++;
+            // A metre offset from a centre of an 18 x 24 m footprint cannot exceed half its diagonal.
+            widest = Math.max(widest, Math.abs(mesh.vertices()[at + 7]));
+            widest = Math.max(widest, Math.abs(mesh.vertices()[at + 8]));
+            assertTrue(Math.abs(mesh.vertices()[at + 7]) <= 19f,
+                    "roof east offset is not metres: " + mesh.vertices()[at + 7]);
+            assertTrue(Math.abs(mesh.vertices()[at + 8]) <= 19f,
+                    "roof north offset is not metres: " + mesh.vertices()[at + 8]);
+        }
+        assertTrue(roofVertices > 0, "the roof has vertices");
+        assertTrue(widest > 2f, "the offsets are metres rather than 0..1: widest " + widest);
+    }
+
+    @Test
     @DisplayName("road ribbons are as wide as the compiled width and follow the terrain")
     void roadRibbon() throws IOException {
         Roads roads = roads();
