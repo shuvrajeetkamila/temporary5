@@ -38,7 +38,7 @@
   symbol:   method assertEquals(int,int,String)
   location: class FontCoverageTest
 7 errors
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791972198213.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791972811815.json
 
 FAILURE: Build failed with an exception.
 
@@ -62,5 +62,5 @@ Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Com
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 22s
+BUILD FAILED in 15s
 2 actionable tasks: 2 executed
