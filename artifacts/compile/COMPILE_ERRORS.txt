@@ -1,7 +1,0 @@
-/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/hud/FontCoverageTest.java:109: error: cannot find symbol
-/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/hud/FontCoverageTest.java:110: error: cannot find symbol
-/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/hud/FontCoverageTest.java:111: error: cannot find symbol
-/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/hud/FontCoverageTest.java:112: error: cannot find symbol
-/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/hud/FontCoverageTest.java:115: error: cannot find symbol
-/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/hud/FontCoverageTest.java:116: error: cannot find symbol
-/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/hud/FontCoverageTest.java:142: error: cannot find symbol
