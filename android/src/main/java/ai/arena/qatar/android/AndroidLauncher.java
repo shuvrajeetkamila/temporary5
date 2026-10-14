@@ -74,7 +74,13 @@ public final class AndroidLauncher extends AndroidApplication {
         config.useGyroscope = false;
         config.useImmersiveMode = true;
         config.numSamples = 0;          // FXAA in-shader; MSAA is opt-in per profile.
-        config.depth = 16;
+        // 24-bit depth, and this is not a preference. The world draws with a near plane of 0.25 m (a
+        // first-person view needs to see its own feet) and a far plane of 12 km, and it deliberately
+        // lifts roads 5 cm, kerbs, markings and terrain by centimetres so they do not z-fight. A 16-bit
+        // depth buffer -- which is what this asked for -- cannot represent those differences at range:
+        // the depth of a distant chunk quantises to metres, so terrain, roads and roofs interleave and
+        // shimmer as the camera moves. Every GLES 3 device this game runs on has 24-bit depth.
+        config.depth = 24;
         config.stencil = 0;
         config.r = 8;
         config.g = 8;

@@ -145,16 +145,25 @@ public final class BodyMesher {
     }
 
     /**
-     * Places a body in the local frame: east/north metres from the floating origin, and a heading in
-     * degrees (0 faces north, 90 faces east), the same convention the bodies simulate in.
+     * Places a body in the local frame: east, height and north metres from the floating origin, and a
+     * heading in degrees (0 faces north, 90 faces east), the same convention the bodies simulate in.
+     *
+     * <p>The height is not optional and is not decoration. Every body here is modelled with y = 0 at
+     * whatever it stands on -- a person's feet, a car's tyre contact patches, a boat's waterline, an
+     * aeroplane's wheels -- and the vehicle bodies keep that contact height in
+     * {@code VehicleState.heightM}. This transform used to place every body at y = 0, which is **sea
+     * level**: a player walking on Doha's 10 m of ground was under it, invisible, and a car on the
+     * sabkha was nowhere near its own shadow. The height is a required parameter now, so a caller cannot
+     * forget it and quietly bury the player again.
      */
-    public static Matrix4 transform(double eastM, double northM, double headingDegrees) {
-        return transform(new Matrix4(), eastM, northM, headingDegrees);
+    public static Matrix4 transform(double eastM, double heightM, double northM, double headingDegrees) {
+        return transform(new Matrix4(), eastM, heightM, northM, headingDegrees);
     }
 
     /** The same, into a matrix the caller reuses: this runs once per part per frame. */
-    public static Matrix4 transform(Matrix4 out, double eastM, double northM, double headingDegrees) {
-        out.setToTranslation((float) eastM, 0f, (float) northM);
+    public static Matrix4 transform(Matrix4 out, double eastM, double heightM, double northM,
+                                    double headingDegrees) {
+        out.setToTranslation((float) eastM, (float) heightM, (float) northM);
         out.rotate(0f, 1f, 0f, (float) headingDegrees);
         return out;
     }
@@ -163,15 +172,15 @@ public final class BodyMesher {
      * Places one moving part: the body's own transform, then out to the part's pivot, then the spin, so
      * the part turns where it is rather than orbiting the machine.
      */
-    public static Matrix4 transform(Part part, double eastM, double northM, double headingDegrees,
-                                    double spinDegrees) {
-        return transform(new Matrix4(), part, eastM, northM, headingDegrees, spinDegrees);
+    public static Matrix4 transform(Part part, double eastM, double heightM, double northM,
+                                    double headingDegrees, double spinDegrees) {
+        return transform(new Matrix4(), part, eastM, heightM, northM, headingDegrees, spinDegrees);
     }
 
     /** The same, into a matrix the caller reuses. */
-    public static Matrix4 transform(Matrix4 out, Part part, double eastM, double northM,
+    public static Matrix4 transform(Matrix4 out, Part part, double eastM, double heightM, double northM,
                                     double headingDegrees, double spinDegrees) {
-        transform(out, eastM, northM, headingDegrees);
+        transform(out, eastM, heightM, northM, headingDegrees);
         out.translate((float) part.offsetEastM, (float) part.offsetY, (float) part.offsetNorth);
         switch (part.axis) {
             case AXIS_X:

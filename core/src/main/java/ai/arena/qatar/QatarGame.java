@@ -44,7 +44,7 @@ public final class QatarGame extends ApplicationAdapter {
      * that the panel reported, and the person installing the next one needs to see at a glance that it
      * is the next one and not the same file installed twice.
      */
-    public static final String VERSION = "0.1.0-m0+diag4";
+    public static final String VERSION = "0.1.0-m0+diag5";
 
     /**
      * Map raster resolution. 2048 covers the country at 126 m per pixel and cost seconds of blocking
@@ -101,6 +101,14 @@ public final class QatarGame extends ApplicationAdapter {
     private float traceSeconds;
     /** Frames that threw. One is a bug; a thousand is a game that must stop trying. */
     private int frameFailures;
+    /**
+     * How long an error keeps the diagnostics panel on the screen, in seconds.
+     *
+     * <p>Long enough to read a sentence and take a photograph of it; short enough that the game is not
+     * permanently covered by a report about something that has already been written to the journal.
+     */
+    private static final float ERROR_PANEL_SECONDS = 30f;
+
     /**
      * How many consecutive failed frames before the game screen is given up on.
      *
@@ -253,10 +261,17 @@ public final class QatarGame extends ApplicationAdapter {
         }
 
         gameScreen.render(frameDt);
-        // The trace stays up for a few seconds after a good start -- long enough to photograph and read,
-        // and gone afterwards. A failure leaves it up for good.
+
+        // The panel is a report, not furniture. The trace stays up for a few seconds after a good start
+        // -- long enough to photograph and read -- and an error keeps it up for half a minute, because
+        // that is when it is news. After that it gets out of the way: it used to stay for the rest of the
+        // session once anything at all had gone wrong, which meant one failed chunk build covered the top
+        // of the screen until the app was closed. Nothing is lost by hiding it: the failure is in the
+        // journal, and the next launch's dialog shows it in full.
         traceSeconds = Math.max(0f, traceSeconds - frameDt);
-        if (failed || log.hasError() || traceSeconds > 0f || frameFailures > 0) {
+        boolean news = failed || traceSeconds > 0f || frameFailures > 0
+                || log.secondsSinceError() < ERROR_PANEL_SECONDS;
+        if (news) {
             log.render();
         }
     }

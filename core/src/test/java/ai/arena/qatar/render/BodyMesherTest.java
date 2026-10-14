@@ -12,6 +12,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -64,6 +65,46 @@ final class BodyMesherTest {
             assertEquals(1.0f, Math.sqrt(nx * nx + ny * ny + nz * nz), 1e-3f,
                     what + " has a face with a broken normal");
         }
+    }
+
+    @Test
+    @DisplayName("a body is placed at its own contact height, not at sea level")
+    void bodiesArePlacedAtTheirOwnHeight() {
+        // Every body mesh here is modelled with y = 0 at whatever it stands on, and the vehicle bodies
+        // keep that contact height -- feet, tyres, waterline, wheels -- in VehicleState.heightM. This
+        // transform used to place the body at y = 0 whatever the height was, which is sea level: a
+        // player walking across Doha at 10 m of elevation was under the ground and invisible, and a car
+        // on the sabkha had no relationship to its own shadow. The height is a required argument now,
+        // and this is the assertion that keeps it from being dropped again.
+        Matrix4 atTwelveMetres = BodyMesher.transform(500.0, 12.0, -300.0, 45.0);
+        Vector3 contact = new Vector3(0f, 0f, 0f).mul(atTwelveMetres);
+        assertEquals(500.0, contact.x, 1e-3, "the body is not at its east position");
+        assertEquals(12.0, contact.y, 1e-3, "the body is not standing at its own height");
+        assertEquals(-300.0, contact.z, 1e-3, "the body is not at its north position");
+
+        // And a point above the contact -- a wheel centre, a shoulder -- keeps its offset from it, so
+        // the machine is neither sunk into the ground nor floating over it.
+        Vector3 wheelCentre = new Vector3(0.8f, 0.33f, 1.3f).mul(atTwelveMetres);
+        assertEquals(12.33, wheelCentre.y, 1e-3, "the wheel is not 0.33 m above the contact point");
+
+        // A moving part inherits the same height: a wheel that spans the ground when the car is on the
+        // ground spans the water when it is in the water, and nothing is placed by hand.
+        // The same through a real moving part, taken from a real machine: a car wheel, whose pivot is
+        // the axle 0.33 m above the ground. Its contact point must land 7.83 m up when the car is at
+        // 7.5 m, whatever the machine is doing.
+        BodyMesher.Part wheel = null;
+        for (BodyMesher.Part candidate : BodyMesher.parts(BodyMesher.Body.CAR)) {
+            if (candidate.name != null && candidate.name.contains("wheel")) {
+                wheel = candidate;
+                break;
+            }
+        }
+        assertNotNull(wheel, "a car has wheels to check");
+        Matrix4 partAtHeight = BodyMesher.transform(wheel, 0.0, 7.5, 0.0, 0.0, 0.0);
+        double contactBelowAxle = -wheel.offsetY;
+        assertEquals(7.5 + wheel.offsetY + contactBelowAxle,
+                new Vector3(0f, 0f, 0f).mul(partAtHeight).y, 1e-3,
+                "a moving part ignores the body's height");
     }
 
     @Test
@@ -251,7 +292,7 @@ final class BodyMesherTest {
                 // And whatever the spin, the part's pivot stays exactly where the body put it.
                 for (double spin : new double[]{0.0, 37.5, 180.0, 359.0}) {
                     Vector3 pivot = new Vector3(0f, 0f, 0f)
-                            .mul(BodyMesher.transform(part, 120.0, -45.0, 90.0, spin));
+                            .mul(BodyMesher.transform(part, 120.0, 0.0, -45.0, 90.0, spin));
                     assertEquals(120.0 + part.offsetNorth, pivot.x, 1e-3,
                             part.name + " moved sideways when it turned: " + pivot.x);
                     assertEquals(part.offsetY, pivot.y, 1e-3,
@@ -266,17 +307,17 @@ final class BodyMesherTest {
     @Test
     @DisplayName("the transform puts a body where it is and turns it to its heading")
     void transformPlacesAndTurnsTheBody() {
-        Matrix4 north = BodyMesher.transform(120.0, -45.0, 0.0);
+        Matrix4 north = BodyMesher.transform(120.0, 0.0, -45.0, 0.0);
         Vector3 nose = new Vector3(0f, 0f, 2f).mul(north);
         assertEquals(120.0, nose.x, 1e-3, "heading 0 does not face north");
         assertEquals(-45.0 + 2.0, nose.z, 1e-3, "heading 0 does not face north");
         assertEquals(0.0, nose.y, 1e-3, "the body is not on the ground");
 
-        Vector3 east = new Vector3(0f, 0f, 2f).mul(BodyMesher.transform(0.0, 0.0, 90.0));
+        Vector3 east = new Vector3(0f, 0f, 2f).mul(BodyMesher.transform(0.0, 0.0, 0.0, 90.0));
         assertEquals(2.0, east.x, 1e-3, "heading 90 does not face east");
         assertEquals(0.0, east.z, 1e-3, "heading 90 does not face east");
 
-        Vector3 right = new Vector3(1f, 0f, 0f).mul(BodyMesher.transform(0.0, 0.0, 0.0));
+        Vector3 right = new Vector3(1f, 0f, 0f).mul(BodyMesher.transform(0.0, 0.0, 0.0, 0.0));
         assertEquals(1.0, right.x, 1e-3, "the body's own x axis is not east when it faces north");
     }
 

@@ -285,16 +285,16 @@ public final class WorldRenderer implements Disposable {
      * second, so a wheel spins on its axle instead of orbiting the car.
      */
     public void drawActor(Matrix4 bodyTransform, java.util.List<BodyMesher.Part> parts,
-                          double localEast, double localNorth, double headingDegrees,
-                          double spinDegrees) {
+                          double localEast, double localHeight, double localNorth,
+                          double headingDegrees, double spinDegrees) {
         drawActor(bodyTransform);
         for (int i = 0; i < actorParts.length && i < parts.size(); i++) {
             Mesh part = actorParts[i];
             if (part == null || partScratch[i] == null) {
                 continue;
             }
-            BodyMesher.transform(partScratch[i], parts.get(i), localEast, localNorth, headingDegrees,
-                    spinDegrees);
+            BodyMesher.transform(partScratch[i], parts.get(i), localEast, localHeight, localNorth,
+                    headingDegrees, spinDegrees);
             worldProgram.setUniformMatrix("u_model", partScratch[i]);
             part.render(worldProgram, GL20.GL_TRIANGLES);
             drawCalls++;

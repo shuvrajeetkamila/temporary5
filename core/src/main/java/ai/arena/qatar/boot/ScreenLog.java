@@ -69,6 +69,8 @@ public final class ScreenLog implements Disposable {
     private boolean fontFallback;
     /** Stays true once an error has been logged: a failure is never hidden again. */
     private boolean hasError;
+    /** When the last error arrived, so a panel with old news can get out of the way. */
+    private long lastErrorNanos;
 
     ScreenLog() {
     }
@@ -122,6 +124,21 @@ public final class ScreenLog implements Disposable {
 
     public boolean hasError() {
         return hasError;
+    }
+
+    /**
+     * How long ago the last error was recorded, in seconds; a large number when there has never been one.
+     *
+     * <p>This exists because the panel used to stay on the screen for the rest of the session as soon as
+     * anything at all had gone wrong: one failed chunk build, one missing font, and the top of the screen
+     * was covered until the app was closed. A failure that happened four minutes ago is not news; it is
+     * in the journal, and the panel should get out of the way so the game can be played.
+     */
+    public float secondsSinceError() {
+        if (lastErrorNanos == 0) {
+            return Float.MAX_VALUE;
+        }
+        return (System.nanoTime() - lastErrorNanos) / 1_000_000_000f;
     }
 
     /** True when only libGDX's built-in ASCII font is available. */
@@ -199,6 +216,7 @@ public final class ScreenLog implements Disposable {
         lines.add(new Line(level, message));
         if (level == Level.ERROR) {
             hasError = true;
+            lastErrorNanos = System.nanoTime();
         }
         // The panel is a console, not a log file: what has just happened is what a person can read
         // before the next frame paints over it. History lives in the journal. When it has to lose
@@ -404,6 +422,7 @@ public final class ScreenLog implements Disposable {
     public void clear() {
         lines.clear();
         hasError = false;
+        lastErrorNanos = 0L;
     }
 
     public void dispose() {

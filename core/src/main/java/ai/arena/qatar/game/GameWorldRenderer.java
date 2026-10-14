@@ -206,12 +206,16 @@ public final class GameWorldRenderer implements Disposable {
      * Draws the player's body at its local position and heading. Local, not bundle: the transform is
      * one translation near the floating origin, which is the whole point of having one.
      */
-    public void drawActor(double localEast, double localNorth, double headingDegrees,
-                          double spinDegrees, ai.arena.qatar.render.BodyMesher.Body kind) {
+    public void drawActor(double localEast, double localHeight, double localNorth,
+                          double headingDegrees, double spinDegrees,
+                          ai.arena.qatar.render.BodyMesher.Body kind) {
+        // The height is the body's contact height -- feet, tyres, waterline, wheels -- which is where
+        // the body meshes are modelled from. Passing zero here put the player at sea level: under the
+        // ground they were walking on, and out of sight.
         renderer.drawActor(ai.arena.qatar.render.BodyMesher.transform(actorScratch, localEast,
-                        localNorth, headingDegrees),
-                ai.arena.qatar.render.BodyMesher.parts(kind), localEast, localNorth, headingDegrees,
-                spinDegrees);
+                        localHeight, localNorth, headingDegrees),
+                ai.arena.qatar.render.BodyMesher.parts(kind), localEast, localHeight, localNorth,
+                headingDegrees, spinDegrees);
     }
 
     public ChunkMeshCache cache() {

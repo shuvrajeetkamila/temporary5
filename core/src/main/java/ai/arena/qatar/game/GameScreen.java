@@ -172,12 +172,20 @@ public final class GameScreen extends InputAdapter implements Disposable {
         step("the credits", () -> creditsEnglish = Credits.english(world.manifest.attribution));
 
         step("tap-to-travel", () -> {
+            if (raster == null) {
+                mapUnavailableReason = "the map raster was not built, so there are no pixels to tap";
+                return;
+            }
             teleport = new TeleportService(world, raster);
             // The palette dialogs are named after real places, so a failed teleport service is visible
             // as a missing label rather than as a game that will not start.
         });
 
         step("the map view", () -> {
+            if (raster == null) {
+                mapUnavailableReason = "the map raster was not built, so there is nothing to show";
+                return;
+            }
             mapView = new MapView(raster);
             mapView.centreOnWorld(rig.east + offsetEastToBundle(), rig.north + offsetNorthToBundle());
         });
@@ -290,9 +298,9 @@ public final class GameScreen extends InputAdapter implements Disposable {
             if (controller.chase) {
                 // Drawn after the chunks, with the world program still bound: one more draw call per
                 // frame buys the player the sight of the machine they are in.
-                worldRenderer.drawActor(controller.state().eastM, controller.state().northM,
-                        controller.state().headingDegrees, controller.spinDegrees,
-                        controller.meshKind());
+                worldRenderer.drawActor(controller.state().eastM, controller.state().heightM,
+                        controller.state().northM, controller.state().headingDegrees,
+                        controller.spinDegrees, controller.meshKind());
             }
         }
 
@@ -651,6 +659,18 @@ public final class GameScreen extends InputAdapter implements Disposable {
     }
 
     private void openBigMap() {
+        if (mapView == null) {
+            // The map is built independently of everything else now, so it can be missing while the game
+            // runs. Saying so is the whole difference between a button that does nothing and a button
+            // that does nothing *and says why*.
+            message = "The map is not available in this session: " + mapUnavailableReason;
+            messageSeconds = 6f;
+            ai.arena.qatar.boot.ScreenLog.GLOBAL.error(message);
+            ai.arena.qatar.boot.Alerts.report("Qatar: the map is not available",
+                    "The first-person world is running, but the map was never built, so this button "
+                            + "cannot open it.\n\n" + mapUnavailableReason);
+            return;
+        }
         layout.setBigMapVisible(true);
         mapView.centreOnWorld(rig.east + offsetEastToBundle(), rig.north + offsetNorthToBundle());
         message = "";
@@ -658,7 +678,14 @@ public final class GameScreen extends InputAdapter implements Disposable {
 
     // ---------------------------------------------------------------- big map gestures
 
+    /** Why the map is missing, when it is: set by show() so the button can name the reason. */
+    private String mapUnavailableReason = "the map raster or the map view did not build";
+
     private boolean mapTouchDown(float x, float y, int pointer) {
+        if (mapView == null) {
+            layout.setBigMapVisible(false);
+            return true;
+        }
         Button hit = layout.hit(x, y);
         if (hit != null) {
             mapPressedButton = true;
@@ -747,6 +774,11 @@ public final class GameScreen extends InputAdapter implements Disposable {
      * ended up, in the data's own name for it.
      */
     private void teleportTo(float screenX, float screenY) {
+        if (mapView == null || raster == null || teleport == null) {
+            // A tap that cannot be honoured must not throw inside the touch handler: the frame guard
+            // would report it as a drawing failure, which is worse than saying what is missing.
+            return;
+        }
         double pixelX = mapView.uAt(screenX) * raster.width;
         double pixelY = mapView.vAt(screenY) * raster.height;
         TeleportService.Target target = teleport.fromMapPixel(pixelX, pixelY);
