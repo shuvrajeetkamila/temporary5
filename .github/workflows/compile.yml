@@ -38,6 +38,9 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      - name: Java symbol gate (names, before the compiler spends a minute on it)
+        run: python3 tools/check_java_symbols.py
+
       - name: Compile game code and tests
         run: |
           set -o pipefail
