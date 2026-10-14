@@ -143,9 +143,16 @@ public final class GameWorldRenderer implements Disposable {
             cache.putFailed(entry.chunkX, entry.chunkZ);
             if (reportedFailures < MAX_REPORTED_FAILURES) {
                 reportedFailures++;
+                // Once per chunk, and only a few of those: a phone that cannot build chunks fails on
+                // hundreds of them, and hundreds of panel lines turned the screen into a wall of text
+                // with the game underneath it. The count is in the status line either way.
                 ai.arena.qatar.boot.ScreenLog.GLOBAL.error("chunk " + entry.chunkX + ","
                         + entry.chunkZ + " could not be built (it is left empty, the rest of the "
                         + "world carries on)", t);
+            } else if (reportedFailures == MAX_REPORTED_FAILURES) {
+                reportedFailures++;
+                ai.arena.qatar.boot.ScreenLog.GLOBAL.error("more chunks are failing; the count is in "
+                        + "the status line, and the reason is in the crash record");
             }
         }
     }

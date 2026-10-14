@@ -50,7 +50,7 @@ public final class ScreenLog implements Disposable {
         }
     }
 
-    private static final Color PANEL = new Color(0.03f, 0.04f, 0.07f, 0.86f);
+    private static final Color PANEL = new Color(0.03f, 0.04f, 0.07f, 0.62f);
     private static final Color INFO = new Color(0.86f, 0.90f, 0.95f, 1f);
     private static final Color WARN = new Color(0.98f, 0.80f, 0.35f, 1f);
     private static final Color ERROR = new Color(1.00f, 0.55f, 0.50f, 1f);
@@ -201,9 +201,18 @@ public final class ScreenLog implements Disposable {
             hasError = true;
         }
         // The panel is a console, not a log file: what has just happened is what a person can read
-        // before the next frame paints over it. History lives in the journal.
+        // before the next frame paints over it. History lives in the journal. When it has to lose
+        // something it loses an informational line first -- a stage that went fine is worth less than
+        // the failure that came after it, and dropping the failure is how a report becomes useless.
         while (lines.size() > 40) {
-            lines.remove(0);
+            int victim = 0;
+            for (int i = 0; i < lines.size(); i++) {
+                if (lines.get(i).level == Level.INFO) {
+                    victim = i;
+                    break;
+                }
+            }
+            lines.remove(victim);
         }
     }
 
@@ -265,9 +274,13 @@ public final class ScreenLog implements Disposable {
                 wrapped.add(new Line(line.level, piece));
             }
         }
-        int capacity = Math.max(4, Math.min(12, (int) ((height * 0.72f) / lineHeight)));
+        // A panel that covers the game is a panel that hides the controls. It used to take 78% of the
+        // screen, which on the fourth install meant a wall of text with the buttons underneath it -- the
+        // controls were there the whole time and nobody could see them. It is now a strip across the top
+        // at most, and it never reaches the lower half of the screen where the buttons are.
+        int capacity = Math.max(4, Math.min(10, (int) ((height * 0.40f) / lineHeight)));
         int from = Math.max(0, wrapped.size() - capacity);
-        float panelHeight = Math.min(height * 0.78f, (wrapped.size() - from) * lineHeight + 18f);
+        float panelHeight = Math.min(height * 0.42f, (wrapped.size() - from) * lineHeight + 18f);
 
         batch.setColor(PANEL);
         batch.draw(white(), 0f, height - panelHeight, width, panelHeight);

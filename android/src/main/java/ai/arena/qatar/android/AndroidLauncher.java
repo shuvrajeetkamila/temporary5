@@ -98,7 +98,9 @@ public final class AndroidLauncher extends AndroidApplication {
         runOnUiThread(() -> {
             try {
                 TextView text = new TextView(this);
-                text.setText(body);
+                // One instruction above the detail, because the detail is only useful if it reaches
+                // somebody: the dialog has a Copy button and this says what it is for.
+                text.setText("Press Copy and send this text.\n\n" + body);
                 text.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
                 text.setTextIsSelectable(true);
                 text.setTypeface(android.graphics.Typeface.MONOSPACE);
