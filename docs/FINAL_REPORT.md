@@ -9,14 +9,14 @@ repository, a CI run, or a byte count that can be re-derived.
 | | |
 |---|---|
 | **APK** | [`Qatar-The-Peninsula-v0.1.0-m0.apk`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk) |
-| **Bytes** | 19,187,414 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset |
-| **SHA-256** | `ad86d27242bbd758fa4ab1f4a06a0827a1db5e76e8128d00dd35db176ee50733` |
+| **Bytes** | 19,196,378 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset |
+| **SHA-256** | `c28fb11d2831b1cfe8d4ea3424b07d5471a933cf0f737d011af45fcf89178635` (the release API reports the same digest for the asset) |
 | **Sidecar** | [`…apk.sha256`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256) |
 | **Release** | https://github.com/shuvrajeetkamila/temporary5/releases/tag/v0.1.0-m0 (rolling: each green run republishes it) |
-| **Built from** | commit `c979ca5`, branch `arena/4eb37624-temporary5` |
-| **CI runs for that commit** | Build APK [`38594372887`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38594372887) success · Compile gate [`38594372883`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38594372883) success · Protect the project [`38594372888`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38594372888) success |
-| **Tests at that commit** | 124 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_STATUS.txt`) |
-| **Build stamp on screen** | `0.1.0-m0+diag3` — the release asset keeps its name, so this is how two builds are told apart on a phone: the diagnostics panel prints the stamp on its first line |
+| **Built from** | commit `b5d753c`, branch `arena/4eb37624-temporary5` |
+| **CI runs for that commit** | Build APK [`38622650793`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38622650793) success · Compile gate [`38622650981`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38622650981) success · Protect the project [`38622650870`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38622650870) success |
+| **Tests at that commit** | 130 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_STATUS.txt`) |
+| **Build stamp on screen** | `0.1.0-m0+diag5` — the release asset keeps its name, so this is how two builds are told apart on a phone: the diagnostics panel prints the stamp on its first line |
 | **Package** | `ai.arena.qatar.peninsula`, versionName `0.1.0-m0`, debug-signed, `minSdk 26`, `targetSdk 34` |
 | **ABIs** | `arm64-v8a`, `armeabi-v7a`, `x86_64` |
 | **Permissions** | none: no `INTERNET`, nothing to phone home to. The country is inside the APK. |
@@ -261,14 +261,69 @@ by counting footprints in the real data, 40+ in a single chunk -- and fails if a
 index limit; `ChunkMeshCacheBudgetTest` holds the resident window to its memory budget. Both fail against
 the code that shipped in round two, which is the point of writing them.
 
+### Fourth install: a beach, half a polygon, a wall of text, and no controls
+
+Three faults, none of them in the drawing of anything:
+
+1. **Every chunk was drawn one origin-distance from where it belongs.** A chunk's geometry is meshed in
+   bundle space — metres from the compiled country's origin, up to 259 km — and the renderer placed it in
+   the rebased frame next to the player. The two are 110 km apart at Doha, so the player stood on sand
+   with a fragment of a building in it. Fixed centrally in `ChunkMesher`, which now rebases each chunk to
+   its own origin before it is handed over, so no mesher has to know about the frame.
+2. **The diagnostics panel covered the game.** 78% of the screen at 0.86 alpha, drawn on top of the
+   controls: "no controls, nothing". It is now 42% at 0.62, at most ten lines, and it drops INFO lines
+   before ERROR ones when it runs out of room.
+3. **One failing subsystem could take the frame with it.** Every subsystem is now stepped and reported
+   on individually, a missing map says so in a sentence instead of leaving a dead button, and no single
+   failure disposes the screen.
+
+### Fifth report: "having some problems", with no symptom in it
+
+A report that says something is wrong and nothing else is still a complete report. The answer was an
+audit of every place two coordinate systems meet, and it found three faults that no previous test could
+see, because every previous test looked at one thing at a time:
+
+1. **Every body was drawn at sea level.** `BodyMesher.transform` took a height and ignored it, and every
+   mesh is modelled with y = 0 at whatever it stands on — a person's feet, a car's tyre patches, a boat's
+   waterline. A player walking at 10 m of elevation was under the terrain and invisible; a car on the
+   sabkha was nowhere near its own shadow. The height is now a **required argument** of every body
+   transform, so it cannot be forgotten back to zero.
+2. **A 16-bit depth buffer against a 0.25 m near plane and a 12 km far plane.** The renderer lifts roads,
+   kerbs and roofs by centimetres to keep them out of the ground, and 16 bits cannot resolve a centimetre
+   at 300 m: terrain, ribbons and roofs interleaved and shimmered as the camera moved. The context now
+   asks for 24 bits.
+3. **The diagnostics panel never left.** One logged error kept it on screen for the whole session, which
+   makes it furniture rather than a report. It now stays 30 s after the last error and then gets out of
+   the way; the record stays in the journal, and the next launch's dialog prints it in full.
+
+Two things from step three were finished in the same pass, both of them the kind of detail that can be
+done without adding a vertex to a country with 187,000 buildings:
+
+* **Roof clutter**, drawn in the fragment shader on the roof's own metre coordinates (the roof's aux pair
+  is now metres from the roof centre, not a 0..1 parameter): gravel and bitumen, 2.4 m plank seams, a 6 m
+  hashed grid, plant housing and a water tank.
+* **A person who walks**: hinged legs and arms built around their joints — hip at 0.85 m, shoulder at
+  1.42 m — swinging 26° and 17° in opposite phase, driven by the same phase that turns a car's wheels, so
+  the feet move faster when the person does and stand still when the person stops.
+
+Three builds were lost to red gates in this pass, and every one of them was mine, not the game's: a wheel
+assertion that expected the contact patch where the axle is, a local variable declared twice in one method
+— a compile error only `javac` sees, which now has its own gate, `tools/check_local_names.py`, a
+tree-sitter shadowing check — and a symmetry assertion made of a leg, which is not a wheel and was never
+built to be one. The last one is why the mesher's own contract is now written down: a part is built
+*around* its pivot, and `swingDegrees` is what tells a wheel that goes round from a limb that hangs.
+
 ## Honest limitations
 
-1. **The build has been run on a device twice, and both runs failed** — for four different reasons, all
-   of them now fixed and, where a test can hold them, held (section above). There is still no GPU and no
-   Android emulator in the build environment: the GLSL in this project compiles for the first time on a
-   phone, and the third install is the first real test of the second round of fixes. Nothing in this
-   repository can compile GLSL; what stands in for a GPU is the shader lint, the on-screen diagnostics
-   panel, and the fact that the last panel named its failures precisely enough to fix them.
+1. **This build has been on a phone five times, and every report found something real** — twelve faults
+   in all, listed in the sections above, each one now fixed and, where a test can hold it, held. The last
+   two reports arrived with no symptom in them at all, so the audit was the diagnosis: that is what the
+   on-screen panel and the crash journal are for, and it is why the panel and the diagnostics are worth
+   more than their own size in the APK. **Rounds four and five have not been confirmed on the device
+   yet.** There is still no GPU and no Android emulator in the build environment: the GLSL in this project
+   compiles for the first time on a phone. Nothing here can compile GLSL; what stands in for a GPU is the
+   shader lint, the on-screen diagnostics, and the fact that the panel has so far named its failures
+   precisely enough to fix them — including the one it named with no words from the phone at all.
 2. No sound.
 3. Buildings collide as their bounding box, not as their drawn ring: a courtyard is walkable through.
 4. The world is drawn only within the streaming radius: beyond roughly 6 km it fades into fog and stops.
@@ -277,8 +332,9 @@ the code that shipped in round two, which is the point of writing them.
    24 chunks per frame in the first seconds, and the resident window is sized for a 6 km view.
 7. Terrain is SRTM-derived and smoothed at 100 m: the shapes of dunes are right, individual dune crests
    are not. Building heights are OSM's, which are sometimes a floor count converted to metres.
-8. The bodies are boxes, the person's legs do not swing, the body is drawn only in the third-person
-   view, and locomotion is discrete: the player is one kind of thing at a time.
+8. The bodies are still boxes with a paint table rather than modelled assets, though they now have
+   windows, tyres, a deck, a rotor and limbs that swing; the person is drawn only in the third-person
+   view; and locomotion is discrete: the player is one kind of thing at a time.
 9. The Arabic in the interface is Modern Standard Arabic written for this project. No native speaker
    has reviewed it, and a translated phrase is not the same thing as a phrase somebody would actually
    say -- the same honesty that applies to the code applies to the language.
@@ -309,7 +365,7 @@ the code that shipped in round two, which is the point of writing them.
 
 ```bash
 git clone https://github.com/shuvrajeetkamila/temporary5 && cd temporary5
-git checkout 3992b87
+git checkout b5d753c            # the commit the published APK was built from
 # world data (downloads OSM + SRTM, compiles the country, validates it):
 python3 tools/fetch_sources.py && python3 tools/build_world.py && python3 tools/game_world.py
 python3 tools/validate_game_world.py --world android/assets/world     # 57/57

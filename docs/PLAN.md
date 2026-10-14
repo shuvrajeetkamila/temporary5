@@ -384,10 +384,15 @@ after the fix was the last one in the chain.
    a wall now carries entrances and shopfronts every seven metres, a mosque wears its sandstone arcade, a
    landmark a curtain wall, and every road carries kerb stones with joints and two worn wheel tracks.
    ~~Roof clutter~~ done in the shader, on the roof's own metre coordinates. ~~A walking animation~~ done
-   with hinged limbs and a stride phase driven by walking speed. Still open: palms and vegetation (the
-   land-use bundle knows where they are), and a road way is still drawn whole in every chunk it overlaps,
-   so a chunk beside a long highway carries vertices that belong to its neighbour -- on the list as
-   clipping the ribbon at the chunk edge.
+   with hinged limbs and a stride phase driven by walking speed. ~~Clipping the ribbon at the chunk edge~~
+   done: `RoadMesher` cuts each way where it crosses the rectangle with a Liang-Barsky clip, blends the
+   two point normals at the cut so both chunks agree on the seam to the millimetre, keeps the ribbon's own
+   u running through the cut so the paint does not jump, and sizes the way by the segments that are
+   actually in the chunk -- which is also what lets a 30 km highway into a chunk at all, because the whole
+   way is bigger than any mesh. `RoadClipTest` (6 tests) checks the clip against brute force on 4,000
+   random segments, the seam between two chunks, the unmoved whole-way ribbon, and the cost; a seventh,
+   in `ChunkMeshBudgetTest`, holds a real chunk's ribbons to their own edge plus half a road width.
+   Still open: palms and vegetation (the land-use bundle knows where they are).
 5. ~~Bilingual pass~~ done: every control (English above, Arabic below, shaped by `ArabicReshaper`), the
    map hint on two lines, the status line, and the data credit. What is left is not a translation but a
    reader: no native speaker has reviewed the Arabic, and that is stated in the report's limitations.

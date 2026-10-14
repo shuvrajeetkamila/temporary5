@@ -322,8 +322,14 @@ public final class ChunkMesher {
             if (!roadMesher.overlaps(line, minEast, minNorth, maxEast, maxNorth)) {
                 continue;
             }
-            // Four vertices per segment for the ribbon, four more when it carries a centre line.
-            int cost = RoadMesher.vertexCost(roads, line);
+            // Four vertices per segment for the ribbon, four more when it carries a centre line -- and
+            // only for the segments inside this chunk, which is the part that will be drawn: the ribbon
+            // is clipped to the chunk edge. Sizing this way is also what lets a 30 km highway into a
+            // chunk at all, because the whole way is bigger than any mesh this renderer has.
+            int cost = RoadMesher.vertexCost(roads, line, minEast, minNorth, maxEast, maxNorth);
+            if (cost == 0) {
+                continue;                             // the way's box overlaps, its metres do not
+            }
             if (cost > MeshData.MAX_VERTICES) {
                 mesh.truncated = true;                // a single way longer than the whole index buffer
                 continue;
@@ -332,7 +338,7 @@ public final class ChunkMesher {
             if (part == null) {
                 return emitted;
             }
-            roadMesher.addRoad(line, part);
+            roadMesher.addRoad(line, part, minEast, minNorth, maxEast, maxNorth);
             emitted++;
         }
         return emitted;

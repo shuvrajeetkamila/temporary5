@@ -148,6 +148,43 @@ public class ChunkMeshBudgetTest {
     }
 
     @Test
+    @DisplayName("a real chunk's road ribbons stop at its own edge")
+    void realChunkRibbonsAreClipped() {
+        Path dir = worldDir();
+        Assumptions.assumeTrue(dir != null, "android/assets/world is not checked out");
+        WorldData world = load(dir);
+        int[] capital = densestChunk(world);
+        ChunkMesher.ChunkMesh mesh = new ChunkMesher(world).mesh(capital[0], capital[1], 1.0);
+
+        // The most a clipped ribbon can stick out of its chunk is its own half-width, because the
+        // centre line is cut at the edge and the corners are offset from it sideways. Before the clip
+        // the same number was kilometres: a way was drawn whole by every chunk it passed through.
+        float halfWidth = 0f;
+        for (int line = 0; line < world.roads.count; line++) {
+            halfWidth = Math.max(halfWidth, Math.max(1.0f, world.roads.widthM[line] * 0.5f));
+        }
+
+        int ribbons = 0;
+        float worst = 0f;
+        for (MeshData part : mesh.detail) {
+            float[] v = part.vertices();
+            for (int i = 0; i < part.vertexCount(); i++) {
+                int at = i * MeshData.FLOATS_PER_VERTEX;
+                if (v[at + 6] != RoadMesher.SURFACE_ROAD && v[at + 6] != RoadMesher.SURFACE_MARKING) {
+                    continue;                             // a building or a wall, not a ribbon
+                }
+                ribbons++;
+                worst = Math.max(worst, Math.max(-v[at], v[at] - ChunkMesher.CHUNK_M));
+                worst = Math.max(worst, Math.max(-v[at + 2], v[at + 2] - ChunkMesher.CHUNK_M));
+            }
+        }
+        assertTrue(ribbons > 100, "the densest chunk of the country has ribbons in it: " + ribbons);
+        assertTrue(worst <= halfWidth + 1f,
+                "a ribbon vertex is " + worst + " m outside its chunk, and the widest road is "
+                        + (halfWidth * 2f) + " m across");
+    }
+
+    @Test
     @DisplayName("the densest chunk of the committed country meshes inside every part")
     void densestChunkOfQatarStaysInsideTheBudget() {
         Path dir = worldDir();
@@ -235,11 +272,12 @@ public class ChunkMeshBudgetTest {
         // building that straddles the chunk edge keeps its whole footprint.
         checkPart(mesh.land, "land " + chunkX + "," + chunkZ, 160f);
         checkPart(mesh.water, "water " + chunkX + "," + chunkZ, 160f);
-        // Detail gets a much wider margin, and the reason is worth writing down: a road way is drawn
-        // whole when any part of it overlaps the chunk, and a way can run for kilometres. So a chunk can
-        // carry a ribbon that mostly belongs to its neighbour -- duplicated work that is on the list to
-        // fix -- and the thing this check is for is the failure it caught: geometry displaced by an
-        // entire origin distance, which is kilometres out, not metres.
+        // Detail gets a much wider margin, because two things in it are still drawn whole rather than
+        // cut and sized: a barrier way that overlaps the chunk at all, and a building whose footprint
+        // straddles the edge. Both can run for hundreds of metres. Road ribbons are clipped now, and
+        // realChunkRibbonsAreClipped holds them to their own edge; what this margin is chiefly for is
+        // the failure it caught: geometry displaced by an entire origin distance, which is kilometres
+        // out, not metres.
         for (int i = 0; i < mesh.detail.size(); i++) {
             checkPart(mesh.detail.get(i), "detail " + i + " of " + chunkX + "," + chunkZ, 5_000f);
         }
