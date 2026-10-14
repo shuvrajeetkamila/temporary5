@@ -32,7 +32,7 @@ BundlePackagingTest > a mixed form is not a trap: gzip contents under the short 
 117 tests completed, 2 failed
 
 > Task :core:test FAILED
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791972719925.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1791973289802.json
 
 FAILURE: Build failed with an exception.
 
@@ -43,7 +43,7 @@ Execution failed for task ':core:test'.
 * Try:
 > Run with --scan to get full insights.
 --
-	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
+	at org.gradle.composite.internal.DefaultBuildController$BuildOpRunnable.run(DefaultBuildController.java:198)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There were failing tests. See the report at: file:///home/runner/work/temporary5/temporary5/core/build/reports/tests/test/index.html
@@ -61,5 +61,5 @@ Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 20s
+BUILD FAILED in 22s
 4 actionable tasks: 4 executed
