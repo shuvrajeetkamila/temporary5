@@ -58,20 +58,34 @@ public final class WorldRenderer implements Disposable {
     }
 
     public boolean isReady() {
-        return worldProgram != null;
+        return worldProgram != null && skyProgram != null;
     }
+
+    /**
+     * The driver's own words about the last shader compilation, empty when it succeeded. Kept in a
+     * static because the interesting part of a failed launch is exactly this text, and the only place
+     * it can be read on a phone is the diagnostics panel.
+     */
+    public static String lastShaderLog() {
+        return lastShaderLog;
+    }
+
+    private static String lastShaderLog = "";
 
     /** Compiles shaders and creates the sky quad. Returns false when shaders could not compile. */
     public boolean init() {
         ShaderProgram.pedantic = false;
         worldProgram = new ShaderProgram(ShaderSources.VERTEX, ShaderSources.FRAGMENT);
         skyProgram = new ShaderProgram(ShaderSources.SKY_VERTEX, ShaderSources.SKY_FRAGMENT);
+        String worldLog = worldProgram.getLog();
+        String skyLog = skyProgram.getLog();
         if (!worldProgram.isCompiled() || !skyProgram.isCompiled()) {
-            String log = "world: " + worldProgram.getLog() + "\nsky: " + skyProgram.getLog();
-            Gdx.app.error("WorldRenderer", "shader compilation failed:\n" + log);
+            lastShaderLog = "world: " + worldLog + " | sky: " + skyLog;
+            Gdx.app.error("WorldRenderer", "shader compilation failed:\n" + lastShaderLog);
             shutdown();
             return false;
         }
+        lastShaderLog = "";
 
         // A single quad in clip space, drawn without depth so it can never hide the world.
         skyQuad = new Mesh(true, 4, 0,
@@ -83,6 +97,13 @@ public final class WorldRenderer implements Disposable {
 
     /** Starts a frame: clears to the horizon colour and prepares state. */
     public void begin(Camera camera, float deltaSeconds) {
+        if (!isReady()) {
+            // No shaders, no world. Draw one flat colour rather than nothing at all: a grey screen with
+            // the diagnostics panel over it says "the renderer is broken", which a blue void does not.
+            Gdx.gl.glClearColor(0.35f, 0.35f, 0.38f, 1f);
+            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
+            return;
+        }
         time += deltaSeconds;
         drawCalls = 0;
         drawnTriangles = 0;
@@ -154,6 +175,9 @@ public final class WorldRenderer implements Disposable {
 
     /** Draws one chunk. The offset places the chunk's local coordinates back in the world. */
     public void draw(long key, double offsetEast, double offsetNorth) {
+        if (!isReady()) {
+            return;
+        }
         GpuChunk gpu = chunks.get(key);
         if (gpu == null) {
             return;
@@ -213,7 +237,7 @@ public final class WorldRenderer implements Disposable {
      * the chunk loop and the uniforms are already set.
      */
     public void drawActor(Matrix4 transform) {
-        if (actorMesh == null || worldProgram == null) {
+        if (actorMesh == null || !isReady()) {
             return;
         }
         worldProgram.setUniformMatrix("u_model", transform);

@@ -195,8 +195,11 @@ public final class ShaderSources {
             "                   clamp(normal.y * 0.5 + 0.5, 0.0, 1.0));",
             "    vec3 colour = base * (sky + u_sunColour * lambert * 0.95);",
             "    vec3 view = normalize(u_camera - v_position);",
-            "    vec3 half = normalize(sun + view);",
-            "    float spec = pow(max(dot(normal, half), 0.0), mix(8.0, 90.0, 1.0 - roughness));",
+            // 'half' is a reserved word in GLSL ES 3.00 -- reserving it for a future 16-bit float
+            // type -- and a driver that honours the spec rejects the whole shader for using it. This
+            // is what a strict phone driver did, and the reason the country never drew.
+            "    vec3 halfway = normalize(sun + view);",
+            "    float spec = pow(max(dot(normal, halfway), 0.0), mix(8.0, 90.0, 1.0 - roughness));",
             "    colour += u_sunColour * spec * (1.0 - roughness) * 0.9;",
             "",
             "    // Distance fog: the loaded world fades into the horizon, so streaming is invisible.",

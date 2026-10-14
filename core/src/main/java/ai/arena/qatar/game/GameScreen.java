@@ -86,6 +86,9 @@ public final class GameScreen extends InputAdapter implements Disposable {
     /** How long the launch credit stays in the corner: long enough to be read, short enough to ignore. */
     private static final float LAUNCH_CREDITS_SECONDS = 12f;
 
+    /** Raster resolution used when the caller does not supply one. */
+    private static final int DEFAULT_MAP_RESOLUTION = 1024;
+
     private float statusRefresh;
     private String statusLine = "";
     private String statusLineArabic = "";
@@ -94,8 +97,18 @@ public final class GameScreen extends InputAdapter implements Disposable {
     private String creditsEnglish = "";
     private float creditsSeconds = LAUNCH_CREDITS_SECONDS;
 
-    public GameScreen(WorldData world) {
+    /**
+     * The map raster is built by the caller, during the loading stage that reports progress: building it
+     * here, inside the first frame, was seconds of blocked GL thread in the middle of a launch.
+     */
+    public GameScreen(WorldData world, MapRaster raster) {
         this.world = world;
+        this.raster = raster;
+    }
+
+    /** Fallback for tests and tools that do not have a raster yet. */
+    public GameScreen(WorldData world) {
+        this(world, null);
     }
 
     /**
@@ -106,6 +119,11 @@ public final class GameScreen extends InputAdapter implements Disposable {
      * simulated in 32-bit floats without anything wobbling.
      */
     public void show() {
+        ai.arena.qatar.boot.ScreenLog console = ai.arena.qatar.boot.ScreenLog.GLOBAL;
+        if (raster == null) {
+            console.log("Building the map raster (" + DEFAULT_MAP_RESOLUTION + ")");
+            raster = MapRaster.build(world, DEFAULT_MAP_RESOLUTION);
+        }
         double[] spawnBundle = spawnPosition();
         origin = new WorldOrigin(world.manifest.originEast + spawnBundle[0],
                 world.manifest.originNorth + spawnBundle[1]);
@@ -123,11 +141,18 @@ public final class GameScreen extends InputAdapter implements Disposable {
 
         worldRenderer = new GameWorldRenderer(world, origin, new ai.arena.qatar.render.WorldRenderer());
         worldRenderer.init();
+        if (!worldRenderer.isReady()) {
+            // The world shaders did not compile. Say so, with the driver's own words, and keep the rest
+            // of the game up: the HUD, the map and the panel all still work.
+            console.error("World shaders did not compile: "
+                    + ai.arena.qatar.render.WorldRenderer.lastShaderLog());
+        } else {
+            console.log("World shaders compiled: sky + terrain programs linked");
+        }
         worldRenderer.setActor(controller.meshKind());
 
         creditsEnglish = Credits.english(world.manifest.attribution);
 
-        raster = MapRaster.build(world, 2048);
         teleport = new TeleportService(world, raster);
         mapView = new MapView(raster);
         mapView.centreOnWorld(rig.east + offsetEastToBundle(), rig.north + offsetNorthToBundle());
@@ -150,10 +175,9 @@ public final class GameScreen extends InputAdapter implements Disposable {
 
     /** The player starts at a real place: a named car park or port, not the middle of the dunes. */
     private double[] spawnPosition() {
-        // A small raster is enough to choose a start: the spawn comes from the point bundle, not from
-        // the map, so this only needs to know which parts are land.
-        MapRaster preview = MapRaster.build(world, 512);
-        TeleportService chooser = new TeleportService(world, preview);
+        // The spawn comes from the point bundle; the raster is only needed to know which parts are land,
+        // and the caller has already built one -- building another 512-wide copy here cost a second.
+        TeleportService chooser = new TeleportService(world, raster);
         TeleportService.Target target = chooser.spawnFor(ai.arena.qatar.world.Points.KIND_CAR);
         if ("Doha".equals(target.label)) {
             target = chooser.spawnFor(ai.arena.qatar.world.Points.KIND_BOAT);
@@ -161,6 +185,8 @@ public final class GameScreen extends InputAdapter implements Disposable {
         double bundleEast = target.east;
         double bundleNorth = target.north;
         Gdx.app.log("GameScreen", "Spawn: " + target.label + " " + target);
+        ai.arena.qatar.boot.ScreenLog.GLOBAL.log("Spawn: " + target.label + " at "
+                + String.format(java.util.Locale.ROOT, "%.0f, %.0f", bundleEast, bundleNorth));
         return new double[]{bundleEast, bundleNorth};
     }
 

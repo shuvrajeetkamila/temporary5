@@ -68,6 +68,14 @@ public final class GameWorldRenderer implements Disposable {
         renderer.init();
     }
 
+    /**
+     * False when the world's shaders did not compile. The caller must report it rather than carry on:
+     * a renderer that draws nothing and says nothing is a blank screen with no explanation.
+     */
+    public boolean isReady() {
+        return renderer.isReady();
+    }
+
     /** Recomputes bundle<->local translation; call after the floating origin rebases. */
     public void updateOffsets() {
         bundleOffsetEast = origin.originEast() - world.manifest.originEast;
