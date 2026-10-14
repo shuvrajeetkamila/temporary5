@@ -36,8 +36,13 @@ import ai.arena.qatar.world.WorldData;
  */
 public final class QatarGame extends ApplicationAdapter {
 
-    /** The build stamp shown on the diagnostics panel. The release asset keeps its name. */
-    public static final String VERSION = "0.1.0-m0+diag";
+    /**
+     * The build stamp shown on the diagnostics panel. The release asset keeps its name, so this is the
+     * only way to tell two builds apart on a phone: the first diagnostic build carried three failures
+     * that the panel reported, and the person installing the next one needs to see at a glance that it
+     * is the next one and not the same file installed twice.
+     */
+    public static final String VERSION = "0.1.0-m0+diag2";
 
     /**
      * Map raster resolution. 2048 covers the country at 126 m per pixel and cost seconds of blocking

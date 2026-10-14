@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -17,6 +18,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -108,7 +110,7 @@ final class BundlePackagingTest {
     @DisplayName("a bundle that is genuinely missing still says so, with both names it looked for")
     void aMissingBundleIsStillAnError() {
         WorldData.fromSource(manifest, packagedWithStrippedNames());   // baseline: this one works
-        IllegalStateException thrown = org.junit.jupiter.api.Assertions.assertThrows(
+        IllegalStateException thrown = assertThrows(
                 IllegalStateException.class,
                 () -> WorldData.fromSource(manifest, name -> null));
         assertTrue(thrown.getMessage().contains("world bundle missing"),
@@ -125,10 +127,10 @@ final class BundlePackagingTest {
         bad[bad.length / 2] ^= 0x01;                        // a single flipped byte
         Map<String, byte[]> files = new LinkedHashMap<>(onDisk);
         files.put("roads.bin.gz", bad);
-        IllegalStateException thrown = org.junit.jupiter.api.Assertions.assertThrows(
+        IllegalStateException thrown = assertThrows(
                 IllegalStateException.class,
                 () -> WorldData.fromSource(manifest, name -> files.get(name)));
-        assertTrue(thrown.getMessage().toLowerCase(java.util.Locale.ROOT).contains("sha-256"),
+        assertTrue(thrown.getMessage().toLowerCase(Locale.ROOT).contains("sha-256"),
                 "a damaged bundle was not caught by its digest: " + thrown.getMessage());
     }
 
