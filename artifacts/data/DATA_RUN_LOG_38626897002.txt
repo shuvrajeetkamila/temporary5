@@ -1,0 +1,267 @@
+Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages (26.2.1)
+Installing collected packages: urllib3, tree-sitter-java, tree-sitter, pyparsing, numpy, idna, click, charset_normalizer, certifi, attrs, shapely, scipy, requests, pyproj, cligj, click-plugins, affine, rasterio, osmium
+
+Successfully installed affine-3.0.1 attrs-26.1.0 certifi-2026.7.22 charset_normalizer-3.5.2 click-8.5.0 click-plugins-1.1.1.2 cligj-0.7.2 idna-3.20 numpy-2.4.6 osmium-4.2.0 pyparsing-3.3.3 pyproj-3.7.2 rasterio-1.4.4 requests-2.34.2 scipy-1.17.1 shapely-2.2.0 tree-sitter-0.26.0 tree-sitter-java-0.23.5 urllib3-2.8.0
+head_sha=0af05948a9f4a9debfb6567e6dc2e215aee81bc6
+head_subject=tools: gate the narrowing conversion that cost this round a run
+tool_build_world_sha256=8bd9968bdc2562c8dc73fbb807688a4493d5a7abafe2e6493717b9db099d51fe
+tool_fetch_sources_sha256=5be8f297bdf6015d5429d22ce04a9726daa0fd3166baf64ac2eb83d2f8671270
+PASS  no unresolved function names in the compiler (found: [])
+PASS  no undefined names in tools/ (found: [])
+PASS  EPSG:32639 round trip for Doha
+PASS  Doha projects to the documented grid reference
+PASS  coastline ribbon rasterises into a barrier ({'barrierCells': 238, 'seedCells': 2, 'stitches': 0, 'longestStitchM': 0.0, 'area_0': np.float64(12.1), 'thickening': 0, 'islandComponents': 0})
+PASS  land seeds land inside the ring ({'barrierCells': 238, 'seedCells': 2, 'stitches': 0, 'longestStitchM': 0.0, 'area_0': np.float64(12.1), 'thickening': 0, 'islandComponents': 0})
+PASS  derived land area 12.06 km2 is within the ring (15.48 km2 analytic)
+PASS  the ring centre is land
+PASS  the far corner (outside the ring) is not land
+PASS  shoreline ends sit on the border, so no long stitch is needed ({'barrierCells': 1063, 'seedCells': 2, 'stitches': 2, 'longestStitchM': 0.4, 'area_0': np.float64(5.6), 'thickening': 0, 'islandComponents': 0})
+PASS  land is confined to the enclosed peninsula (5.63 km2 derived, 7.74 km2 analytic)
+PASS  the Gulf north of the shoreline stays water
+PASS  the strip beyond the maritime boundary is not classified as land
+PASS  terrain bundle magic is QTT1
+PASS  terrain header carries cols/rows/cell/little-endian reserved
+PASS  terrain payload length matches the documented layout
+PASS  terrain heights are int16 little-endian, row 0 first
+PASS  land mask follows the heights as one byte per cell
+PASS  string table magic is QTS1
+PASS  string table counts entries
+PASS  entries are length-prefixed UTF-8 in insertion order
+PASS  string indices are stable and start at 0
+PASS  all five mandated checkpoint groups are declared (['CENTRAL_AND_CAPITAL', 'ISLANDS_AND_WATER', 'NORTH_AND_NORTHEAST', 'SOUTH_AND_BORDER', 'WEST_AND_NORTHWEST'])
+PASS  checkpoint table covers the country (32 entries)
+PASS  road class table is rich enough (23 classes)
+PASS  road classes include the urban and motorway ends of the range
+PASS  road classes map to integer material/geometry ids
+
+WORLD SELF-TEST PASSED
+selftest_exit=0
+probe: https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf -> 206 size=512 redirect=
+probe: https://download.bbbike.org/osm/bbbike/Qatar/Qatar.osm.pbf -> 404 size=2236 redirect=
+probe: https://download.geofabrik.de/asia/gcc-states-latest.osm.pbf -> 307 size=270 redirect=https://download.geofabrik.de/asia/gcc-states-261013.osm.pbf
+probe: https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E051.hgt.gz -> 206 size=512 redirect=
+[1/2] SRTM 1 arc-second elevation tiles (public domain)
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N24/N24E050.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N24/N24E051.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N24/N24E052.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E050.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E051.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N25/N25E052.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N26/N26E050.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N26/N26E051.hgt.gz
+  fetch   https://s3.amazonaws.com/elevation-tiles-prod/skadi/N26/N26E052.hgt.gz
+[2/2] OpenStreetMap Qatar extract
+  trying openstreetmap.fr: https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf
+  probe   http=206 bytes=64 magic=0000000e0a094f53
+  fetch   https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf
+  ok      qatar-latest.osm.pbf (24.5 MB)
+wrote /home/runner/work/temporary5/temporary5/data/geodata/SOURCES.json with 10 sources
+fetch_exit=0
+  parsing relations (boundaries)
+  boundary relations: 18 (admin levels 2/4/6)
+  parsing ways/nodes
+  ways visited: 410293
+  national boundary assembled from relation 305095 (Qatar)
+/home/runner/work/temporary5/temporary5/tools/build_world.py:1212: DeprecationWarning: The 'shapely.ops.transform()' function is deprecated. Use 'shapely.transform()' or 'shapely.transform_coordseq()' instead. See https://shapely.readthedocs.io/en/latest/manual.html#shapely.ops.transform for more details.
+  return shapely_transform(lambda x, y, z=None: FWD.transform(x, y), geom)
+== national boundary ==
+  part 0: 20,108.7 km2, rep point 51.2307,25.4473, bounds E 456,562..588,466
+  part 1: 1,646.5 km2, rep point 52.4103,25.6746, bounds E 618,669..664,394
+  part 2: 1,466.8 km2, rep point 52.2312,25.0270, bounds E 601,519..646,897
+== coastline ==
+  coastline ways: 378
+  merged pieces: 162
+  total vertices: 41,089
+  dangling endpoints stitched to the largest ring: 4
+    stitch 50.7378,25.6559 -> 50.7805,25.6574 (4.3 km)
+    stitch 50.7734,25.6468 -> 50.7834,25.6487 (1.0 km)
+    stitch 50.7845,25.6470 -> 50.7735,25.6466 (1.1 km)
+    stitch 50.7842,25.6472 -> 50.7735,25.6466 (1.1 km)
+== candidate faces (top 10 by area) ==
+  distinct line endpoints: 165, dangling (occur once): 6
+  sampled roads: 4000, buildings: 4000, mapped water polygons: 583
+  -- largest ring 0: 160 faces
+      20,091.1 km2 at 51.2294,25.4510  roads=3857 buildings=3981 waterPolys=580
+           3.7 km2 at 51.5512,25.3685  roads=  63 buildings=   4 waterPolys=  1
+           2.8 km2 at 50.8108,25.6749  roads=   0 buildings=   0 waterPolys=  0
+           2.4 km2 at 51.5215,25.3740  roads=  61 buildings=  12 waterPolys=  0
+           1.6 km2 at 52.4109,25.6732  roads=   0 buildings=   0 waterPolys=  0
+           1.5 km2 at 51.5279,25.4315  roads=   0 buildings=   0 waterPolys=  1
+           1.3 km2 at 51.5760,25.3442  roads=   0 buildings=   0 waterPolys=  0
+           0.9 km2 at 51.5705,25.4025  roads=   0 buildings=   0 waterPolys=  0
+           0.7 km2 at 51.2184,26.1757  roads=   0 buildings=   0 waterPolys=  0
+           0.7 km2 at 51.5249,25.4165  roads=   0 buildings=   0 waterPolys=  0
+  -- largest ring 1: 160 faces
+       1,645.0 km2 at 52.5276,25.6736  roads=   0 buildings=   0 waterPolys=  0
+           3.7 km2 at 51.5512,25.3685  roads=  63 buildings=   4 waterPolys=  1
+           2.8 km2 at 50.8108,25.6749  roads=   0 buildings=   0 waterPolys=  0
+           2.4 km2 at 51.5215,25.3740  roads=  61 buildings=  12 waterPolys=  0
+           1.6 km2 at 52.4109,25.6732  roads=   0 buildings=   0 waterPolys=  0
+           1.5 km2 at 51.5279,25.4315  roads=   0 buildings=   0 waterPolys=  1
+           1.3 km2 at 51.5760,25.3442  roads=   0 buildings=   0 waterPolys=  0
+           0.9 km2 at 51.5705,25.4025  roads=   0 buildings=   0 waterPolys=  0
+           0.7 km2 at 51.2184,26.1757  roads=   0 buildings=   0 waterPolys=  0
+           0.7 km2 at 51.5249,25.4165  roads=   0 buildings=   0 waterPolys=  0
+  -- largest ring 2: 160 faces
+       1,466.6 km2 at 52.1171,25.0327  roads=   0 buildings=   0 waterPolys=  0
+           3.7 km2 at 51.5512,25.3685  roads=  63 buildings=   4 waterPolys=  1
+           2.8 km2 at 50.8108,25.6749  roads=   0 buildings=   0 waterPolys=  0
+           2.4 km2 at 51.5215,25.3740  roads=  61 buildings=  12 waterPolys=  0
+           1.6 km2 at 52.4109,25.6732  roads=   0 buildings=   0 waterPolys=  0
+           1.5 km2 at 51.5279,25.4315  roads=   0 buildings=   0 waterPolys=  1
+           1.3 km2 at 51.5760,25.3442  roads=   0 buildings=   0 waterPolys=  0
+           0.9 km2 at 51.5705,25.4025  roads=   0 buildings=   0 waterPolys=  0
+           0.7 km2 at 51.2184,26.1757  roads=   0 buildings=   0 waterPolys=  0
+           0.7 km2 at 51.5249,25.4165  roads=   0 buildings=   0 waterPolys=  0
+[1] OpenStreetMap extraction
+  parsing relations (boundaries)
+  boundary relations: 18 (admin levels 2/4/6)
+  parsing ways/nodes
+  ways visited: 410293
+  national boundary assembled from relation 305095 (Qatar)
+/home/runner/work/temporary5/temporary5/tools/build_world.py:1212: DeprecationWarning: The 'shapely.ops.transform()' function is deprecated. Use 'shapely.transform()' or 'shapely.transform_coordseq()' instead. See https://shapely.readthedocs.io/en/latest/manual.html#shapely.ops.transform for more details.
+  return shapely_transform(lambda x, y, z=None: FWD.transform(x, y), geom)
+  national AOI: MultiPolygon, area 23222.0 km2, valid
+  stats: {"coastline_ways": 378, "roads": 179925, "buildings": 186996, "landuse": 9101, "water_areas": 1170, "places": 159, "islands": 3, "aeroways": 1158, "named_areas": 1678}
+  municipalities: 8
+  coastline ways for the land derivation: 378; 2 tagged island polygons
+  world grid: origin=(431000,2681000) 259x268 km
+  DEM mosaic: 9 tiles, 10801x10801 samples
+  land seeds: roads 179060/179925, buildings 39969 (dropped 31 inside mapped water)
+  land derivation: {'barrierCells': 58156, 'seedCells': 273015, 'stitches': 4, 'longestStitchM': 4284.0, 'area_0': np.float64(11423.1), 'thickening': 0, 'islandComponents': 38}
+  land area total: 11,502 km2 across 68 components (55 islands >= 2 ha, largest island 70.70 km2)
+  land mask: 1,150,250 of 6,941,200 cells (16.6%)
+  island records: 57 (largest 122.0 ha)
+  terrain L1 (100 m): min 0.0 max 103.2 m
+  terrain L0 (300 m): 864x894
+  materials: 9 distinct classes present
+  roads compiled: 179925
+  buildings compiled: 186996
+  checkpoints: 28 found, 4 missing -> SOUTH_AND_BORDER/KHOR_AL_ADAID, SOUTH_AND_BORDER/HAMAD_PORT, CENTRAL_AND_CAPITAL/HAMAD_INTERNATIONAL_AIRPORT, NORTH_AND_NORTHEAST/THE_PEARL
+[2] writing runtime bundles
+  buildings packed: 186996
+  shoreline polylines packed: 320 (skipped 58 degenerate)
+  coast bundle written (320 polylines)
+  strings: 16780 entries
+  compiler fingerprint: 09033e2a24658469
+  wrote QATAR_NATIONAL_AOI.geojson
+  wrote QATAR_MUNICIPALITIES.geojson (8 municipalities)
+  wrote QATAR_BOUNDARY_REPORT.md
+[3] done
+  manifest: /home/runner/work/temporary5/temporary5/android/assets/world/manifest.json
+  bundles: 12.2 MB compressed
+compile_exit=0
+world epoch: 20261012  crs: EPSG:32639 (WGS 84 / UTM zone 39N)
+grid: origin=(431000,2681000) 259 x 268 km
+
+PASS  manifest format version is 1
+PASS  master CRS is EPSG:32639 (UTM 39N)
+PASS  world grid covers the country plus water buffer
+PASS  packaged bundle present: roads.bin.gz
+PASS  checksum matches manifest: roads.bin.gz
+PASS  packaged bundle present: buildings.bin.gz
+PASS  checksum matches manifest: buildings.bin.gz
+PASS  packaged bundle present: coast.bin.gz
+PASS  checksum matches manifest: coast.bin.gz
+PASS  packaged bundle present: strings.bin.gz
+PASS  checksum matches manifest: strings.bin.gz
+PASS  packaged bundle present: material_l1.bin.gz
+PASS  checksum matches manifest: material_l1.bin.gz
+PASS  packaged bundle present: terrain_l0.bin.gz
+PASS  checksum matches manifest: terrain_l0.bin.gz
+PASS  packaged bundle present: terrain_l1.bin.gz
+PASS  checksum matches manifest: terrain_l1.bin.gz
+PASS  L1 terrain dimensions match the manifest
+PASS  L1 terrain has 1,150,250 land cells
+PASS  land elevation range is plausible: 0..103 m
+PASS  no fake mountains (max 103 m)
+PASS  land coverage is continuous and plausibly sized (total 11,502 km2, largest component 11,418 km2, 56 components >= 2 ha)
+PASS  no leaked sea component masquerades as an island (largest secondary component 70.7 km2)
+PASS  municipalities present: 8 (>= 4)
+PASS  municipality hub inside world grid: Umm Salal
+PASS  municipality has an Arabic name: Umm Salal
+PASS  municipality hub has roads/buildings nearby: Umm Salal
+PASS  municipality hub inside world grid: Al Khor and Al Thakhira
+PASS  municipality has an Arabic name: Al Khor and Al Thakhira
+PASS  municipality hub has roads/buildings nearby: Al Khor and Al Thakhira
+PASS  municipality hub inside world grid: Al Shahaniya
+PASS  municipality has an Arabic name: Al Shahaniya
+PASS  municipality hub has roads/buildings nearby: Al Shahaniya
+PASS  municipality hub inside world grid: Al Rayyan
+PASS  municipality has an Arabic name: Al Rayyan
+PASS  municipality hub has roads/buildings nearby: Al Rayyan
+PASS  municipality hub inside world grid: Doha
+PASS  municipality has an Arabic name: Doha
+PASS  municipality hub has roads/buildings nearby: Doha
+PASS  municipality hub inside world grid: Ash Shamal
+PASS  municipality has an Arabic name: Ash Shamal
+PASS  municipality hub has roads/buildings nearby: Ash Shamal
+PASS  municipality hub inside world grid: Al Wakrah
+PASS  municipality has an Arabic name: Al Wakrah
+PASS  municipality hub has roads/buildings nearby: Al Wakrah
+PASS  municipality hub inside world grid: Al-Daayen
+PASS  municipality has an Arabic name: Al-Daayen
+PASS  municipality hub has roads/buildings nearby: Al-Daayen
+PASS  islands present: 57
+PASS  all islands inside the world grid (outside: 0)
+PASS  checkpoint group packaged: CENTRAL_AND_CAPITAL
+PASS  checkpoint group packaged: ISLANDS_AND_WATER
+PASS  checkpoint group packaged: NORTH_AND_NORTHEAST
+PASS  checkpoint group packaged: SOUTH_AND_BORDER
+PASS  checkpoint group packaged: WEST_AND_NORTHWEST
+PASS  road network compiled: 179925 ways (>= 3000)
+PASS  buildings compiled: 186996 (>= 2000)
+PASS  road classes present: 23
+PASS  land cell count recorded
+PASS  OpenStreetMap attribution present in the manifest
+
+WORLD COVERAGE VALIDATION PASSED
+WORLD_VALIDATION=PASSED
+== game world: stage 2 ==
+  parsing relations (boundaries)
+  boundary relations: 18 (admin levels 2/4/6)
+  parsing ways/nodes
+  ways visited: 410293
+  national boundary assembled from relation 305095 (Qatar)
+  packing buildings (real footprints)
+    buildings: 186,996 rings, 2,137 named
+  packing land use
+    land use: 5,779 polygons
+  packing water
+    water: 1,130 polygons
+  packing barriers
+    barriers: 421 lines
+  packing points of interest and spawn points
+    node features: 531
+    points: 784
+  strings: 17,717 entries after appending game names
+  manifest: android/assets/world/manifest.json (26,159 bytes)
+  checksums: 12 files
+== game world: stage 2 complete ==
+game_compile_exit=0
+PASS  material_l1.bin.gz digest matches the manifest
+PASS  terrain_l1.bin.gz digest matches the manifest
+PASS  attribution is present
+PASS  rebuilding the fixture produces byte-identical files
+PASS  fixture expectations are self-consistent
+PASS  no undefined names in tools/ (0 found)
+
+GAME WORLD CONTRACTS PASSED
+missing assets/world/manifest.json
+total 16272
+drwxr-xr-x 2 runner runner    4096 Oct 14 19:49 .
+drwxr-xr-x 5 runner runner    4096 Oct 14 19:49 ..
+-rw-r--r-- 1 runner runner      65 Oct 14 19:53 COMPILER_SHA256
+-rw-r--r-- 1 runner runner   36150 Oct 14 19:54 barriers.bin.gz
+-rw-r--r-- 1 runner runner 5576709 Oct 14 19:54 buildings.bin.gz
+-rw-r--r-- 1 runner runner  125625 Oct 14 19:53 coast.bin.gz
+-rw-r--r-- 1 runner runner  678898 Oct 14 19:54 landuse.bin.gz
+-rw-r--r-- 1 runner runner   26159 Oct 14 19:54 manifest.json
+-rw-r--r-- 1 runner runner   87483 Oct 14 19:53 material_l1.bin.gz
+-rw-r--r-- 1 runner runner    7422 Oct 14 19:54 pois.bin.gz
+-rw-r--r-- 1 runner runner 8763013 Oct 14 19:53 roads.bin.gz
+-rw-r--r-- 1 runner runner  114282 Oct 14 19:54 strings.bin.gz
+-rw-r--r-- 1 runner runner  103521 Oct 14 19:53 terrain_l0.bin.gz
+-rw-r--r-- 1 runner runner  876807 Oct 14 19:53 terrain_l1.bin.gz
+-rw-r--r-- 1 runner runner  231815 Oct 14 19:54 water.bin.gz
+16M	android/assets/world/
