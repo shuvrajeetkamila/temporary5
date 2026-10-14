@@ -159,6 +159,15 @@ public final class ChunkMesher {
             return bytes;
         }
 
+        /** Moves the whole chunk into its own frame of reference: see {@link MeshData#translate}. */
+        public void translate(float dx, float dz) {
+            land.translate(dx, dz);
+            water.translate(dx, dz);
+            for (MeshData part : detail) {
+                part.translate(dx, dz);
+            }
+        }
+
         /** Trims every part to the size it actually reached. */
         public void compact() {
             land.compact();
@@ -218,6 +227,15 @@ public final class ChunkMesher {
         if (world.barriers != null) {
             meshBarriers(minEast, minNorth, maxEast, maxNorth, detail, mesh);
         }
+        // Everything the meshers wrote is in bundle space -- metres from the compiled grid's origin --
+        // because that is the frame the terrain, building and road data are stored in. The renderer
+        // places a chunk by translating it from its own origin into the rebased frame next to the
+        // player, so the chunk has to be relative to that origin first. Without this, every chunk was
+        // drawn one origin-distance away from where it belongs: the country came out as a mostly empty
+        // screen with a few squares of sand and half a building in it, which is exactly what the fourth
+        // install showed, and no test could see it because every test looked at one chunk on its own.
+        mesh.translate((float) -minEast, (float) -minNorth);
+
         // Trim to size before the chunk is handed over: a mesh that grew to hold the whole city and ended
         // up with a shed in it must not keep the array it grew into. Hundreds of chunks are resident.
         mesh.compact();

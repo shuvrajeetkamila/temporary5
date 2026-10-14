@@ -140,6 +140,35 @@ public final class MeshData {
         indexCount = 0;
     }
 
+    /**
+     * Moves every vertex horizontally, keeping the bounds in step.
+     *
+     * <p>Used to put a chunk into its own frame of reference: the meshers emit bundle-space coordinates
+     * -- metres from the compiled grid's origin, which is where the terrain, building and road data live
+     * -- and a chunk is drawn by translating it from its own origin. Without this the translation is
+     * applied to coordinates that already include it, and every chunk is drawn its own origin distance
+     * away from where it belongs: a world that is empty except for whichever squares happen to land near
+     * the camera.
+     *
+     * <p>Doing it here rather than in the meshers keeps one rule instead of four: whatever a mesher
+     * writes, a {@code ChunkMesh} is in chunk-local metres, so a vertex coordinate stays under 500 and a
+     * float has a couple of centimetres of precision left at the far end of a 259 km country.
+     */
+    public void translate(float dx, float dz) {
+        if (vertexCount == 0 || (dx == 0f && dz == 0f)) {
+            return;
+        }
+        for (int i = 0; i < vertexCount; i++) {
+            int at = i * FLOATS_PER_VERTEX;
+            vertices[at] += dx;
+            vertices[at + 2] += dz;
+        }
+        minX += dx;
+        maxX += dx;
+        minZ += dz;
+        maxZ += dz;
+    }
+
     /** Bytes of vertex and index data currently held, used to budget the resident chunk cache. */
     public int memoryBytes() {
         return vertices.length * 4 + indices.length * 2;

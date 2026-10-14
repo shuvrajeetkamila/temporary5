@@ -254,6 +254,45 @@ the index limit; `ChunkMeshCacheBudgetTest` holds the resident window inside its
 that the chunk taken back is the farthest one. Both would have failed on the code that shipped in round
 two.
 
+## The fourth run on a phone
+
+The fourth install ran, which is progress -- the third closed instantly -- and it drew the fallback demo:
+a sand-coloured plane and a cube, the panel over the top of it, and no controls. Three separate things
+were wrong, and the third one had been wrong since the first line of the chunk mesher was written.
+
+**The panel was hiding the game.** It took 78% of the screen height and it is drawn after the HUD, so with
+anything to report it covered the world and the buttons. "No controls, nothing on the screen" is what a
+screen looks like with the diagnostics on top of the controls. It is now a strip across the top of at most
+42% of the screen, more transparent, at most ten lines, and when it has to drop a line it drops an
+informational one rather than the failure.
+
+**One broken subsystem took the whole screen with it.** `GameScreen.show()` was a single long sequence of
+a dozen calls: whichever threw first abandoned the world, the controls and both maps, and left the demo
+behind the panel. It is now built in independent parts -- raster, player and terrain, world renderer,
+credits, tap-to-travel, map view, controls, camera -- each named, each reported, each survivable. The same
+is true of a frame: the world and the controls draw under separate guards, the batch is closed in a
+`finally`, and a frame that throws no longer disposes the game screen on the first exception (two seconds
+of failing every frame is a broken subsystem; one bad frame is a hiccup). A failure is now raised on the
+phone as a real dialog with a **Copy** button, while the game keeps running, so it can be sent on instead
+of photographed.
+
+**The chunks were drawn in the wrong place, always.** The meshers emit **bundle-space** coordinates --
+metres from the compiled grid's origin -- because that is the frame the terrain, building and road data
+are stored in. The renderer draws a chunk by translating it *from that chunk's own origin* into the
+rebased frame next to the player, because it was written for **chunk-local** coordinates. Both are
+reasonable conventions; nobody had ever compared them, and no test looked at a chunk's coordinates as
+coordinates rather than as counts. So every chunk was drawn one origin-distance from its place: chunk
+(221, 230) of Doha, whose origin is 110 km into the grid, appeared 110 km away from where it belonged,
+and the country on the screen was mostly empty with a few squares of sand and half a building in it.
+
+It now has one rule instead of four: whatever a mesher writes, a `ChunkMesh` is in chunk-local metres --
+`MeshData.translate` moves the whole chunk into its own frame with its bounds, after the meshing and
+before the trim. Geometry stays under 500 m, so a float still has centimetres of precision left at the far
+end of a 259 km country. `ChunkMeshBudgetTest` now checks the numbers a driver actually receives -- every
+float finite, every position inside its own chunk, every height inside a range Qatar has, every index
+pointing at a vertex that exists, and one test that follows a real footprint from the compiled country to
+the wall vertex standing on it.
+
 ## The workflow that started itself
 
 `data.yml` publishes its provenance into `data/geodata/**` and had that same directory among its push

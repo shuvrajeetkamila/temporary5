@@ -231,16 +231,18 @@ public class ChunkMeshBudgetTest {
      * hill.
      */
     private static void checkGeometryIsSane(ChunkMesher.ChunkMesh mesh, int chunkX, int chunkZ) {
-        checkPart(mesh.land, "land " + chunkX + "," + chunkZ);
-        checkPart(mesh.water, "water " + chunkX + "," + chunkZ);
+        // Terrain takes one extra cell (100 m) of margin on each side so neighbouring chunks meet; a
+        // building that straddles the chunk edge keeps its whole footprint, which can be a block long.
+        checkPart(mesh.land, "land " + chunkX + "," + chunkZ, 160f);
+        checkPart(mesh.water, "water " + chunkX + "," + chunkZ, 160f);
         for (int i = 0; i < mesh.detail.size(); i++) {
-            checkPart(mesh.detail.get(i), "detail " + i + " of " + chunkX + "," + chunkZ);
+            checkPart(mesh.detail.get(i), "detail " + i + " of " + chunkX + "," + chunkZ, 400f);
         }
         assertTrue(mesh.buildings > 0 || mesh.roads > 0 || mesh.land.vertexCount() > 0,
                 "the chunk produced something");
     }
 
-    private static void checkPart(MeshData part, String label) {
+    private static void checkPart(MeshData part, String label, float margin) {
         int floats = part.vertexCount() * MeshData.FLOATS_PER_VERTEX;
         float[] vertices = part.vertices();
         assertEquals(floats, vertices.length,
@@ -253,9 +255,9 @@ public class ChunkMeshBudgetTest {
             int at = v * MeshData.FLOATS_PER_VERTEX;
             float east = vertices[at];
             float north = vertices[at + 2];
-            assertTrue(east > -120f && east < ChunkMesher.CHUNK_M + 120f,
+            assertTrue(east > -margin && east < ChunkMesher.CHUNK_M + margin,
                     label + ": vertex " + v + " east " + east + " is outside its own chunk");
-            assertTrue(north > -120f && north < ChunkMesher.CHUNK_M + 120f,
+            assertTrue(north > -margin && north < ChunkMesher.CHUNK_M + margin,
                     label + ": vertex " + v + " north " + north + " is outside its own chunk");
             assertTrue(vertices[at + 1] > -120f && vertices[at + 1] < 400f,
                     label + ": vertex " + v + " height " + vertices[at + 1]
@@ -271,6 +273,63 @@ public class ChunkMeshBudgetTest {
                     label + ": index " + index + " points past the " + part.vertexCount()
                             + " vertices in this mesh");
         }
+    }
+
+    @Test
+    @DisplayName("a chunk is local to itself, so the renderer's transform lands its buildings right")
+    void chunkGeometryIsChunkLocalAndLandsWhereTheDataSays() {
+        Path dir = worldDir();
+        Assumptions.assumeTrue(dir != null, "android/assets/world is not checked out");
+        WorldData world = load(dir);
+        int[] capital = densestChunk(world);
+        int chunkX = capital[0];
+        int chunkZ = capital[1];
+        double originEast = ChunkMesher.chunkOrigin(chunkX);
+        double originNorth = ChunkMesher.chunkOrigin(chunkZ);
+
+        ChunkMesher.ChunkMesh mesh = new ChunkMesher(world).mesh(chunkX, chunkZ, 1.0);
+
+        // Find a real footprint from the compiled country that sits well inside this chunk, then look
+        // for a wall vertex standing on it. The renderer draws a chunk by translating it from its own
+        // origin, so a vertex at (ring point - chunk origin) is what puts the building on its footprint.
+        // Before this rule existed the mesher emitted bundle-space coordinates and the renderer added
+        // the origin on top of them, which drew every chunk one origin-distance away from its place:
+        // a country that was empty except for whichever squares happened to fall near the camera.
+        int foundRing = -1;
+        for (int ring = 0; ring < world.buildings.ringCount && foundRing < 0; ring++) {
+            double minEast = world.buildings.bounds[ring * 4];
+            double minNorth = world.buildings.bounds[ring * 4 + 1];
+            double maxEast = world.buildings.bounds[ring * 4 + 2];
+            double maxNorth = world.buildings.bounds[ring * 4 + 3];
+            if (minEast > originEast + 30 && maxEast < originEast + ChunkMesher.CHUNK_M - 30
+                    && minNorth > originNorth + 30 && maxNorth < originNorth + ChunkMesher.CHUNK_M - 30
+                    && world.buildings.ringLength[ring] >= 4) {
+                foundRing = ring;
+            }
+        }
+        assertTrue(foundRing >= 0, "the dense chunk has a whole building inside it");
+
+        float expectedEast = (float) (world.buildings.xz[world.buildings.ringStart[foundRing] * 2]
+                - originEast);
+        float expectedNorth = (float) (world.buildings.xz[world.buildings.ringStart[foundRing] * 2 + 1]
+                - originNorth);
+        boolean landed = false;
+        for (MeshData part : mesh.detail) {
+            float[] vertices = part.vertices();
+            for (int v = 0; v < part.vertexCount(); v++) {
+                int at = v * MeshData.FLOATS_PER_VERTEX;
+                if (Math.abs(vertices[at] - expectedEast) < 0.5f
+                        && Math.abs(vertices[at + 2] - expectedNorth) < 0.5f) {
+                    landed = true;
+                    break;
+                }
+            }
+            if (landed) {
+                break;
+            }
+        }
+        assertTrue(landed, "a wall vertex stands on the footprint the compiled country records at "
+                + expectedEast + ", " + expectedNorth + " in chunk-local metres");
     }
 
     /**
