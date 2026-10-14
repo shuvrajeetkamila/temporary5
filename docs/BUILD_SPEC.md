@@ -11,7 +11,7 @@ and the core engine contracts**, with the remaining systems layered on top of th
 
 | Requirement | State |
 |---|---|
-| Directly installable Android `.apk` (not a plan, viewer, video or skeleton) | Shipped: `artifacts/Qatar-The-Peninsula-v0.1.0-m0.apk`, validated in CI |
+| Directly installable Android `.apk` (not a plan, viewer, video or skeleton) | Shipped: `artifacts/Qatar-The-Peninsula-v0.1.0-m0.apk`, validated in CI, installed on a real phone; the app's own diagnostics panel reports every launch stage and every failure on the screen |
 | minSdk API 26+ | `minSdk 26`, `targetSdk 34`, `compileSdk 34` |
 | Application id `ai.example.qatar.peninsula` (project uses its own id of the same form) | `ai.arena.qatar.peninsula` |
 | Universal debug-signed APK, arm64-v8a + armeabi-v7a + x86_64 | All three ABIs, debug key, `signature=present` |
@@ -56,7 +56,15 @@ and the core engine contracts**, with the remaining systems layered on top of th
 
 * Python 3 deterministic compiler: `tools/fetch_sources.py` (sources + provenance),
   `tools/build_world.py` (single projection step, land derivation, bundles), `tools/validate_world.py`
-  (packaged-country gate), `tools/selftest_world.py` (fast local gate), `tools/make_font.py`.
+  (packaged-country gate), `tools/selftest_world.py` (fast local gate), `tools/make_font.py`,
+  `tools/selftest_game_world.py` + `tools/validate_game_world.py` (stage-2 bundle contracts),
+  `tools/validate_apk.sh` (checks the artefact itself: bundles under either packaged name, `.fnt`
+  section order, ABIs, licences, signature).
+* Source gates that run without a JVM, which this build environment has no Java compiler for:
+  `tools/check_java_symbols.py` (an unqualified JUnit assertion with no import -- the compiler's own
+  error, in a second) and `tools/check_shaders.py` (reserved words, version directive first, and the
+  precision of every varying and shared uniform across each stage boundary). Both run their own failure
+  samples before they look at the tree; both run first in the compile job.
 * Bundle formats `QTT1` (terrain), `QTM1` (material), `QTR1` (roads), `QTB1` (buildings), `QTC1`
   (checkpoints), `QTS1` (strings), little-endian, deterministic gzip. Row 0 is **south**.
 * `SHA256SUMS` for sources and per-file digests inside `manifest.json`; the compiler writes a
@@ -66,8 +74,12 @@ and the core engine contracts**, with the remaining systems layered on top of th
 ## 5. Known limitations (honest status)
 
 * The APK is debug-signed and is a milestone build, not a store release.
-* No physical-device test has been run: everything below the APK (rendering, streaming, input) is
-  verified by unit tests, the packaged-asset validator and head-less CI only.
+* Two physical-device runs have been made and both failed, for four reasons that are now fixed: a
+  reserved word in a 300 es shader, a world bundle the Android packager stores without its `.gz` suffix,
+  a `.fnt` whose section order made libGDX parse zero glyphs, and an unqualified uniform whose precision
+  disagreed across the two stages. The app reports what it is doing and what breaks on the screen itself;
+  the third install is the test. There is no GPU and no emulator here, so a phone is the only thing that
+  compiles this project's GLSL.
 * Vehicle, human, traffic, pedestrian and metro systems described in the brief are not implemented
   yet; the engine and world they will sit on are.
 * Terrain is 100 m resolution at its finest level and the height field is SRTM-derived, so fine

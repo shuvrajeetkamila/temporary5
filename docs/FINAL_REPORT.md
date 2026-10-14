@@ -9,13 +9,14 @@ repository, a CI run, or a byte count that can be re-derived.
 | | |
 |---|---|
 | **APK** | [`Qatar-The-Peninsula-v0.1.0-m0.apk`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk) |
-| **Bytes** | 19,083,818 |
-| **SHA-256** | `0e77c063fe4d7ba5ec7038ae5303a43b568a4a574296d55a6030a5fdb5a70ceb` |
+| **Bytes** | 19,177,634 |
+| **SHA-256** | `ac264f851f0d5b49957540805b640ce6dce326bfd877fe09c1d7822f0a351a57` |
 | **Sidecar** | [`…apk.sha256`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256) |
 | **Release** | https://github.com/shuvrajeetkamila/temporary5/releases/tag/v0.1.0-m0 (rolling: each green run republishes it) |
-| **Built from** | commit `a5418c8`, branch `arena/4eb37624-temporary5` |
-| **CI runs for that commit** | Build APK [`38542401098`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38542401098) success · Compile gate [`38542400815`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38542400815) success · Protect the project [`38542400940`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38542400940) success |
-| **Tests at that commit** | 108 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_STATUS.txt`, evidence commit `112cc2a`) |
+| **Built from** | commit `3992b87`, branch `arena/4eb37624-temporary5` |
+| **CI runs for that commit** | Build APK [`38560132516`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38560132516) success · Compile gate [`38560132567`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38560132567) success · Protect the project [`38560132320`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38560132320) success |
+| **Tests at that commit** | 117 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_STATUS.txt`, evidence commit `f89ec4c`) |
+| **Build stamp on screen** | `0.1.0-m0+diag2` — the release asset keeps its name, so this is how two builds are told apart on a phone |
 | **Package** | `ai.arena.qatar.peninsula`, versionName `0.1.0-m0`, debug-signed, `minSdk 26`, `targetSdk 34` |
 | **ABIs** | `arm64-v8a`, `armeabi-v7a`, `x86_64` |
 | **Permissions** | none: no `INTERNET`, nothing to phone home to. The country is inside the APK. |
@@ -82,7 +83,7 @@ The map is interactable: buildings and barriers are solid at the altitude the bo
 chest height is stopped by a wall; an aircraft above its top is not), terrain that has not streamed in
 is not walked onto, and taps on the map move the player.
 
-Evidence: `VehicleDynamicsTest`, `BuildingCollisionTest`, `BarrierCollisionTest` — part of the 108 passing
+Evidence: `VehicleDynamicsTest`, `BuildingCollisionTest`, `BarrierCollisionTest` — part of the 117 passing
 tests.
 
 ## 3. Detail assets
@@ -138,50 +139,104 @@ country inside it (16 MB of compiled bundles in a 19 MB package). Validation is 
 dex files, native libraries per ABI, world bundle presence and manifest checksums, licence files,
 signature, zip integrity.
 
-## The first run on a phone, and what it found
+## On a phone, twice, and what those two runs found
 
-The APK was installed on an Android phone, and it showed a blue screen with nothing on it. That is worth
-writing down properly, because every part of it was avoidable in a different way:
+There is no GPU and no Android emulator in the build environment, so the GLSL in this project is compiled
+for the first time on a phone, and only the screen can say what a driver thinks. That is why the app
+carries a diagnostics panel: its own console, drawn with its own batch and its own font, one line per
+stage, and every failure printed on the screen in words and left there. Two installs have now been made.
+Both found real bugs. Every one of them is fixed and, where a test can hold it, held.
 
-1. **A reserved word.** The world fragment shader declared a variable called `half`. It is an ordinary
-   English word and an ordinary identifier in desktop GLSL, and it is **reserved in GLSL ES 3.00**, which
-   keeps it for a future 16-bit float. A driver that follows the spec rejects the whole shader for it; the
-   world program then never links, and the country cannot be drawn by anything. It is now `halfway`, and
-   `ShaderSourcesTest` reads every shader in the project and fails on a reserved word, on 1.00 syntax in a
-   300 es shader, on a fragment shader without a float precision, on a call to a function that is neither
-   built in nor declared, and on a vertex shader whose outputs do not match what the fragment shader
-   reads. Reintroducing `half` fails that test with the line that matters.
-2. **Nobody could see the failure.** The renderer logged "shader compilation failed" with the driver's
-   own message and then returned false, and the caller ignored it: the next frame dereferenced a null
-   program and killed the GL thread. The screen said nothing, and the reason -- the only sentence that
-   mattered -- was in logcat, which the person holding the phone cannot read.
-3. **Launch was one long silent block.** The map raster was built inside the first frame at 2048 x 2048
-   (4.2 million pixels covering the whole country), and the spawn selection built a second raster at 512
-   to look at. On a desktop that is a pause; on a phone it is a long block with nothing on the screen to
-   say a launch is happening at all.
+### First install: a blue screen
 
-All three are fixed. The launch now runs as stages, one per frame, each of them printed on the screen as
-it starts -- GL context, crash file, manifest, bundles, map raster, game screen -- and any failure prints
-the exception, its first stack frames and the GL strings and stays there. `ScreenLog` draws that console
-with its own batch and its own font (the HUD font, then libGDX's built-in one, then coloured bars if no
-font can be loaded at all), so it works when the thing that is broken is the thing it is reporting on. A
-crash handler writes the throwable into the app's own storage and the next launch prints it, so a crash
-comes back as a stack trace instead of "it closed itself". If the world's shaders fail again, the screen
-shows the driver's message and the game keeps running with a flat grey world rather than nothing.
+1. **A reserved word.** The world fragment shader declared a variable called `half`: an ordinary English
+   word, an ordinary identifier in desktop GLSL, and **reserved in GLSL ES 3.00**, which keeps it for a
+   future 16-bit float. A driver that follows the spec rejects the whole shader, the world program never
+   links, and nothing can be drawn. It is `halfway` now, and `ShaderSourcesTest` fails on a reserved word
+   in any shader in the project.
+2. **Nobody could see the failure.** The renderer logged "shader compilation failed" with the driver's own
+   message and returned false; the caller ignored it and the next frame dereferenced a null program. The
+   screen said nothing and the only sentence that mattered was in logcat, where the person holding the
+   phone cannot read it.
+3. **Launch was one long silent block**: the map raster was built inside the first frame at 2048 x 2048,
+   which is a pause on a desktop and a long freeze on a phone.
 
-The honest position on the device: the first install failed, the reason is now known and fixed, and the
-second install is the first real test of the fix. Nothing in this repository can compile GLSL, so the
-shader lint and the on-screen reporting are what stand in for a GPU until then.
+The fix for the family, not just the instance: launch runs as stages with a name on the screen for each,
+`ScreenLog` reports what broke even when the thing that is broken is what it reports on, a crash handler
+writes the throwable to app storage and the next launch prints it, and a shader failure leaves a flat grey
+world with the driver's message on top instead of a dead renderer.
+
+### Second install: the panel worked, and reported three more
+
+The panel from round one came back with the answers, in this order: the GL driver (Mali-G72, OpenGL ES
+3.2), the manifest read correctly (world format 2, 259 x 268 km, 186,993 buildings, 179,943 roads), then
+**three failures**, each of them in the way of the next step:
+
+1. **`world bundle missing: strings.bin.gz`** — the whole country was in the APK, one extension away
+   from being found. The Android asset tooling **unpacks a `.gz` asset at package time and drops the
+   suffix**, so the package holds `assets/world/strings.bin` with the inflated bytes while the manifest,
+   and the loader, both named `strings.bin.gz`. On a phone the game had never got past the loading stage;
+   no previous test could have caught it, because every test read the repository's own form of the file.
+   The loader now resolves a bundle by the name the manifest gives **or** by that name without its `.gz`
+   suffix, and accepts either shape of contents: gzip (verify the digest, then inflate) or already
+   inflated (use it, and say once, on the screen, that the digest cannot be checked here because the bytes
+   that were hashed are not the bytes that were packaged). `BundlePackagingTest` loads the world four
+   ways — repository names and shape, packaged names and shape, and both mixed — and requires the same
+   country from all four; `tools/validate_apk.sh` now checks the shipped APK for every bundle under
+   either name, which is the check that would have caught it in CI.
+2. **`HUD font unavailable`** — and this is why the panel itself was in libGDX's built-in ASCII font.
+   `tools/make_font.py` wrote the `.fnt` sections in the wrong order: `kernings count=0` came *before*
+   the character lines. libGDX reads a `.fnt` as a stream and **stops at the first line beginning with
+   `kernings`**, so it parsed zero glyphs, then looked up a glyph to measure a space, got null and threw.
+   The file was syntactically perfect and wrong. Kerning now comes last, where libGDX's own font tool puts
+   it, and the atlases are written RGBA (white pixels, coverage in alpha) — the shape a `BitmapFont` is
+   built to consume — rather than 8-bit greyscale, which only works when the decoder happens to map it to
+   an alpha pixmap. `FontCoverageTest` now parses each shipped `.fnt` **the way libGDX parses it**,
+   stopping where libGDX stops, and fails if the glyph count disagrees, if the space glyph is missing or
+   advances nothing, if the page image is missing, or if the page is not RGBA.
+3. **`Demo shaders also failed: terrain: L0001. The fragment floating-point variable u_cameraLocal does
+   not match the vertex variable u_cameraLocal. The precision does not match.`** — so the fallback scene,
+   the thing that exists to prove a device's pipeline works, could not draw either. The terrain shader
+   declared `uniform vec3 u_cameraLocal` with no qualifier: in a vertex stage float defaults to `highp`,
+   in a fragment stage after `precision mediump float` it defaults to `mediump`, and one uniform with two
+   precisions is a link error a driver is right to refuse. Every varying and every uniform that crosses a
+   stage boundary in all ten shaders now carries an explicit precision, and two independent checks hold
+   it: `ShaderSourcesTest.precisionsMatch` (JUnit) and `tools/check_shaders.py` (no JVM needed, which
+   matters because this sandbox has no Java compiler). Re-inserting the bug makes both report the driver's
+   own sentence.
+
+Two further things were found while fixing those, and both were tests that had stopped looking at their
+own subject — worse than no test, because they were believed:
+
+* `VertexLayoutTest` matched varyings with a pattern that allowed no precision qualifier, so when the
+  qualifiers were added it silently matched nothing and passed on an empty set. It reported a failure only
+  after the fix that mattered was already in. The pattern now accepts the qualifier and both sets are
+  asserted non-empty first.
+* `BundlePackagingTest` asserted that a bundle keeps the manifest's name when that name exists — while
+  handing the resolver a set in which it never existed. It was asserting the opposite of what it claimed.
+
+Then a gate, because the first push of this round never reached the APK job: `FontCoverageTest` called
+`assertEquals` seven times without importing it. The syntax was perfect (a tree-sitter parse of all 84
+files reports zero errors) and no local check could see it, because name resolution needs a compiler and
+there is none here. `tools/check_java_symbols.py` closes that hole: it strips comments, strings and text
+blocks and fails on an unqualified assertion the file never imported — the compiler's own error, in a
+second instead of ten minutes — and it reproduces all seven CI errors at the same seven line numbers.
+Both new gates run first in the compile job, and both run their own failure samples before they look at
+the tree.
+
+The honest position now: two installs made, two failures, four causes — a reserved word, a bundle name,
+a file section order and a missing precision — each one named by the app itself on the phone's screen and
+each one now fixed where a test can hold it: 117 tests green, `validation=PASSED`. Two of the four are
+checked in the shipped artefact by `validate_apk.sh`, and none of them is left to a promise.
 
 ## Honest limitations
 
-1. **The build has run on a device once, and that run failed.** There is no GPU and no Android emulator
-   in the build environment, so the GLSL in this project is compiled for the first time on a phone, and
-   the first time it was, the world shader was rejected for using a reserved word (section above). The
-   fix is in `a5418c8`, and the launch now reports what it is doing and what breaks, on the screen, which
-   is what the next install is for. Two earlier bugs of the same family were found without a device: the
-   vertex stride and the shader's decoding of surface types and material ids were both wrong, and are both
-   fixed and asserted by `VertexLayoutTest`.
+1. **The build has been run on a device twice, and both runs failed** — for four different reasons, all
+   of them now fixed and, where a test can hold them, held (section above). There is still no GPU and no
+   Android emulator in the build environment: the GLSL in this project compiles for the first time on a
+   phone, and the third install is the first real test of the second round of fixes. Nothing in this
+   repository can compile GLSL; what stands in for a GPU is the shader lint, the on-screen diagnostics
+   panel, and the fact that the last panel named its failures precisely enough to fix them.
 2. No sound.
 3. Buildings collide as their bounding box, not as their drawn ring: a courtyard is walkable through.
 4. The world is drawn only within the streaming radius: beyond roughly 6 km it fades into fog and stops.
@@ -222,7 +277,7 @@ shader lint and the on-screen reporting are what stand in for a GPU until then.
 
 ```bash
 git clone https://github.com/shuvrajeetkamila/temporary5 && cd temporary5
-git checkout a5418c8
+git checkout 3992b87
 # world data (downloads OSM + SRTM, compiles the country, validates it):
 python3 tools/fetch_sources.py && python3 tools/build_world.py && python3 tools/game_world.py
 python3 tools/validate_game_world.py --world android/assets/world     # 57/57

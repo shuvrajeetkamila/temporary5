@@ -176,6 +176,32 @@ Three things came out of it, and all three are in the build now:
   - The map raster is built once, at 1024, in its own reported stage, and the spawn selection reuses it
     instead of building a second one.
 
+## The second run on a phone
+
+The diagnostics panel came back with the GL driver (Mali-G72, OpenGL ES 3.2), the manifest read out
+correctly (world format 2, 259 x 268 km, 186,993 buildings, 179,943 roads), and three failures:
+
+  - `world bundle missing: strings.bin.gz`. The Android asset tooling unpacks a `.gz` asset and drops the
+    suffix, so the APK held `assets/world/strings.bin` with the inflated bytes while the manifest named
+    `strings.bin.gz`. The country had never loaded on a device -- the whole file was in the package, one
+    extension away from being found, and every test in this repository read the repository's own form of
+    it. The loader resolves either name now, and accepts gzip or already-inflated contents, and
+    `BundlePackagingTest` loads the world four ways while `validate_apk.sh` checks the artefact itself.
+  - `HUD font unavailable`. `make_font.py` wrote `kernings count=0` before the character lines, and libGDX
+    stops reading a `.fnt` at the first line that begins with `kernings`: zero glyphs parsed, a null
+    glyph, an exception, and a HUD in the built-in ASCII font. Kerning is last now, the atlases are RGBA,
+    and `FontCoverageTest` parses the shipped files the way libGDX does.
+  - `demo terrain: L0001 ... u_cameraLocal ... The precision does not match`. An unqualified uniform is
+    `highp` in a vertex stage and `mediump` in a fragment stage after `precision mediump float`; one
+    uniform, two precisions, and a Mali driver will not link it. Everything crossing a stage boundary has
+    an explicit precision now, held by `ShaderSourcesTest.precisionsMatch` and by `tools/check_shaders.py`.
+
+Two tests turned out to have stopped looking at their subject (`VertexLayoutTest` matched no varyings at
+all once qualifiers were added and passed on an empty set; `BundlePackagingTest` asserted a name against a
+set that never contained it), and the first push of the round never reached the APK job because a test file
+called `assertEquals` without importing it -- which is what `tools/check_java_symbols.py` now catches in a
+second. 117 tests green, `validation=PASSED`, and the third install is the test of all of it.
+
 ## The workflow that started itself
 
 `data.yml` publishes its provenance into `data/geodata/**` and had that same directory among its push
@@ -190,12 +216,13 @@ after the fix was the last one in the chain.
 
 1. ~~Fix the spawn points.~~ Done: the country now compiles 279 car, 6 helicopter, 51 boat and 30
    aeroplane spawn points, and `validate_game_world.py` passes 57/57 against the committed bundles.
-2. **Verify the shaders on a device.** Started: the first install showed a blue screen, the cause was a
-   reserved word in the world fragment shader (`half`), and the build that fixes it also reports every
-   launch stage on the screen so the next failure arrives with its reason attached. What is left is the
-   second install. The vertex layout, the shader's decoding of surface types and material ids, and now
-   the reserved word were all found this way, so the expectation is that a device may find more: the
-   launch trace says which stage and which driver message.
+2. **Verify the shaders and the packaging on a device.** Two installs made, two failures, four causes,
+   all fixed and all reported by the app's own panel: the reserved word `half` in the world fragment
+   shader; the `.gz` bundle name that the Android packager strips; the `.fnt` section order that libGDX
+   stops reading at; and an unqualified `u_cameraLocal` that a Mali driver refused to link. What is left
+   is the third install. A device has now found four bugs that no desktop test could, so the expectation
+   stays that it may find more: the panel says which stage, and the driver's own words when it is a
+   driver saying them.
 3. ~~Buildings are solid.~~ Done, with tests. ~~Barriers as collision.~~ Done, with tests. Still open from
    step 2: collisions between vehicles, and profiling the streaming on a real phone (the warm-up builds up
    to 24 chunks per frame, and a dense urban chunk is heavy).
