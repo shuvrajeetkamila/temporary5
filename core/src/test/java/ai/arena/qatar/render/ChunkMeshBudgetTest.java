@@ -86,7 +86,9 @@ public class ChunkMeshBudgetTest {
         assertNull(mesh.detailPartFor(MeshData.MAX_VERTICES + 1),
                 "no part can hold more vertices than the index buffer addresses");
         assertTrue(mesh.truncated, "and the chunk says it is missing geometry");
-        assertEquals(1, mesh.detail.size(), "an empty part was still created first, which is harmless");
+        assertEquals(0, mesh.detail.size(),
+                "and no part is created for it: an oversized primitive is refused before anything "
+                        + "is allocated");
 
         // Costs are reported unclamped so this distinction is visible at all. A footprint of ten
         // thousand edges needs more vertices than the index buffer can address, and the caller has to
@@ -112,7 +114,8 @@ public class ChunkMeshBudgetTest {
         for (int i = 0; i < MeshData.MAX_VERTICES - 4; i++) {
             data.addVertex(i, 0, 0, 0, 1, 0, 0, 0, 0, 1);
         }
-        assertEquals(MeshData.MAX_VERTICES - 4, data.remainingVertices(), "remaining vertices");
+        assertEquals(4, data.remainingVertices(),
+                "filling to four short of the limit leaves exactly four vertices");
         assertTrue(data.hasRoom(4), "exactly four fit");
         assertFalse(data.hasRoom(5), "five do not");
         assertFalse(data.isFull(), "and a quad still fits");
@@ -210,9 +213,14 @@ public class ChunkMeshBudgetTest {
         assertTrue(far.land.vertexCount() > 0, "the ground is drawn at any distance");
     }
 
-    /** Every part must be addressable by a 16-bit index buffer, and only the last one may be partial. */
+    /**
+     * Every part must be addressable by a 16-bit index buffer, and no part before the last may be empty
+     * -- an empty part in the middle would mean geometry was stranded in a mesh that was left behind.
+     *
+     * <p>An empty <b>list</b> is legitimate, though: a chunk of empty desert with no road in it has no
+     * detail at all, and that is not a failure. Only the parts that exist are checked.
+     */
     private static void checkPartsInsideTheLimit(ChunkMesher.ChunkMesh mesh) {
-        assertFalse(mesh.detail.isEmpty(), "a chunk inside the country has a detail part");
         for (int i = 0; i < mesh.detail.size(); i++) {
             MeshData part = mesh.detail.get(i);
             assertTrue(part.vertexCount() <= MeshData.MAX_VERTICES,
