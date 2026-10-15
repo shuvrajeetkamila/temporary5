@@ -280,6 +280,10 @@ public final class ScreenLog implements Disposable {
         float width = Gdx.graphics.getWidth();
         float height = Gdx.graphics.getHeight();
 
+        // The panel draws over the game, so it inherits the world renderer's GL state: without this it
+        // is culled away exactly like the HUD, which is why a report of "no controls" arrived with no
+        // panel text to read -- the app's own words were being discarded by the GPU.
+        ai.arena.qatar.render.GlState2D.beginUi();
         batch.setProjectionMatrix(projection);
         batch.begin();
 

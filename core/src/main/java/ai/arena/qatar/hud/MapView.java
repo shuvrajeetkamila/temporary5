@@ -114,6 +114,29 @@ public final class MapView {
         return raster.northAt(vAt(py));
     }
 
+    /**
+     * The screen pixel a place is drawn at: the inverse of {@link #eastAt(float)} and
+     * {@link #northAt(float)}.
+     *
+     * <p>Needed for anything that has to stay on a place rather than on the screen -- after a teleport
+     * the player is somewhere new, and marking it means asking where that is *now*, after the map has
+     * recentred and however the player pans it afterwards.
+     */
+    public float screenXAt(double east, double north) {
+        if (fitW <= 0f) {
+            return rectX + rectW * 0.5f;
+        }
+        return rectX + rectW * 0.5f + (float) ((raster.u(east, north) - centreU) * fitW * zoom);
+    }
+
+    public float screenYAt(double east, double north) {
+        if (fitH <= 0f) {
+            return rectY + rectH * 0.5f;
+        }
+        // Screen y grows upwards and so does north, so the mapping is direct. See {@link #vAt(float)}.
+        return rectY + rectH * 0.5f + (float) ((raster.v(east, north) - centreV) * fitH * zoom);
+    }
+
     /** Zooms by a factor, keeping the raster point under (anchorX, anchorY) where it is. */
     public void zoomAt(float anchorX, float anchorY, float factor) {
         float anchorU = uAt(anchorX);

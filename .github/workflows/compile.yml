@@ -55,6 +55,9 @@ jobs:
       - name: Format gate (a specifier that refuses its value is a runtime exception on a phone)
         run: python3 tools/check_format_specifiers.py
 
+      - name: UI state gate (2D drawing must turn off the 3D depth test and face culling)
+        run: python3 tools/check_ui_state.py
+
       - name: Compile game code and tests
         run: |
           set -o pipefail

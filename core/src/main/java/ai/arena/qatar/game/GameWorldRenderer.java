@@ -194,6 +194,9 @@ public final class GameWorldRenderer implements Disposable {
             double offsetNorth = ChunkMesher.chunkOrigin(entry.chunkZ) - bundleOffsetNorth;
             renderer.draw(entry.key(), offsetEast, offsetNorth);
         }
+        // No state hand-over here on purpose: the player's body may still be drawn with this pass's
+        // state, and WorldRenderer.drawActor ends the 3D frame once the body is on the screen. The HUD
+        // does not depend on either of them: HudRenderer.begin() sets its own state (see GlState2D).
     }
 
     /** Uploads the player's body, and the parts of it that move, for the locomotion being played. */

@@ -344,15 +344,45 @@ Four things were done, and the first is the one that lasts:
   catches the real line when it is put back.
 * **`VERSION` is `0.1.0-m0+diag6`**, so the phone can tell this build from the one that failed.
 
+### Seventh install: the country, and nothing else
+
+The report came with a screenshot this time: the world drawing perfectly, and no controls on it. No
+exception, no panel, no buttons, no minimap -- the app was silent because its diagnostics were being
+discarded by the GPU along with everything else.
+
+The world renderer enables `GL_CULL_FACE` and `GL_DEPTH_TEST` at the start of every frame and never
+turns them off. libGDX's `SpriteBatch.begin()` sets `glDepthMask(false)` and nothing else — it leaves
+both of them on — and SpriteBatch's sprites are wound clockwise in a y-up system while the world
+renderer leaves a counter-clockwise front face behind. Every quad the HUD drew was a back face, and the
+GPU threw all of them away. It survived six rounds because it is *correct code*: nothing throws, nothing
+is missing, and on a desktop the state is never left in that condition.
+
+* `render/GlState2D.beginUi()` is the fix: the 2D entry points — `HudRenderer.begin()` and the panel's
+  draw — disable depth testing and culling for themselves instead of inheriting 3D state.
+* `WorldRenderer.endFrame()` hands the state back when a 3D pass ends, and `drawActor` sets its own 3D
+  state first, since the player's body is drawn after the chunks.
+* `tools/check_ui_state.py` is the sixth source gate, and the one that encodes the lesson: no
+  `SpriteBatch` may be opened in a method that has not called `GlState2D.beginUi()` first.
+* In the same round, at the request that arrived with the report: the map's **tap marker** (the crosshair
+  finally drawn where a teleport tap landed — `drawTeleportMarker` had never been called), the Android
+  **BACK key closes the open map** instead of leaving the app, and `HudLayoutTest` now asserts the whole
+  control set as geometry: the minimap is in the top-right, no button overlaps it (so a tap meant for it
+  cannot be swallowed), every button is on the screen at six resolutions, none overlaps another, and the
+  open map always has a CLOSE.
+
 ## Honest limitations
 
-1. **This build has been on a phone six times, and every report found something real** — thirteen faults
+1. **This build has been on a phone seven times, and every report found something real** — fourteen
+   faults
    in all, listed in the sections above, each one now fixed and, where a test can hold it, held. Two
    reports arrived with no symptom in them at all, so an audit was the diagnosis; one arrived as a stack
    trace of the JVM's own printer, so the frames had to be chosen better before the next one was useful.
-   That is what the panel, the journal and the alert are for, and it is why they are worth more than their
-   own size in the APK. **Rounds four, five and six have not been confirmed on the device yet — the next
-   report is the one that says whether the controls come up.** There is still no GPU and no Android emulator in the build environment: the GLSL in this project
+   The seventh was the most instructive of all: a report with nothing in it, from a build whose
+   diagnostics were being culled by the GPU, because two subsystems disagreed about GL state and neither
+   of them owned the contract. **Rounds six and seven have not been confirmed on the device yet — the
+   next report is the one that says whether the controls come up.** The reason to expect them now is not
+   optimism: the state is set by the code that needs it, and a source gate fails the build if it stops
+   being. There is still no GPU and no Android emulator in the build environment: the GLSL in this project
    compiles for the first time on a phone. Nothing here can compile GLSL; what stands in for a GPU is the
    shader lint, the on-screen diagnostics, and the fact that the panel has so far named its failures
    precisely enough to fix them — including the one it named with no words from the phone at all.

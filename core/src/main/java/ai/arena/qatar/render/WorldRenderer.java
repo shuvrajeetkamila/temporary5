@@ -239,6 +239,26 @@ public final class WorldRenderer implements Disposable {
     }
 
     /**
+     * Ends a 3D frame and leaves the GL state the way 2D drawing expects it.
+     *
+     * <p>The state this frame set -- depth testing, back-face culling -- is right for terrain, buildings
+     * and road ribbons and wrong for everything drawn after them. Leaving culling enabled is what made
+     * the controls, the minimap and the diagnostics panel invisible on a phone: SpriteBatch's quads are
+     * clockwise and the front face here is counter-clockwise, so the GPU culled every one of them.
+     *
+     * <p>{@link GlState2D} is the authoritative fix, called by the 2D code itself; this is the belt to
+     * that pair of braces, for anything drawn later that has not read it.
+     */
+    public void endFrame() {
+        if (!isReady()) {
+            return;
+        }
+        Gdx.gl.glDisable(GL20.GL_CULL_FACE);
+        Gdx.gl.glDisable(GL20.GL_DEPTH_TEST);
+        Gdx.gl.glDepthMask(true);
+    }
+
+    /**
      * Uploads the player's body, replacing whatever was there: the player changes vehicle, not shape.
      * Called when the locomotion type changes and never per frame.
      */
@@ -274,6 +294,18 @@ public final class WorldRenderer implements Disposable {
         if (actorMesh == null || !isReady()) {
             return;
         }
+        // The state the terrain was drawn with, set again here rather than assumed: a caller is free to
+        // draw its body at any point in a frame, and the HUD's own state call (see GlState2D) turns
+        // depth testing and culling off for 2D. Without this the body would be drawn with its far side
+        // painted over its near side.
+        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
+        Gdx.gl.glDepthFunc(GL20.GL_LEQUAL);
+        Gdx.gl.glEnable(GL20.GL_CULL_FACE);
+        Gdx.gl.glCullFace(GL20.GL_BACK);
+        Gdx.gl.glDepthMask(true);
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        worldProgram.bind();
         worldProgram.setUniformMatrix("u_model", transform);
         actorMesh.render(worldProgram, GL20.GL_TRIANGLES);
         drawCalls++;
@@ -300,6 +332,7 @@ public final class WorldRenderer implements Disposable {
             drawCalls++;
             drawnTriangles += part.getNumIndices() / 3;
         }
+        endFrame();
     }
 
     public void release(long key) {

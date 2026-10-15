@@ -1,6 +1,7 @@
 package ai.arena.qatar.hud;
 
 import ai.arena.qatar.hud.HudLayout.Button;
+import ai.arena.qatar.render.GlState2D;
 import ai.arena.qatar.hud.HudLayout.Rect;
 import ai.arena.qatar.text.ArabicReshaper;
 
@@ -90,6 +91,11 @@ public final class HudRenderer implements Disposable {
     }
 
     public void begin() {
+        // The state first, and from here rather than from the caller: the world renderer leaves
+        // GL_CULL_FACE and GL_DEPTH_TEST enabled, SpriteBatch.begin() does not turn either of them off,
+        // and a culled HUD is an HUD that draws nothing at all. See GlState2D for the whole story --
+        // it is the seventh install's "no controls", in one sentence.
+        GlState2D.beginUi();
         batch.setProjectionMatrix(projection);
         batch.begin();
     }

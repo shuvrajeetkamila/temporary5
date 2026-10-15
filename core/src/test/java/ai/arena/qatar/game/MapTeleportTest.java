@@ -187,4 +187,35 @@ final class MapTeleportTest {
         assertEquals(raster.u(LAKE_EAST, LAKE_NORTH), view.centreU(), 1e-3,
                 "centring on a position did not centre the map");
     }
+
+    @Test
+    @DisplayName("a place can be pointed at on the map, and the mark stays on the place")
+    void aPlaceCanBeMarked() {
+        MapView view = new MapView(raster);
+        view.setViewport(0, 0, 1200, 700);
+        for (float zoom : new float[]{MapView.MIN_ZOOM, 2.5f, MapView.MAX_ZOOM}) {
+            view.setZoom(zoom);
+            for (float px : new float[]{5.0f, 411.0f, 1195.0f}) {
+                for (float py : new float[]{5.0f, 233.0f, 695.0f}) {
+                    double east = view.eastAt(px);
+                    double north = view.northAt(py);
+                    // The mark that says "you were teleported here" is asked for as a screen pixel every
+                    // frame, from a world position: if the two do not agree, the crosshair names a place
+                    // the player is not standing on.
+                    assertEquals(px, view.screenXAt(east, north), 0.5f,
+                            "the mark drifted east at zoom " + zoom);
+                    assertEquals(py, view.screenYAt(east, north), 0.5f,
+                            "the mark drifted north at zoom " + zoom);
+                }
+            }
+        }
+        // And after a teleport the place that was travelled to is in the middle of the map, which is
+        // where the map itself puts it.
+        view.setZoom(6.0f);
+        view.centreOnWorld(LAND_EAST, LAND_NORTH);
+        assertEquals(600.0f, view.screenXAt(LAND_EAST, LAND_NORTH), 1.0f,
+                "the travelled-to place is not where the map is looking");
+        assertEquals(350.0f, view.screenYAt(LAND_EAST, LAND_NORTH), 1.0f,
+                "the travelled-to place is not where the map is looking");
+    }
 }

@@ -450,6 +450,43 @@ after thirty seconds, so the symptom read as "no controls, nothing".
 The honest summary of the sixth install: nothing was wrong with the country, the chunks, the shaders or
 the controls -- a text format string was wrong, in the one place in the project that no test could reach.
 
+## The seventh report on a phone: the country, and nothing else
+
+The report was "severe problems, also no controls" -- and, this time, a screenshot of the world drawing
+perfectly behind it. No exception, no panel, no buttons, no minimap. Everything the previous six rounds
+had fixed stayed fixed, and the controls were still missing, which meant the cause had never been the
+format string or the font or the map.
+
+It was GL state. The world renderer turns `GL_CULL_FACE` and `GL_DEPTH_TEST` on at the start of every
+frame and never turns them off. libGDX's `SpriteBatch.begin()` -- from its own source, 1.12.1 -- sets
+`glDepthMask(false)` and nothing else: it does not touch depth testing or culling. And SpriteBatch emits
+a sprite as (x,y), (x,y+h), (x+w,y+h), (x+w,y), indexed 0-1-2, 2-3-0, which is **clockwise** in a y-up
+coordinate system, while the world renderer leaves `glFrontFace(GL_CCW)` behind. Clockwise triangles
+with a counter-clockwise front are back faces. With culling on, every quad the HUD, the minimap and the
+panel drew was discarded by the GPU before it reached the screen.
+
+That is why the reports kept coming back wordless: the app's own diagnostics were being culled too, and
+the only channel that ever worked was the Android dialog, which is not GL. It is also why this survived
+six rounds: it is correct code, it is invisible on a desktop where nothing leaves culling enabled, and
+no test here owns a GPU.
+
+**Four changes, and the first is the one that matters.**
+
+1. `render/GlState2D.beginUi()` -- disable depth testing, disable back-face culling, depth writes off --
+   called by `HudRenderer.begin()` and by the diagnostics panel's own draw. The 2D code sets the state
+   it needs instead of inheriting whatever 3D left behind.
+2. `WorldRenderer.endFrame()` hands the state back when a 3D pass is over, and `drawActor` sets its own
+   3D state first (the body is drawn after the chunks) so handing it back cannot flatten the player.
+3. `tools/check_ui_state.py`, the sixth source gate: every method that opens a `SpriteBatch` must call
+   `GlState2D.beginUi()` in the same method first. Eight self-tests, including the exact shape of the
+   bug; it reports the real omission when the call is taken out again.
+4. `VERSION` is `0.1.0-m0+diag7`.
+
+The mistake the gate encodes is worth naming: it is not a bug in a line of code, it is a *contract*
+between two subsystems that neither of them owned. Nothing here can run GL, so the contract is now
+written down in one place and enforced at the source.
+
+
 6. ~~Final report.~~ Written: `docs/FINAL_REPORT.md` — APK link, bytes, SHA-256, run ids, and the honest
    limitations. It has to be re-checked whenever the APK changes, because a rolling release keeps
    only the newest artefact and the report names one.

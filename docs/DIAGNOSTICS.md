@@ -80,6 +80,23 @@ that said which line of ours had asked for the wrong thing was below them, off t
 report was perfect and the cause was invisible. A line like `(+4 more, the JDK's own, in the record)` at
 the end is the count of what was left out; the full trace is still written to the journal.
 
+## When the panel and the controls are invisible but the world is not
+
+The seventh install showed the country and nothing else: no buttons, no minimap, no status line, and no
+panel -- while the world drew perfectly. Nothing had thrown, so there was nothing to report; the code
+was right and the GPU was discarding it.
+
+The cause was GL state, and it is the reason `GlState2D` exists. The world renderer enables
+`GL_CULL_FACE` and `GL_DEPTH_TEST` at the start of each frame and never turns them off. libGDX's
+`SpriteBatch.begin()` sets `glDepthMask(false)` and nothing else -- depth testing and culling stay on.
+And SpriteBatch's sprites are (x,y), (x,y+h), (x+w,y+h), (x+w,y): clockwise in a y-up system, against
+the counter-clockwise front face the world renderer leaves behind. With culling on, **every quad the
+HUD draws is a back face and is thrown away**.
+
+So: if the world is visible and *nothing* 2D is, suspect the state, not the drawing. `HudRenderer.begin()`
+and the panel's own `draw()` now call `GlState2D.beginUi()` themselves, and `tools/check_ui_state.py`
+fails the build if any `SpriteBatch` is opened without it.
+
 ## Why the panel exists at all
 
 The first install showed a blue screen and nothing else. The reason -- the world shader declared a

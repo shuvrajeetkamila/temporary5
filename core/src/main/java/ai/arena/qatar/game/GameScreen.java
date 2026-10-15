@@ -18,6 +18,7 @@ import ai.arena.qatar.world.WorldData;
 import ai.arena.qatar.world.WorldOrigin;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.utils.Disposable;
@@ -83,6 +84,18 @@ public final class GameScreen extends InputAdapter implements Disposable {
 
     private String message = "";
     private float messageSeconds;
+    /**
+     * Where the last tap on the map put the player, as a place rather than a pixel, and how long to keep
+     * marking it.
+     *
+     * <p>A place and not a pixel because the map recentres when the player is teleported to it, and the
+     * player can pan and zoom afterwards: a marker pinned to a screen coordinate would slide off the
+     * spot it is meant to name, and the one thing a teleport must never do is lie about where you are.
+     */
+    private double teleportMarkEast;
+    private double teleportMarkNorth;
+    private boolean teleportMarkSet;
+    private float teleportMarkSeconds;
 
     /** How long the launch credit stays in the corner: long enough to be read, short enough to ignore. */
     private static final float LAUNCH_CREDITS_SECONDS = 12f;
@@ -305,6 +318,7 @@ public final class GameScreen extends InputAdapter implements Disposable {
             }
         }
 
+        teleportMarkSeconds = Math.max(0f, teleportMarkSeconds - dt);
         frameSection = "the controls";
         if (hud != null) {
             int width = Gdx.graphics.getWidth();
@@ -321,6 +335,17 @@ public final class GameScreen extends InputAdapter implements Disposable {
                     mapView.setViewport(area.x, area.y, area.w, area.h);
                     hud.drawBigMap(mapView, area, rig.east + offsetEastToBundle(),
                             rig.north + offsetNorthToBundle());
+                    if (teleportMarkSet && teleportMarkSeconds > 0f) {
+                        // A crosshair on the place the tap went to, asked for again every frame: it stays
+                        // on the destination while the map is panned or zoomed, which is the only way a
+                        // teleport of a hundred kilometres can be *seen* to have gone where it said.
+                        float markX = mapView.screenXAt(teleportMarkEast, teleportMarkNorth);
+                        float markY = mapView.screenYAt(teleportMarkEast, teleportMarkNorth);
+                        if (markX >= area.x - 4f && markX <= area.x + area.w + 4f
+                                && markY >= area.y - 4f && markY <= area.y + area.h + 4f) {
+                            hud.drawTeleportMarker(markX, markY, Math.max(12f, width * 0.012f));
+                        }
+                    }
                     drawMapButtons();
                 } else if (layout != null) {
                     drawWorldButtons(width, height);
@@ -459,6 +484,42 @@ public final class GameScreen extends InputAdapter implements Disposable {
         rig.east -= delta.x;
         rig.north -= delta.z;
         worldRenderer.updateOffsets();
+    }
+
+    /**
+     * The hardware BACK key (and ESCAPE on a desktop) closes the open map.
+     *
+     * <p>It is the one key on an Android phone, and it means "back out of this". An open map that
+     * ignores it leaves the player only the CLOSE button; an app that exits when the map is open is
+     * worse. Handled here and consumed, so the platform never sees it while the map is up.
+     */
+    @Override
+    public boolean keyDown(int keycode) {
+        if (layout != null && layout.bigMapVisible()
+                && (keycode == Input.Keys.BACK || keycode == Input.Keys.ESCAPE)) {
+            closeBigMap();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Opens the whole map, and lets BACK mean "close the map" while it is up.
+     *
+     * <p>{@code setCatchKey(Keys.BACK, true)} is what makes the phone hand the key to the game instead
+     * of closing the activity with it -- and it is set here rather than once at startup, because while
+     * the map is *closed* the player must still be able to press BACK and leave.
+     */
+    private void markMapOpen(boolean open) {
+        layout.setBigMapVisible(open);
+        if (Gdx.input != null) {
+            Gdx.input.setCatchKey(Input.Keys.BACK, open);
+        }
+    }
+
+    /** Closes the map from anywhere -- the CLOSE button, BACK, or a map that failed to build. */
+    private void closeBigMap() {
+        markMapOpen(false);
     }
 
     @Override
@@ -633,7 +694,7 @@ public final class GameScreen extends InputAdapter implements Disposable {
                 break;
             case MAP_CLOSE:
                 if (pressed) {
-                    layout.setBigMapVisible(false);
+                    closeBigMap();
                 }
                 break;
             case RECENTRE:
@@ -670,7 +731,7 @@ public final class GameScreen extends InputAdapter implements Disposable {
                             + "cannot open it.\n\n" + mapUnavailableReason);
             return;
         }
-        layout.setBigMapVisible(true);
+        markMapOpen(true);
         mapView.centreOnWorld(rig.east + offsetEastToBundle(), rig.north + offsetNorthToBundle());
         message = "";
     }
@@ -682,7 +743,7 @@ public final class GameScreen extends InputAdapter implements Disposable {
 
     private boolean mapTouchDown(float x, float y, int pointer) {
         if (mapView == null) {
-            layout.setBigMapVisible(false);
+            closeBigMap();
             return true;
         }
         Button hit = layout.hit(x, y);
@@ -786,6 +847,10 @@ public final class GameScreen extends InputAdapter implements Disposable {
         rig.placeAt(localEast, localNorth);
         controller.placePlayer(localEast, localNorth);
         mapView.centreOnWorld(target.east, target.north);
+        teleportMarkEast = target.east;
+        teleportMarkNorth = target.north;
+        teleportMarkSet = true;
+        teleportMarkSeconds = 3.0f;
         String where = target.label == null || target.label.isEmpty() ? "unnamed place" : target.label;
         String how = target.snappedToSpawn ? "spawn" : (target.snappedToRoad ? "road" : "open ground");
         message = "Travelled to " + where + " (" + how + ")";
@@ -836,6 +901,11 @@ public final class GameScreen extends InputAdapter implements Disposable {
 
     @Override
     public void dispose() {
+        // Leave the platform as it was found: a caught BACK key outlives this screen, and an app whose
+        // BACK key does nothing at all is worse than one that closes when asked.
+        if (Gdx.input != null) {
+            Gdx.input.setCatchKey(Input.Keys.BACK, false);
+        }
         if (worldRenderer != null) {
             worldRenderer.dispose();
         }
