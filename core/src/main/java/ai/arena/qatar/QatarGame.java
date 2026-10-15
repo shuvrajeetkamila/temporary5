@@ -130,16 +130,22 @@ public final class QatarGame extends ApplicationAdapter {
     private StartupReport startup;
 
     /**
-     * Whether the GL context is present and usable right now.
+     * Whether there is a GL context to call into right now.
      *
-     * <p>{@code Gdx.gl} is null before a context exists, after one is destroyed, and on a throttle-down
-     * where the surface went away -- and libGDX's {@code SpriteBatch.end()}, one of the first things any
-     * teardown does, calls straight through to {@code glDepthMask}. That call with no context is
-     * {@code NullPointerException: com.badlogic.gdx.Gdx.gl} on the GL thread: the app dies of its own
-     * cleanup, which is exactly what the eighth install did when the minimap was opened.
+     * <p>{@code Gdx.gl} is null before a context exists and after one is destroyed, and libGDX's
+     * {@code SpriteBatch.end()} -- one of the first things any teardown does -- calls straight through to
+     * {@code glDepthMask}. That call with no context is
+     * {@code NullPointerException: com.badlogic.gdx.Gdx.gl}, and the app dies of its own cleanup, which is
+     * exactly what the eighth install did when the minimap was opened.
+     *
+     * <p>There is no {@code isGLThread()} to ask in libGDX 1.12.1 (checked against its own source: the
+     * method does not exist in {@code Graphics} at any version this project builds against). The
+     * thread question is answered by <em>where</em> this is called instead: the queued teardown runs
+     * inside {@link #renderFrame()}, which is the GL thread by definition, and the platform's own
+     * {@link #dispose()} is called with the context current.
      */
     public static boolean glAvailable() {
-        return Gdx.gl != null && Gdx.graphics != null && Gdx.graphics.isGLThread();
+        return Gdx.gl != null;
     }
 
     /**
