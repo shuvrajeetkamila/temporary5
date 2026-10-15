@@ -9,14 +9,14 @@ repository, a CI run, or a byte count that can be re-derived.
 | | |
 |---|---|
 | **APK** | [`Qatar-The-Peninsula-v0.1.0-m0.apk`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk) |
-| **Bytes** | 19,200,526 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below, and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset. Android builds are not bit-reproducible, so two builds of the same commit differ by a few bytes and by their digest; the bytes and the digest here are the ones in the release as published by the run named below |
-| **SHA-256** | `593f4f2cdb458f38850540d8b84c60b230fe44e1686e2712a8e3d831e2c0460d` (the release API reports the same digest, and so does the 110-byte sidecar's contents) |
+| **Bytes** | 19,201,474 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below, and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset. Android builds are not bit-reproducible, so two builds of the same commit differ by a few bytes and by their digest; the bytes and the digest here are the ones in the release as published by the run named below |
+| **SHA-256** | `09cdf423ef4f46981e7821134212aa45185e4463f05c45a1746626a2df5857e3` (the release API reports the same digest, and so does the 110-byte sidecar's contents) |
 | **Sidecar** | [`…apk.sha256`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256) |
 | **Release** | https://github.com/shuvrajeetkamila/temporary5/releases/tag/v0.1.0-m0 (rolling: each green run republishes it) |
-| **Built from** | commit `162711b`, branch `arena/4eb37624-temporary5` |
-| **CI runs for that commit** | Build APK [`38768362060`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38768362060) success (all 18 steps, including publish) · Compile gate [`38768362154`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38768362154) success · Build world data [`38768362094`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38768362094) success · Protect the project [`38768362062`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38768362062) success |
-| **Tests at that commit** | 153 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_SUMMARY.txt`) |
-| **Build stamp on screen** | `0.1.0-m0+diag7` — the release asset keeps its name, so this is how two builds are told apart on a phone: the diagnostics panel prints the stamp on its first line |
+| **Built from** | commit `03daa4e`, branch `arena/4eb37624-temporary5` |
+| **CI runs for that commit** | Build APK [`38791617660`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38791617660) success (including publish) · Compile gate [`38791617643`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38791617643) success · Protect the project [`38791617545`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38791617545) success. No world-data run this time: the country was not recompiled, so the build restored the compiled bundle instead |
+| **Tests at that commit** | 166 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_SUMMARY.txt`) |
+| **Build stamp on screen** | `0.1.0-m0+diag8` — the release asset keeps its name, so this is how two builds are told apart on a phone: the diagnostics panel prints the stamp on its first line |
 | **Package** | `ai.arena.qatar.peninsula`, versionName `0.1.0-m0`, debug-signed, `minSdk 26`, `targetSdk 34` |
 | **ABIs** | `arm64-v8a`, `armeabi-v7a`, `x86_64` |
 | **Permissions** | none: no `INTERNET`, nothing to phone home to. The country is inside the APK. |
@@ -350,7 +350,8 @@ Four things were done, and the first is the one that lasts:
   pattern is a literal in the call and reports a specifier that cannot print the value it is given --
   only when that value's kind is provable. Thirteen self-tests run before it reads the tree, and it
   catches the real line when it is put back.
-* **`VERSION` is `0.1.0-m0+diag7`**, so the phone can tell this build from the one that failed.
+* **`VERSION` became `0.1.0-m0+diag7` for this build**, so the phone could tell it from the one that
+  failed.
 
 ### Seventh install: the country, and nothing else
 
@@ -387,17 +388,86 @@ success: 153 tests, 0 failures, 0 errors (`artifacts/UNIT_TEST_SUMMARY.txt`), `v
 SHA-256 `593f4f2c…`, and the release API's computed digest for the uploaded asset is that same value.
 The APK pays 872 bytes over the previous one, all of it new code and its documentation.
 
+### Eighth install: the map closed the app, and the buildings had no roofs
+
+The report: "OPENING MINIMAP CUSES IT TO CRASH. ASLO STILL HAS A LOT OF PROBLEMS, CHECK ALL LOCOMOTION
+PHYISCS PROPERLY AND ALSO MAKE BUILDINGS CORECTLY, I MEAN FILL THEM, THEY LOOK LIKE WALLS, ALSO MANY THER
+THINGS PLEASE FIND AND FIX". Three complaints, three real faults, and the audit that the third one asked
+for found two more.
+
+**Opening the map did not crash the app; the cleanup did.** The map was drawn, and then the frame guard
+gave up: after 120 frames it disposes the game screen so that one broken subsystem cannot pin the whole
+app, and disposal touches GL. `SpriteBatch.end()` -- the first thing a HUD teardown does -- calls
+straight through to `glDepthMask`, and with no current context that is
+`NullPointerException: com.badlogic.gdx.Gdx.gl`, thrown on the GL thread inside the very block meant to
+contain the damage. So the app died of its own cleanup, and it did so *because* something else on that
+path had failed first. The fix is the distinction the code did not have: **is there a context**
+(`QatarGame.glAvailable()`, which is `Gdx.gl != null` and nothing more speculative), and **is this the GL
+thread** (answered by *where* the teardown runs: the queued teardown happens inside `renderFrame()`, which
+is the GL thread by definition). `HudRenderer.dispose(boolean)`, `GameScreen.dispose(boolean glReady)` and
+`QatarGame.disposeScreen(boolean)` now leak GL objects when there is no context to release them in,
+release everything else either way, and log and journal the reason. A leak in that situation is invisible;
+an exception is not.
+
+**"They look like walls" was exact.** Buildings were walls with roofs wound face-down into the
+building. This is a right-handed system -- x east, y up, z north -- so x * z = -y: the (east, north) plane
+is *left*-handed, counter-clockwise there faces down, and the renderer culls back faces. **185,551 of the
+country's 186,993 building rings were affected** (the other 1,442 are counter-clockwise in OSM, and those
+had the mirror-image bug of showing roof and no wall). The winding rule now lives in one place
+(`BuildingMesher.ringInOrder`) and covers all five roof shapes; the cross product decides, and the ground
+plane `addQuad(a, d, c, b)` is the control that says which way up is.
+
+The same pass found the second half of that fault and it was worse than a wrong sign: the shaped roofs
+**had holes**, because each eave edge contributed one triangle towards the nearest ridge end and those
+triangles do not tile a footprint. A dome or gable roof is now a complete ear-clipped deck at the eave line
+with the shaped cap above it, for every building, and the vertex budget covers both (`10n + 32`) so a
+building cannot run off the end of an index buffer the way the third install did.
+
+**Two walker faults, in the locomotion audit the report demanded.** Pulling the stick back walked the
+player *forwards*: the direction already carried the sign of the input and the speed was negative in the
+same case, so the second negation cancelled the first -- a one-character bug that a phone found before any
+test did. And **a jump could not be asked for on foot at all**: the jump flag was the UP button's held
+value, and UP is disabled while walking, so the button that should jump was grey next to the stick. The
+jump is now a discrete buffered request (`PlayerController.requestJump()`, 50 ms, consumed once) from its
+own bilingual **JUMP** button, which cannot bunny-hop from a resting finger. The other three bodies were
+audited against the same rubric -- ground contact, gravity, drag, steering, takeoff and landing -- and found
+sound; `BodyFacingTest` now holds all five to their heading, and `HumanWalkTest` holds the walker.
+
+**Also fixed, found by looking rather than by being told.** The minimap's tap target *was* the minimap's
+small square, which is a target of a few millimetres on a phone; the drawn square is unchanged and the
+target is now the whole top-right corner of the screen, with no button inside it and never reaching the
+movement stick. And the map's own close button still exists, so the map that now opens can be closed by the
+BACK key or by CLOSE / إغلاق.
+
+**Two faults were the project's own, and CI caught both.** `Gdx.graphics.isGLThread()` does not exist in
+libGDX 1.12.1 -- or in 1.13.0; it was written from memory and javac refused it in run `38788120436`, whose
+error was readable from the repository because the compile gate writes its errors into `artifacts/`. Then
+run `38789154142` failed a test that had hard-coded the *old* roof arithmetic (64 vertices) instead of the
+bound it existed to enforce; the mesher was right and the assertion was wrong. It now meshes a five-sided
+ring once per roof shape and asserts the reported cost covers every vertex the mesher then writes. The
+local-name gate caught two shadowed locals in the same new code, which is the gate doing exactly what it
+was built for: javac is not available here, so the gates are the compiler.
+
+**Verified on this build, not argued**: compile gate `38791617643` (six source gates green), Build APK
+`38791617660` with `tests=166 skipped=0 failures=0 errors=0` (`artifacts/UNIT_TEST_SUMMARY.txt`),
+`validation=PASSED` (`artifacts/APK_VALIDATION.txt`) and `status=PASSED` (`artifacts/QA_STATUS.txt`), APK
+**19,201,474 bytes**, SHA-256 `09cdf423…`, which is the digest the release API computes for the uploaded
+asset and the contents of the 110-byte sidecar. The APK pays 948 bytes over the previous one.
+
 ## Honest limitations
 
-1. **This build has been on a phone seven times, and every report found something real** — fourteen
+1. **This build has been on a phone eight times, and every report found something real** — nineteen
    faults
    in all, listed in the sections above, each one now fixed and, where a test can hold it, held. Two
    reports arrived with no symptom in them at all, so an audit was the diagnosis; one arrived as a stack
    trace of the JVM's own printer, so the frames had to be chosen better before the next one was useful.
    The seventh was the most instructive of all: a report with nothing in it, from a build whose
    diagnostics were being culled by the GPU, because two subsystems disagreed about GL state and neither
-   of them owned the contract. **Rounds six and seven have not been confirmed on the device yet — the
-   next report is the one that says whether the controls come up.** The reason to expect them now is not
+   of them owned the contract. The eighth confirmed that round seven's controls do come up -- the minimap
+   was found and tapped -- and then broke its own app by trying to clean up after a failure, which is the
+   kind of fault no amount of world-building finds. **Rounds six, seven and eight have not been confirmed
+   on the device for their own fixes yet; the next report is the one that says whether the buildings are
+   filled and the map opens and closes.** The reason to expect them now is not
    optimism: the state is set by the code that needs it, and a source gate fails the build if it stops
    being. There is still no GPU and no Android emulator in the build environment: the GLSL in this project
    compiles for the first time on a phone. Nothing here can compile GLSL; what stands in for a GPU is the
@@ -444,7 +514,7 @@ The APK pays 872 bytes over the previous one, all of it new code and its documen
 
 ```bash
 git clone https://github.com/shuvrajeetkamila/temporary5 && cd temporary5
-git checkout 162711b            # the commit the published APK was built from
+git checkout 03daa4e            # the commit the published APK was built from
 # world data (downloads OSM + SRTM, compiles the country, validates it):
 python3 tools/fetch_sources.py && python3 tools/build_world.py && python3 tools/game_world.py
 python3 tools/validate_game_world.py --world android/assets/world     # 57/57

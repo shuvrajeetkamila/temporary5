@@ -582,6 +582,29 @@ travelled.
   with no button inside it, and never reaching the movement stick, which is checked at six resolutions.
 * `VERSION` is `0.1.0-m0+diag8`.
 
+### What this round cost, and what it taught
+
+Three pushes, two of them red, and both failures were the project's own rather than the phone's:
+
+1. `Gdx.graphics.isGLThread()` does not exist. It was written into `glAvailable()` from memory, and javac
+   refused it -- run `38788120436` -- because there is no such method in libGDX 1.12.1 (checked against
+   libGDX's own source afterwards: not in 1.13.0 either). The context question libGDX can answer is
+   `Gdx.gl != null`, which is what the method asks now, and the thread question is answered by *where* the
+   teardown runs: inside `renderFrame()`, which is the GL thread by definition. Ask the library; do not
+   remember it.
+2. `ChunkMeshBudgetTest` asserted the old roof arithmetic -- `vertexCost == 64` -- instead of the bound the
+   number exists to enforce, so round eight's roof change failed a test that was describing the mesher
+   wrongly. It now meshes a five-sided ring once per roof shape and asserts the reported cost covers every
+   vertex the mesher then writes, which is the property that keeps a building from running off the end of
+   an index buffer. It was corrected, not relaxed: an assertion that pins arithmetic instead of a promise
+   breaks every time the thing it describes legitimately changes.
+
+Both were caught by CI before any phone saw them, and the local-name gate caught two shadowed locals in
+the same new code -- the gates are the compiler here, and they have to be re-run after the *last* edit, not
+after the first one.
+
+Green build: run `38791617660` on `03daa4e` -- 166 tests, 0 failures, 0 errors, `validation=PASSED`,
+`status=PASSED`, APK **19,201,474 bytes**, SHA-256 `09cdf423…`.
 
 6. ~~Final report.~~ Written: `docs/FINAL_REPORT.md` — APK link, bytes, SHA-256, run ids, and the honest
    limitations. It has to be re-checked whenever the APK changes, because a rolling release keeps
