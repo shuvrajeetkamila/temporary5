@@ -100,11 +100,37 @@ public class ChunkMeshBudgetTest {
         int cost = BuildingMesher.vertexCost(huge, 0);
         assertTrue(cost > MeshData.MAX_VERTICES,
                 "an oversized footprint reports a cost over the limit, not a clamped one: " + cost);
-        Buildings shed = new Buildings(1, new int[]{0}, new int[]{5},
+        // The bound is what matters, not the arithmetic that produces it: a building is sized before it
+        // is started, and an underestimate is a primitive running off the end of an index buffer -- how
+        // the third install died. So this meshes the same ring for real, once per roof shape, and asks
+        // that the reported cost covers every vertex the mesher then writes. The formula changed in round
+        // eight (a shaped roof now has a deck *and* a cap), and this assertion did not need to.
+        for (int roofShape : new int[]{Buildings.ROOF_FLAT, Buildings.ROOF_GABLE, Buildings.ROOF_DOME,
+                Buildings.ROOF_PYRAMID, Buildings.ROOF_SHED}) {
+            Buildings shaped = new Buildings(1, new int[]{0}, new int[]{5},
+                    new float[]{0, 0, 4, 0, 4, 3, 0, 3, 0, 0}, new float[]{3f}, new float[]{0f},
+                    new byte[]{1}, new byte[]{(byte) roofShape}, new int[]{0}, new byte[]{0},
+                    new float[]{0, 0, 4, 3});
+            MeshData shapedMesh = new MeshData();
+            assertTrue(new BuildingMesher(shaped, null).addBuilding(0, shapedMesh),
+                    "roof shape " + roofShape + " emitted nothing");
+            int shapedCost = BuildingMesher.vertexCost(shaped, 0);
+            assertTrue(shapedCost >= shapedMesh.vertexCount(),
+                    "a " + shapedMesh.vertexCount() + "-vertex building is budgeted at " + shapedCost
+                            + " (roof shape " + roofShape + "): the next building may overrun the part");
+            assertTrue(shapedCost < MeshData.MAX_VERTICES / 4,
+                    "and the budget is not so generous that nothing fits: " + shapedCost);
+        }
+        // And the cost tracks the ring it is given, rather than being a constant that happens to be
+        // large enough for these five.
+        Buildings small = new Buildings(1, new int[]{0}, new int[]{5},
                 new float[10], new float[]{3f}, new float[]{0f}, new byte[]{1}, new byte[]{0},
                 new int[]{0}, new byte[]{0}, new float[]{0, 0, 6, 6});
-        assertEquals(64, BuildingMesher.vertexCost(shed, 0),
-                "four per wall edge plus a roof: eight per edge and twenty-four");
+        Buildings larger = new Buildings(1, new int[]{0}, new int[]{6},
+                new float[12], new float[]{3f}, new float[]{0f}, new byte[]{1}, new byte[]{0},
+                new int[]{0}, new byte[]{0}, new float[]{0, 0, 6, 6});
+        assertTrue(BuildingMesher.vertexCost(larger, 0) > BuildingMesher.vertexCost(small, 0),
+                "an extra ring vertex does not cost anything");
     }
 
     @Test
