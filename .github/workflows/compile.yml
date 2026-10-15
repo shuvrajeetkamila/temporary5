@@ -90,7 +90,13 @@ jobs:
           tail -120 compile.log >> artifacts/COMPILE_GATE.txt 2>/dev/null || true
           # Compile errors must be readable from the repository: CI logs live on a storage host that is
           # not always reachable, and an unreadable error is an unfixable error.
-          grep -E "error:|error\b.*\.java" compile.log > notclean/COMPILE_ERRORS.txt 2>/dev/null || true
+          #
+          # Two lines of context after each error, because javac puts the answer there and not on the
+          # line that matched: `error: cannot find symbol` is followed by the line it is on, then
+          # `symbol: method getArgumentClass()` and `location: variable refusal of type ...`. Without
+          # -A 2 the evidence kept the error and dropped the symbol, and one cycle was spent reading the
+          # JDK's source to find out what the compiler had already said.
+          grep -A 2 -E "error:|error\b.*\.java" compile.log > notclean/COMPILE_ERRORS.txt 2>/dev/null || true
           tail -5 artifacts/COMPILE_GATE.txt
 
       - name: Publish the compile log to the repository
