@@ -1,1 +1,0 @@
-/home/runner/work/temporary5/temporary5/core/src/test/java/ai/arena/qatar/hud/StatusTextTest.java:62: error: cannot find symbol
