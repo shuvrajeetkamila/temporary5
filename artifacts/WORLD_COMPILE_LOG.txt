@@ -6128,19 +6128,19 @@ missing assets/world/manifest.json
 game_validate_exit=2
 === bundle contents ===
 total 16272
-drwxr-xr-x 2 runner runner    4096 Oct 15 16:28 .
-drwxr-xr-x 5 runner runner    4096 Oct 15 16:22 ..
--rw-r--r-- 1 runner runner      65 Oct 15 16:26 COMPILER_SHA256
--rw-r--r-- 1 runner runner   36152 Oct 15 16:28 barriers.bin.gz
--rw-r--r-- 1 runner runner 5576624 Oct 15 16:28 buildings.bin.gz
--rw-r--r-- 1 runner runner  125625 Oct 15 16:26 coast.bin.gz
--rw-r--r-- 1 runner runner  679501 Oct 15 16:28 landuse.bin.gz
--rw-r--r-- 1 runner runner   26159 Oct 15 16:28 manifest.json
--rw-r--r-- 1 runner runner   87485 Oct 15 16:26 material_l1.bin.gz
--rw-r--r-- 1 runner runner    7425 Oct 15 16:28 pois.bin.gz
--rw-r--r-- 1 runner runner 8764140 Oct 15 16:26 roads.bin.gz
--rw-r--r-- 1 runner runner  114292 Oct 15 16:28 strings.bin.gz
--rw-r--r-- 1 runner runner  103521 Oct 15 16:26 terrain_l0.bin.gz
--rw-r--r-- 1 runner runner  876807 Oct 15 16:26 terrain_l1.bin.gz
--rw-r--r-- 1 runner runner  231814 Oct 15 16:28 water.bin.gz
+drwxr-xr-x 2 runner runner    4096 Oct 15 16:39 .
+drwxr-xr-x 5 runner runner    4096 Oct 15 16:32 ..
+-rw-r--r-- 1 runner runner      65 Oct 15 16:37 COMPILER_SHA256
+-rw-r--r-- 1 runner runner   36152 Oct 15 16:39 barriers.bin.gz
+-rw-r--r-- 1 runner runner 5576624 Oct 15 16:39 buildings.bin.gz
+-rw-r--r-- 1 runner runner  125625 Oct 15 16:37 coast.bin.gz
+-rw-r--r-- 1 runner runner  679501 Oct 15 16:39 landuse.bin.gz
+-rw-r--r-- 1 runner runner   26159 Oct 15 16:39 manifest.json
+-rw-r--r-- 1 runner runner   87485 Oct 15 16:37 material_l1.bin.gz
+-rw-r--r-- 1 runner runner    7425 Oct 15 16:39 pois.bin.gz
+-rw-r--r-- 1 runner runner 8764140 Oct 15 16:37 roads.bin.gz
+-rw-r--r-- 1 runner runner  114292 Oct 15 16:39 strings.bin.gz
+-rw-r--r-- 1 runner runner  103521 Oct 15 16:37 terrain_l0.bin.gz
+-rw-r--r-- 1 runner runner  876807 Oct 15 16:37 terrain_l1.bin.gz
+-rw-r--r-- 1 runner runner  231814 Oct 15 16:39 water.bin.gz
 16M	android/assets/world/
