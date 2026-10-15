@@ -5608,7 +5608,7 @@ selftest_exit=0
   cached  N26E052.hgt.gz (0.4 MB)
 [2/2] OpenStreetMap Qatar extract
   trying openstreetmap.fr: https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf
-  probe   FAILED (The read operation timed out)
+  probe   http=206 bytes=64 magic=0000000e0a094f53
   cached  qatar-latest.osm.pbf (24.5 MB)
   ok      qatar-latest.osm.pbf (24.5 MB)
 wrote /home/runner/work/temporary5/temporary5/data/geodata/SOURCES.json with 10 sources
@@ -5693,21 +5693,21 @@ missing assets/world/manifest.json
 game_validate_exit=2
 === bundle contents ===
 total 16272
-drwxr-xr-x 2 runner runner    4096 Oct 15 11:02 .
-drwxr-xr-x 5 runner runner    4096 Oct 15 10:56 ..
--rw-r--r-- 1 runner runner      65 Oct 15 11:01 COMPILER_SHA256
--rw-r--r-- 1 runner runner   36152 Oct 15 11:02 barriers.bin.gz
--rw-r--r-- 1 runner runner 5576624 Oct 15 11:02 buildings.bin.gz
--rw-r--r-- 1 runner runner  125625 Oct 15 11:01 coast.bin.gz
--rw-r--r-- 1 runner runner  679501 Oct 15 11:02 landuse.bin.gz
--rw-r--r-- 1 runner runner   26159 Oct 15 11:02 manifest.json
--rw-r--r-- 1 runner runner   87485 Oct 15 11:01 material_l1.bin.gz
--rw-r--r-- 1 runner runner    7425 Oct 15 11:02 pois.bin.gz
--rw-r--r-- 1 runner runner 8764140 Oct 15 11:01 roads.bin.gz
--rw-r--r-- 1 runner runner  114292 Oct 15 11:02 strings.bin.gz
--rw-r--r-- 1 runner runner  103521 Oct 15 11:01 terrain_l0.bin.gz
--rw-r--r-- 1 runner runner  876807 Oct 15 11:01 terrain_l1.bin.gz
--rw-r--r-- 1 runner runner  231814 Oct 15 11:02 water.bin.gz
+drwxr-xr-x 2 runner runner    4096 Oct 15 11:10 .
+drwxr-xr-x 5 runner runner    4096 Oct 15 11:02 ..
+-rw-r--r-- 1 runner runner      65 Oct 15 11:08 COMPILER_SHA256
+-rw-r--r-- 1 runner runner   36152 Oct 15 11:10 barriers.bin.gz
+-rw-r--r-- 1 runner runner 5576624 Oct 15 11:10 buildings.bin.gz
+-rw-r--r-- 1 runner runner  125625 Oct 15 11:08 coast.bin.gz
+-rw-r--r-- 1 runner runner  679501 Oct 15 11:10 landuse.bin.gz
+-rw-r--r-- 1 runner runner   26159 Oct 15 11:10 manifest.json
+-rw-r--r-- 1 runner runner   87485 Oct 15 11:08 material_l1.bin.gz
+-rw-r--r-- 1 runner runner    7425 Oct 15 11:10 pois.bin.gz
+-rw-r--r-- 1 runner runner 8764140 Oct 15 11:08 roads.bin.gz
+-rw-r--r-- 1 runner runner  114292 Oct 15 11:10 strings.bin.gz
+-rw-r--r-- 1 runner runner  103521 Oct 15 11:08 terrain_l0.bin.gz
+-rw-r--r-- 1 runner runner  876807 Oct 15 11:08 terrain_l1.bin.gz
+-rw-r--r-- 1 runner runner  231814 Oct 15 11:10 water.bin.gz
 16M	android/assets/world/
 === world bundle self-sufficiency ===
 compiler_hash=11bf95639f4a30b569d82105c1c79104d28f776e5a78e5ddef9dcf7cb1c74e4e
