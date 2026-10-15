@@ -22,6 +22,9 @@ public final class StackTraceText {
     /** How many frames the dialog has room for. Six is the number that fits above the fold. */
     public static final int ALERT_FRAMES = 6;
 
+    /** This game's own package. */
+    public static final String APP_PACKAGE = "ai.arena.qatar";
+
     private StackTraceText() {
     }
 
@@ -68,9 +71,19 @@ public final class StackTraceText {
         return picked.isEmpty() ? null : picked.get(0);
     }
 
-    /** Whether a frame is one of this game's, which is the whole point of this class. */
+    /**
+     * Whether a frame is one of this game's, which is the whole point of this class.
+     *
+     * <p>The check is the package and its subpackages, not a prefix of the text: a class in
+     * {@code ai.arena.qatarp} starts with the same characters and is not this game's code. A test caught
+     * exactly that, which is the reason it is asserted in a test rather than trusted.
+     */
     public static boolean isApp(StackTraceElement frame) {
-        return frame != null && frame.getClassName().startsWith("ai.arena.qatar");
+        if (frame == null) {
+            return false;
+        }
+        String name = frame.getClassName();
+        return name.equals(APP_PACKAGE) || name.startsWith(APP_PACKAGE + ".");
     }
 
     /**

@@ -51,11 +51,13 @@ final class StackTraceTextTest {
     @DisplayName("six JDK frames are no longer the whole report: the game's own frame comes first")
     void appFrameComesFirst() {
         List<StackTraceElement> shown = StackTraceText.useful(formatterThrow(), StackTraceText.ALERT_FRAMES);
-        assertEquals(3, shown.size(), "two game frames and one library frame, not the JDK's: " + shown);
+        // Our frames are the report when we have any: which method, which line, in the game's own words.
+        // The library frame that called into us, and the JDK's below that, add nothing a reader needs.
+        assertEquals(2, shown.size(), "the game's two frames, and none of the JDK's: " + shown);
         assertEquals(DRAW_STATUS, shown.get(0), "the line that asked for the wrong thing, first");
         assertEquals(RENDER, shown.get(1));
-        assertEquals(GDX_RENDER, shown.get(2), "and the framework frame that called into the game");
         assertFalse(shown.contains(FORMAT_SPECIFIER_PRINT), "no Formatter frame is worth a phone's screen");
+        assertFalse(shown.contains(GDX_RENDER), "nor a libGDX frame, while ours are there to read");
     }
 
     @Test
