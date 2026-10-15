@@ -9,14 +9,14 @@ repository, a CI run, or a byte count that can be re-derived.
 | | |
 |---|---|
 | **APK** | [`Qatar-The-Peninsula-v0.1.0-m0.apk`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk) |
-| **Bytes** | 19,198,618 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset |
-| **SHA-256** | `0a2731dbed707cd4d207a6517b935daa78c2f262c9b5a6dd97e69332bf466ff5` (the release API reports the same digest for the asset) |
+| **Bytes** | 19,199,654 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below, and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset. Android builds are not bit-reproducible, so two builds of the same commit differ by a few bytes and by their digest; the bytes and the digest here are the ones in the release as published by the run named below |
+| **SHA-256** | `05e5f7f4ef289a6319cd8141d34eb4638b9ac2c0cc823488c3089d981f10ae90` (the release API reports the same digest, and so does the 110-byte sidecar's contents) |
 | **Sidecar** | [`…apk.sha256`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256) |
 | **Release** | https://github.com/shuvrajeetkamila/temporary5/releases/tag/v0.1.0-m0 (rolling: each green run republishes it) |
-| **Built from** | commit `cf5ac2c`, branch `arena/4eb37624-temporary5` |
-| **CI runs for that commit** | Build APK [`38625231600`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38625231600) success · Compile gate [`38625231571`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38625231571) success · Protect the project [`38625231519`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38625231519) success |
-| **Tests at that commit** | 136 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_STATUS.txt`) |
-| **Build stamp on screen** | `0.1.0-m0+diag5` — the release asset keeps its name, so this is how two builds are told apart on a phone: the diagnostics panel prints the stamp on its first line |
+| **Built from** | commit `9aeddcc`, branch `arena/4eb37624-temporary5` |
+| **CI runs for that commit** | Build APK [`38726437266`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38726437266) success · Compile gate [`38726437280`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38726437280) success · Protect the project [`38726437218`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38726437218) success |
+| **Tests at that commit** | 146 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_STATUS.txt`) |
+| **Build stamp on screen** | `0.1.0-m0+diag6` — the release asset keeps its name, so this is how two builds are told apart on a phone: the diagnostics panel prints the stamp on its first line |
 | **Package** | `ai.arena.qatar.peninsula`, versionName `0.1.0-m0`, debug-signed, `minSdk 26`, `targetSdk 34` |
 | **ABIs** | `arm64-v8a`, `armeabi-v7a`, `x86_64` |
 | **Permissions** | none: no `INTERNET`, nothing to phone home to. The country is inside the APK. |
@@ -397,7 +397,7 @@ Four things were done, and the first is the one that lasts:
 
 ```bash
 git clone https://github.com/shuvrajeetkamila/temporary5 && cd temporary5
-git checkout cf5ac2c            # the commit the published APK was built from
+git checkout 9aeddcc            # the commit the published APK was built from
 # world data (downloads OSM + SRTM, compiles the country, validates it):
 python3 tools/fetch_sources.py && python3 tools/build_world.py && python3 tools/game_world.py
 python3 tools/validate_game_world.py --world android/assets/world     # 57/57
