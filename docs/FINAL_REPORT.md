@@ -22,6 +22,14 @@ repository, a CI run, or a byte count that can be re-derived.
 | **Permissions** | none: no `INTERNET`, nothing to phone home to. The country is inside the APK. |
 | **APK validation** | entry list, dex count, ABI libs, world bundles, licence files, manifest, signature, zip integrity: `validation=PASSED` (`artifacts/APK_VALIDATION.txt`) |
 
+**Which evidence file belongs to which build.** A run triggered by a push is the one that publishes;
+the world-data run then dispatches a second APK build of the same tree to verify it, with
+`publish_release=false`, and that one publishes nothing. Both write `artifacts/`, so the branch keeps the
+**newest** evidence, which may describe the non-publishing build -- and that build differs from the
+published APK by a few bytes and by its digest, because Android builds are not bit-reproducible. The
+published numbers are therefore the ones in the release notes of the tag, in the release API's `digest`
+for the asset, and in the table above; the run named above is the one that put them there.
+
 ### Installing it
 
 1. Download the APK on the phone (or copy it over).
