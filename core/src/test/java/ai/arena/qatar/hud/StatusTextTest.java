@@ -59,7 +59,10 @@ final class StatusTextTest {
                 // format-gate: intentional
                 () -> String.format(Locale.ROOT, "%s | %.0f fps", "HUMAN", 60));
         assertEquals('f', refusal.getConversion());
-        assertEquals(Integer.class, refusal.getParameterClass());
+        // `getArgumentClass`, not `getParameterClass`: the JDK's own source says so, and the compiler
+        // said so first -- which is the kind of thing a test that no build can run offline costs a
+        // whole CI cycle to learn.
+        assertEquals(Integer.class, refusal.getArgumentClass());
         assertTrue(refusal.getMessage().contains("f != java.lang.Integer"),
                 "the message the phone showed, and it is the platform's own words: " + refusal.getMessage());
     }
