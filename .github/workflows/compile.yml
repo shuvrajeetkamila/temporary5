@@ -52,6 +52,9 @@ jobs:
       - name: Narrowing gate (a double assigned to a float is a compile error too)
         run: python3 tools/check_float_narrowing.py
 
+      - name: Format gate (a specifier that refuses its value is a runtime exception on a phone)
+        run: python3 tools/check_format_specifiers.py
+
       - name: Compile game code and tests
         run: |
           set -o pipefail

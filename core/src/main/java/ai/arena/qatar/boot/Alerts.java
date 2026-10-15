@@ -75,8 +75,17 @@ public final class Alerts {
             text.append("caused by ").append(cause).append('\n');
         }
         StackTraceElement[] frames = throwable == null ? new StackTraceElement[0] : throwable.getStackTrace();
-        for (int i = 0; i < frames.length && i < 6; i++) {
-            text.append("  at ").append(frames[i]).append('\n');
+        // The frames the game itself is in, first. The sixth install printed six lines of
+        // java.util.Formatter and stopped before the line of ours that had asked for the wrong thing:
+        // a perfect report of an exception whose cause was off the end of it.
+        java.util.List<StackTraceElement> shown = StackTraceText.useful(frames, StackTraceText.ALERT_FRAMES);
+        for (StackTraceElement frame : shown) {
+            text.append("  at ").append(frame).append('\n');
+        }
+        if (frames.length > shown.size()) {
+            text.append("  (+").append(frames.length - shown.size())
+                    .append(" more, the JDK's own, in the record)")
+                    .append('\n');
         }
         text.append('\n').append("last stage: ").append(CrashJournal.lastBreadcrumb()).append('\n');
         text.append(CrashJournal.heapSummary()).append('\n');

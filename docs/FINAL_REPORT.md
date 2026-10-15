@@ -315,14 +315,44 @@ report anything it cannot prove — and a symmetry assertion made of a leg, whic
 never built to be one. The last one is why the mesher's own contract is now written down: a part is built
 *around* its pivot, and `swingDegrees` is what tells a wheel that goes round from a limb that hangs.
 
+### Sixth install: "Failed the controls", and a format string was the whole story
+
+The panel reported `Failed the controls` with `IllegalFormatConversionException: f != java.lang.Integer`
+under it, six frames of `java.util.Formatter`, a healthy heap and a launch that had reached the game
+screen. The world kept drawing behind it; the controls half of every frame did not.
+
+The cause was one specifier in the HUD's status line: `"%.0f fps"` against
+`Gdx.graphics.getFramesPerSecond()`, which libGDX declares as `int`. Java's formatter refuses to print an
+Integer fractionally, so the line threw every frame, and after 120 failed frames the game stopped drawing
+the screen and left the panel up -- which is also almost certainly what the fourth report was, with the
+panel then staying for the whole session rather than leaving after thirty seconds.
+
+Four things were done, and the first is the one that lasts:
+
+* **The line moved out of the frame loop** into `hud/StatusText.english(...)`: a pure function, text in
+  and text out, no GL and no `Gdx`. That is what makes it testable, and `StatusTextTest` now holds the
+  whole line, the frame count as a count, metre rounding, negative coordinates, and -- deliberately --
+  that `%.0f` against an `int` throws the exact exception the phone showed. The bug existed because the
+  only way to try that line was to run the game on a phone.
+* **The alert now shows the game's own frames first.** `boot/StackTraceText` prefers `ai.arena.qatar`
+  frames, then the framework's, and the JVM's only as a last resort, with a count of what was left out.
+  The report of this failure spent all six of its lines on `java.util.Formatter`, so the frame naming the
+  cause was off the end of the list: the exception was reported perfectly and the cause was invisible.
+* **A fifth source gate**, `tools/check_format_specifiers.py`: it reads every `String.format` whose
+  pattern is a literal in the call and reports a specifier that cannot print the value it is given --
+  only when that value's kind is provable. Thirteen self-tests run before it reads the tree, and it
+  catches the real line when it is put back.
+* **`VERSION` is `0.1.0-m0+diag6`**, so the phone can tell this build from the one that failed.
+
 ## Honest limitations
 
-1. **This build has been on a phone five times, and every report found something real** — twelve faults
-   in all, listed in the sections above, each one now fixed and, where a test can hold it, held. The last
-   two reports arrived with no symptom in them at all, so the audit was the diagnosis: that is what the
-   on-screen panel and the crash journal are for, and it is why the panel and the diagnostics are worth
-   more than their own size in the APK. **Rounds four and five have not been confirmed on the device
-   yet.** There is still no GPU and no Android emulator in the build environment: the GLSL in this project
+1. **This build has been on a phone six times, and every report found something real** — thirteen faults
+   in all, listed in the sections above, each one now fixed and, where a test can hold it, held. Two
+   reports arrived with no symptom in them at all, so an audit was the diagnosis; one arrived as a stack
+   trace of the JVM's own printer, so the frames had to be chosen better before the next one was useful.
+   That is what the panel, the journal and the alert are for, and it is why they are worth more than their
+   own size in the APK. **Rounds four, five and six have not been confirmed on the device yet — the next
+   report is the one that says whether the controls come up.** There is still no GPU and no Android emulator in the build environment: the GLSL in this project
    compiles for the first time on a phone. Nothing here can compile GLSL; what stands in for a GPU is the
    shader lint, the on-screen diagnostics, and the fact that the panel has so far named its failures
    precisely enough to fix them — including the one it named with no words from the phone at all.

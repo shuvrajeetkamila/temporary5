@@ -68,6 +68,18 @@ world could not load -- leaves it up for good, behind the dialog that says why.
 | `demo terrain/water/solid: …` | The fallback scene's shader failed too, with the driver's message |
 | `the diagnostics panel failed to draw and fell back to bars` | The panel itself hit an error: it now draws one coloured bar per line instead of text |
 
+## What the alert's frames are, and why they changed
+
+The dialog prints the exception, then up to six frames, then the last stage and the heap. The frames are
+chosen by `StackTraceText`: **this game's own frames first** (`ai.arena.qatar.…`), then the framework's if
+the throw never crossed our code on the way out, and the JVM's own only if there is nothing else.
+
+That order exists because of the sixth install. A stack trace is deepest-first, and the deepest frames
+belong to whoever *threw*: the dialog's six lines were six lines of `java.util.Formatter`, and the frame
+that said which line of ours had asked for the wrong thing was below them, off the end of the list. The
+report was perfect and the cause was invisible. A line like `(+4 more, the JDK's own, in the record)` at
+the end is the count of what was left out; the full trace is still written to the journal.
+
 ## Why the panel exists at all
 
 The first install showed a blue screen and nothing else. The reason -- the world shader declared a

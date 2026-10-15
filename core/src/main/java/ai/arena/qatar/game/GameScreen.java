@@ -10,6 +10,7 @@ import ai.arena.qatar.hud.HudRenderer;
 import ai.arena.qatar.hud.HudText;
 import ai.arena.qatar.hud.MapRaster;
 import ai.arena.qatar.hud.MapView;
+import ai.arena.qatar.hud.StatusText;
 import ai.arena.qatar.math.Vec3;
 import ai.arena.qatar.physics.FixedStepClock;
 import ai.arena.qatar.world.GridTerrainSampler;
@@ -392,9 +393,7 @@ public final class GameScreen extends InputAdapter implements Disposable {
         statusRefresh -= dt;
         if (statusRefresh <= 0f) {
             statusRefresh = 0.25f;
-            statusLine = String.format(java.util.Locale.ROOT,
-                    "%s | %.0f, %.0f | %s | %.0f fps",
-                    controller.describe(),
+            statusLine = StatusText.english(controller.describe(),
                     rig.east + offsetEastToBundle(), rig.north + offsetNorthToBundle(),
                     worldRenderer.describe(), Gdx.graphics.getFramesPerSecond());
             statusLineArabic = controller.describeArabic();

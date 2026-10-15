@@ -406,6 +406,50 @@ after the fix was the last one in the chain.
 5. ~~Bilingual pass~~ done: every control (English above, Arabic below, shaped by `ArabicReshaper`), the
    map hint on two lines, the status line, and the data credit. What is left is not a translation but a
    reader: no native speaker has reviewed the Arabic, and that is stated in the report's limitations.
+## The sixth report on a phone: "f != java.lang.Integer"
+
+The panel said, in the app's own words, **`Failed the controls`** with an
+`IllegalFormatConversionException: f != java.lang.Integer` under it -- six frames of
+`java.util.Formatter`, a healthy heap, and a launch log that had reached "Starting the game screen"
+without a complaint. Everything in that report was true and none of it named the cause.
+
+The cause was one specifier. The HUD's status line was built inside the frame loop as
+
+    String.format(Locale.ROOT, "%s | %.0f, %.0f | %s | %.0f fps", ..., Gdx.graphics.getFramesPerSecond())
+
+and `Graphics.getFramesPerSecond()` returns an `int`. Java's formatter will not print an Integer
+fractionally; it throws. The status line is drawn in the "controls" half of the frame, so the whole half
+failed -- every frame, sixty times a second -- and after 120 of them the game gave up on drawing the
+screen and left the panel up. That is also what the fourth report ("having some problems") most likely
+was: the same exception, with the panel then staying on screen for the whole session instead of leaving
+after thirty seconds, so the symptom read as "no controls, nothing".
+
+**Four things were done about it, and the first is the one that lasts.**
+
+1. The line is no longer inside the frame loop. `hud/StatusText.english(...)` is a pure function -- text
+   in, text out, no GL, no `Gdx` -- so a test can reach it. It was unreachable before: the only way to
+   try that line was to run the game on a phone. `StatusTextTest` asserts the whole line, the frame
+   count as a count, metres rounded to the metre, negative coordinates, and -- deliberately -- that
+   `%.0f` against an `int` throws `f != java.lang.Integer`, so the reason for the `%d` is a test and not
+   a comment. The repaired call site is `%d`.
+2. `boot/StackTraceText` chooses the alert's frames: the game's own first, the framework's if we are not
+   in the throw, the JVM's only if there is nothing else, with a `(+N more, the JDK's own, in the
+   record)` line for what was left out. The dialog that reported this failure spent all six of its lines
+   on the printer. `ScreenLog` uses the same choice for the one frame the panel has room for.
+3. `tools/check_format_specifiers.py` reads every `String.format` on a literal in the tree and reports a
+   specifier that cannot print the value it is given -- and only when the value's kind is *provable*
+   (a literal, a declared local, parameter or field, a cast, arithmetic, an unqualified call to a method
+   declared here with one return type, or a short hand-checked list of library accessors that includes
+   `getFramesPerSecond`). Unknown kinds are never reported; a format built by concatenation is skipped by
+   design. Thirteen self-tests run before it looks at the tree, including the line that cost the sixth
+   install and the four shapes that a text-matching draft got wrong. It found the real bug when it was
+   put back, and the one true positive it reports in the committed tree is the test that asserts the
+   refusal, which says so with a `format-gate: intentional` marker.
+4. `VERSION` is `0.1.0-m0+diag6`, so the phone can tell this build from the one that failed.
+
+The honest summary of the sixth install: nothing was wrong with the country, the chunks, the shaders or
+the controls -- a text format string was wrong, in the one place in the project that no test could reach.
+
 6. ~~Final report.~~ Written: `docs/FINAL_REPORT.md` — APK link, bytes, SHA-256, run ids, and the honest
    limitations. It has to be re-checked whenever the APK changes, because a rolling release keeps
    only the newest artefact and the report names one.

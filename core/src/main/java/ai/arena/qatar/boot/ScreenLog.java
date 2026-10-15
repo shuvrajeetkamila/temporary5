@@ -202,8 +202,11 @@ public final class ScreenLog implements Disposable {
             add(Level.ERROR, "  caused by " + deeper);
         }
         StackTraceElement[] trace = cause.getStackTrace();
-        if (trace.length > 0) {
-            add(Level.ERROR, "  at " + trace[0]
+        StackTraceElement frame = StackTraceText.firstUseful(trace);
+        if (frame != null) {
+            // The game's own frame when there is one: the panel has room for one line here, and the
+            // first line of a trace is usually the JDK's, which tells the player nothing.
+            add(Level.ERROR, "  at " + frame
                     + (trace.length > 1 ? "  (+" + (trace.length - 1) + " frames in the record)" : ""));
         }
     }
