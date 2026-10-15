@@ -398,6 +398,10 @@ public final class GameScreen extends InputAdapter implements Disposable {
         layout.setEnabled(Id.MODE, !flying);
         layout.setEnabled(Id.ALT_UP, flying);
         layout.setEnabled(Id.ALT_DOWN, flying);
+        // JUMP is a walker's control: the machines ignore it, so it is dimmed and unpressed while they
+        // are being driven, rather than sitting there looking available.
+        layout.setEnabled(Id.JUMP, controller.loco() == Loco.HUMAN);
+        layout.setHighlighted(Id.JUMP, controller.jumpPending());
         layout.button(Id.MODE).label = controller.loco() == Loco.CAR ? "WALK" : "DRIVE";
         for (Button button : layout.buttons()) {
             hud.drawButton(button, layout.isHighlighted(button.id));
@@ -543,7 +547,9 @@ public final class GameScreen extends InputAdapter implements Disposable {
             moveCurrentY = y;
             return true;
         }
-        if (layout.minimap().contains(x, y)) {
+        if (layout.minimapTouch().contains(x, y)) {
+            // The drawn square, or anywhere in its corner: see HudLayout.minimapTouch for why the target
+            // is bigger than the picture.
             openBigMap();
             return true;
         }
@@ -641,6 +647,11 @@ public final class GameScreen extends InputAdapter implements Disposable {
                 break;
             case SPRINT:
                 controller.sprinting = pressed;
+                break;
+            case JUMP:
+                if (pressed) {
+                    controller.requestJump();
+                }
                 break;
             case BRAKE:
                 controller.braking = pressed;
@@ -899,18 +910,35 @@ public final class GameScreen extends InputAdapter implements Disposable {
         return origin;
     }
 
-    @Override
-    public void dispose() {
+    /**
+     * Releases everything this screen owns, including GL resources.
+     *
+     * <p>{@code glReady} says whether a context is current. When it is not -- the surface was
+     * destroyed, or the app is on its way out -- the GL objects are left to the driver instead: the
+     * alternative is what the eighth install did, which is to crash inside the cleanup by calling
+     * {@code glDepthMask} with no {@code Gdx.gl}. Input and the map raster are released either way,
+     * because neither needs a context and both are worth releasing.
+     */
+    public void dispose(boolean glReady) {
         // Leave the platform as it was found: a caught BACK key outlives this screen, and an app whose
         // BACK key does nothing at all is worse than one that closes when asked.
         if (Gdx.input != null) {
             Gdx.input.setCatchKey(Input.Keys.BACK, false);
         }
         if (worldRenderer != null) {
-            worldRenderer.dispose();
+            if (glReady) {
+                worldRenderer.dispose();
+            }
         }
         if (hud != null) {
-            hud.dispose();
+            hud.dispose(glReady);
         }
+    }
+
+    @Override
+    public void dispose() {
+        // Called by the platform when the context is normally current; the argument version does the
+        // work and knows how to survive when it is not.
+        dispose(true);
     }
 }

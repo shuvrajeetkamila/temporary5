@@ -38,8 +38,8 @@ final class HudLayoutTest {
     @DisplayName("the world screen has every control the game needs, including the map's")
     void everyControlExists() {
         HudLayout layout = laidOut(2400f, 1080f);
-        for (Id id : new Id[]{Id.MODE, Id.SPRINT, Id.BRAKE, Id.VIEW, Id.LOCO_HUMAN, Id.LOCO_CAR,
-                Id.LOCO_PLANE, Id.LOCO_HELI, Id.LOCO_BOAT, Id.MAP, Id.ALT_UP, Id.ALT_DOWN}) {
+        for (Id id : new Id[]{Id.MODE, Id.SPRINT, Id.JUMP, Id.BRAKE, Id.VIEW, Id.LOCO_HUMAN,
+                Id.LOCO_CAR, Id.LOCO_PLANE, Id.LOCO_HELI, Id.LOCO_BOAT, Id.MAP, Id.ALT_UP, Id.ALT_DOWN}) {
             assertNotNull(layout.button(id), "there is no " + id + " control");
         }
         // And none of the map screen's own controls, which would have nowhere to go.
@@ -144,6 +144,53 @@ final class HudLayoutTest {
                 "a disabled control still takes presses");
         layout.setEnabled(Id.LOCO_CAR, true);
         assertEquals(Id.LOCO_CAR, layout.hit(look.centreX(), look.centreY()).id);
+    }
+
+    @Test
+    @DisplayName("the minimap is opened by a thumb-sized target, not by its own small square")
+    void theMinimapHasATapTarget() {
+        for (float[] screen : SCREENS) {
+            float width = screen[0];
+            float height = screen[1];
+            HudLayout layout = laidOut(width, height);
+            Rect square = layout.minimap();
+            Rect target = layout.minimapTouch();
+            String where = width + "x" + height;
+            assertTrue(target.w > 0f && target.h > 0f, where + ": there is no tap target at all");
+            // The picture is inside the target, so a tap on the picture works.
+            assertTrue(target.x <= square.x && target.y <= square.y
+                            && target.x + target.w >= square.x + square.w
+                            && target.y + target.h >= square.y + square.h,
+                    where + ": the drawn minimap is not inside its own tap target");
+            // And the target is a real one: a 100 px square is a couple of millimetres on a phone.
+            // Measured as area against the picture, plus every side being at least a fifth larger --
+            // there is no single "big enough" number, but there is a clear difference between the
+            // minimap and a corner of the screen that opens it.
+            float side = Math.min(square.w, square.h);
+            assertTrue(Math.min(target.w, target.h) >= side * 1.2f,
+                    where + ": the tap target is only " + target.w + "x" + target.h + " for a "
+                            + side + " px minimap");
+            assertTrue(target.w * target.h >= 4f * side * side,
+                    where + ": the tap target is " + target.w * target.h + " px2, less than four "
+                            + "minimaps (" + 4f * side * side + ")");
+            assertTrue(target.w >= width / 3f && target.h >= height / 3f,
+                    where + ": the tap target " + target.w + "x" + target.h + " is smaller than a "
+                            + "third of the " + width + "x" + height + " screen");
+            // No button may sit in it: buttons are checked before the map in the touch handler, so one
+            // lying on the target would swallow the tap that opens the map.
+            for (Button button : layout.buttons()) {
+                boolean outside = button.x + button.w <= target.x || target.x + target.w <= button.x
+                        || button.y + button.h <= target.y || target.y + target.h <= button.y;
+                assertTrue(outside, where + ": " + button.id + " lies inside the minimap's tap target");
+            }
+            // The movement stick's corner is left alone: the target starts to the right of it.
+            assertTrue(target.x >= width * 0.3f, where + ": the tap target reaches into the stick");
+            // With the map open there is nothing to tap: the target is gone.
+            layout.setBigMapVisible(true);
+            assertTrue(layout.minimapTouch().w == 0f && layout.minimapTouch().h == 0f,
+                    where + ": the tap target survives into the map screen");
+            layout.setBigMapVisible(false);
+        }
     }
 
     @Test

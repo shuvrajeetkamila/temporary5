@@ -80,6 +80,26 @@ that said which line of ours had asked for the wrong thing was below them, off t
 report was perfect and the cause was invisible. A line like `(+4 more, the JDK's own, in the record)` at
 the end is the count of what was left out; the full trace is still written to the journal.
 
+## When the app closes instead of doing something
+
+Opening the map closed the app, and the cause was not the map: it was the **teardown**. The frame guard
+gives up on the game screen after two seconds of failed frames and disposes it -- and disposing touches
+GL. `SpriteBatch.end()` calls `glDepthMask(...)` directly, so with no current context it throws
+`NullPointerException: com.badlogic.gdx.Gdx.gl` on the GL thread, inside the very catch block that was
+meant to make things better, and the process goes with it.
+
+Two rules follow, and both are in the code now:
+
+1. **Never touch GL from a catch block.** The teardown is queued and performed at the start of the next
+   frame, inside `renderFrame`, where the frame guard covers it.
+2. **Ask before using the context.** `QatarGame.glAvailable()` answers "is there a context, on this
+   thread", and `GameScreen.dispose(boolean)` / `HudRenderer.dispose(boolean)` take that answer: with no
+   context they leak the GL objects and release everything else. A leak at that moment is invisible; a
+   crash is not.
+
+If a report says "it closes when I ...", the question to ask first is not what the button did but what
+the *failure path* did afterwards -- and whether anything in it touches GL.
+
 ## When the panel and the controls are invisible but the world is not
 
 The seventh install showed the country and nothing else: no buttons, no minimap, no status line, and no

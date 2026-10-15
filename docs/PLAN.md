@@ -497,6 +497,92 @@ between two subsystems that neither of them owned. Nothing here can run GL, so t
 written down in one place and enforced at the source.
 
 
+## The eighth report: it crashed on the minimap, and the buildings had no roofs
+
+Three things came back at once, and they were unrelated: opening the map closed the app, the buildings
+looked like walls, and the physics needed checking. Each had a cause that the code could be asked about.
+
+### The crash: teardown that touched GL
+
+The map was opened, something in the frame threw, and the frame guard did what it was built to do after
+two seconds of failures -- it dropped the game screen and fell back to the panel. Dropping it means
+disposing it, and disposing touches GL: `worldRenderer.dispose()` frees meshes, `hud.dispose()` ends the
+SpriteBatch. `SpriteBatch.end()` is where it dies: it calls `glDepthMask(...)`, `Gdx.gl` is null by then,
+and the app is gone. It was not the map that crashed the game. It was the cleanup, called from the one
+place in the program that cannot vouch for the GL context: a catch block, on the GL thread, after the
+subsystem it is tearing down has already failed.
+
+The fix is not a null check on the map. It is:
+
+* `QatarGame.glAvailable()` -- is there a context, and are we on its thread -- and a teardown that takes
+  that answer as an argument,
+* the teardown moved **out of the catch block** and into `renderFrame`, where the frame guard already
+  covers it and the context is current,
+* `HudRenderer.dispose(boolean)` and `GameScreen.dispose(boolean)`, which leak the GL objects rather than
+  call into a context that is not there. A leak at that point is invisible; a crash is not.
+
+There is also a plain lesson about the order of operations: `begin()` was made safe for a null context in
+round seven and `end()` was not, and `end()` runs in a `finally`.
+
+### The buildings: a roof facing down is not a roof
+
+  "make buildings correctly, I mean fill them, they look like walls"
+
+They were walls. Extruded footprints, four sides, nothing on top -- and the cause was a handedness
+mistake in the roof winding. The walls were right; every roof was wound so its front face pointed down
+into the building and its back face at the sky. The world is drawn with `glCullFace(GL_BACK)`, so every
+roof in the country was discarded: a building seen from above was a hole you could look down into, and
+from the street it was four walls with nothing on top.
+
+The rule, now written down in one place and tested against a real cross product: this is a right-handed
+system with x east, y up and z north, so `x * z = -y`, the (east, north) plane is *left-handed*, and a
+triangle wound counter-clockwise in it faces **down**. Roofs must be clockwise. Measured on the country:
+185,551 of 186,993 rings arrive counter-clockwise, so almost every roof in Qatar was missing and the
+1,442 that happened to come the other way were fine -- which is why it looked like a quirk of one
+neighbourhood rather than a rule.
+
+Two more things came out of the same pass, both found by writing the test first:
+
+* The shaped roofs (gable, shed, dome, pyramid) were approximations that left **holes**: each ring edge
+  contributed one triangle to the nearest ridge end, and those triangles do not tile a rectangle, let
+  alone an L-shaped villa. Every building now gets a complete ear-clipped **deck** at the eave line, and
+  the shaped cap is drawn above it -- so a roof that says "gabled" is a deck with a ridge on top, not a
+  tent with gaps in it.
+* The vertex budget was `8 * ring + 24`, sized for walls plus one roof. A deck plus a cap is more, so it
+  is `10 * ring + 32`; an underestimate there is a primitive running off the end of an index buffer, which
+  is how the third install died.
+
+### The physics: two bugs the tests had never asked about
+
+  "check all locomotion physics properly"
+
+The bodies themselves were already covered by thirteen behaviour tests. What was not covered was the
+seam, and two real bugs were sitting in it:
+
+1. **Pulling the stick back walked the player forwards.** The direction of travel already carried the
+   sign of the walk, and the speed was negative in that same case, so the movement code flipped the
+   direction a second time and the two cancelled out. A one-line sign error that reads as broken physics.
+2. **A walker could not jump at all, and the same flag bunny-hopped.** The jump was `climb > 0.5` -- the
+   UP button's held value -- and UP is the flying machines' altitude control, disabled while walking. So
+   the person could never jump, and the value was a *held* one, which would have repeated the jump on
+   every landing. A jump is now a discrete request from its own **JUMP** button, buffered for 50 ms so a
+   frame that runs no physics step cannot lose it, and consumed once.
+
+And two things were verified rather than changed, because they are the conventions a "the physics is
+wrong" report usually turns out to be about: every body's mesh points along +Z and the transform turns
+that into the heading (0 north, 90 east) that the bodies move along, and every body's lowest point is its
+own contact plane -- wheels, legs, skids, hull draft and all. `BodyFacingTest` measures both, by turning
+the mesh's nose through the renderer's own matrix and comparing it with the distance the body actually
+travelled.
+
+### Also in this round
+
+* **The minimap's tap target was its own 100-odd-pixel square** on a phone held at arm's length. The
+  drawn square is unchanged; the target is now the whole top-right corner -- two fifths of the screen,
+  with no button inside it, and never reaching the movement stick, which is checked at six resolutions.
+* `VERSION` is `0.1.0-m0+diag8`.
+
+
 6. ~~Final report.~~ Written: `docs/FINAL_REPORT.md` — APK link, bytes, SHA-256, run ids, and the honest
    limitations. It has to be re-checked whenever the APK changes, because a rolling release keeps
    only the newest artefact and the report names one.

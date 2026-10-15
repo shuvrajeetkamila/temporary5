@@ -28,6 +28,8 @@ public final class HudLayout {
         LOCO_BOAT,
         MAP,           // open the big map
         ALT_UP,
+        /** The walking jump: the only thing that gets a person over a kerb or off a wall. */
+        JUMP,
         ALT_DOWN,
         ZOOM_IN,
         ZOOM_OUT,
@@ -81,6 +83,7 @@ public final class HudLayout {
 
     private final List<Button> buttons = new ArrayList<>();
     private final Rect minimap = new Rect();
+    private final Rect minimapTouch = new Rect();
     /** Area reserved for looking around: everything not covered by a control. */
     private final Rect lookArea = new Rect();
 
@@ -115,6 +118,11 @@ public final class HudLayout {
 
     public Rect minimap() {
         return minimap;
+    }
+
+    /** The area a tap opens the whole map from: the minimap's corner, sized for a thumb. */
+    public Rect minimapTouch() {
+        return minimapTouch;
     }
 
     public Rect lookArea() {
@@ -172,6 +180,10 @@ public final class HudLayout {
             minimap.y = 0;
             minimap.w = 0;
             minimap.h = 0;
+            minimapTouch.x = 0;
+            minimapTouch.y = 0;
+            minimapTouch.w = 0;
+            minimapTouch.h = 0;
             lookArea.x = 0;
             lookArea.y = 0;
             lookArea.w = 0;
@@ -192,6 +204,9 @@ public final class HudLayout {
 
         add(Id.MODE, pad, pad + bh + gap, bw * 1.15f, bh, "WALK", "مشي");
         add(Id.SPRINT, pad, pad, bw * 1.15f, bh, "RUN", "ركض");
+        // JUMP sits beside RUN, inside the thumb's arc: the walker needs it and the machines ignore it,
+        // so it is enabled only on foot.
+        add(Id.JUMP, pad + bw * 1.15f + gap, pad, bw * 1.05f, bh, "JUMP", "قفز");
 
         // Altitude and the map sit on the right, under the minimap.
         add(Id.ALT_UP, screenWidth - pad - bw * 0.7f, pad + bh + gap, bw * 0.7f, bh, "UP", "أعلى");
@@ -209,6 +224,16 @@ public final class HudLayout {
         minimap.h = mapSize;
         minimap.x = screenWidth - pad - mapSize;
         minimap.y = screenHeight - pad - mapSize;
+
+        // The tap target, which is not the square: a 100 px square is a two-millimetre target on a
+        // phone held at arm's length. The map opens from a much larger area of the same corner -- the
+        // whole top-right quarter, down to the middle of the screen -- and the map's own hint text sits
+        // in it, so the player sees why the tap worked. It deliberately excludes the left third (the
+        // movement stick) and everything below 62% of the height (the stick's arc and the buttons).
+        minimapTouch.x = screenWidth * 0.34f;
+        minimapTouch.y = screenHeight * 0.62f;
+        minimapTouch.w = screenWidth - minimapTouch.x;
+        minimapTouch.h = screenHeight - minimapTouch.y;
 
         // Looking around: anywhere in the lower middle of the screen that is not a control.
         lookArea.x = pad + bw * 1.15f + gap;

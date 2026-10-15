@@ -21,6 +21,24 @@ import ai.arena.qatar.world.TerrainGrid;
  *
  * <p>Winding is normalised: OSM rings have no guaranteed direction, so the signed area decides whether
  * the walls face outwards or inwards. Get that wrong and every building in the country is inside out.
+ *
+ * <h2>The roof winding, which was wrong the other way round</h2>
+ *
+ * <p>The walls were right and the roofs were inverted, and the result looked exactly like what the eighth
+ * install reported: <em>buildings that look like walls</em>. Every roof -- flat, gabled, domed, all of
+ * them -- was wound so that its front face pointed down into the building and its back face up at the
+ * sky, and the world is drawn with {@code glCullFace(GL_BACK)}. So no roof was ever drawn: from above,
+ * a building was a hole you could see the inside of its own walls through, and from the street it was
+ * four walls and nothing on top. A city of 186,993 roofless boxes.
+ *
+ * <p>The rule this class now obeys, and the tests hold: <b>in a right-handed coordinate system with x
+ * east, y up and z north, a triangle whose vertices appear counter-clockwise when seen from above has a
+ * normal with a positive y component</b> -- it faces the sky, which is what a roof is for. The wall quads
+ * were already consistent with this (their {east, north} projection is clockwise); the roofs were not.
+ *
+ * <p>One rule then covers every roof shape, because the shapes differ only in the Y they give their
+ * vertices: a footprint's ring in the raster's own direction faces up; walking it the other way does
+ * not. See {@link #addRoof}.
  */
 public final class BuildingMesher {
 
@@ -74,7 +92,11 @@ public final class BuildingMesher {
         if (length <= 0) {
             return 0;
         }
-        long cost = 8L * length + 24L;
+        // Walls (4n) + the roof deck (3n-6, three vertices per ear-clipped triangle) + a shaped cap
+        // (2n+1). Ten per vertex plus a margin covers all three at once, which is what a *bound* has to
+        // do: the mesher sizes a building before it starts, and an underestimate is a primitive running
+        // off the end of an index buffer.
+        long cost = 10L * length + 32L;
         return cost > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) cost;
     }
 
@@ -156,6 +178,59 @@ public final class BuildingMesher {
         return true;
     }
 
+    /**
+     * Whether a triangle with these east/north corners faces the sky, in the order given.
+     *
+     * <p>The handedness is the whole trap, so it is stated once and tested rather than assumed. This
+     * coordinate system is right-handed with x east, y up and z north, which means {@code x * z = -y}:
+     * the (east, north) plane is a <em>left-handed</em> 2D plane, and a triangle whose {east, north}
+     * winding is counter-clockwise has a normal pointing <b>down</b>.
+     *
+     * <p>So a roof faces the sky when its corners run <b>clockwise</b> in (east, north) -- the negative of
+     * the usual 2D cross product. {@code BuildingRoofTest} proves that against a real 3D cross product
+     * and against the ground, which is drawn the same way.
+     *
+     * <p>One rule covers flat, gabled, pyramidal and domed roofs alike, because the shapes differ only
+     * in the height they give their vertices: for a triangle whose three corners project to the same
+     * (east, north) winding, the normal is up whether it is flat or a slope.
+     */
+    static boolean facesUp(float ax, float az, float bx, float bz, float cx, float cz) {
+        return (bx - ax) * (cz - az) - (bz - az) * (cx - ax) < 0f;
+    }
+
+    /**
+     * The ring in one consistent direction, with the wall winding that follows from it.
+     *
+     * <p>Measured on the real country: 185,551 of the 186,993 rings arrive counter-clockwise in
+     * {east, north} -- and counter-clockwise there means facing <em>down</em>, so almost the whole
+     * country's roofs were wound the wrong way and the rest happened to be right. That is why it read as
+     * a rendering quirk in one street rather than as a rule.
+     */
+    private int[] ringInOrder(int start, int vertices, boolean counterClockwise) {
+        int[] order = new int[vertices];
+        for (int i = 0; i < vertices; i++) {
+            // Counter-clockwise in {east, north} faces down (see facesUp), so that is the case to
+            // reverse; the minority that already come out clockwise are left alone.
+            order[i] = counterClockwise ? start + (vertices - 1 - i) : start + i;
+        }
+        return order;
+    }
+
+    /**
+     * The roof: a deck that always covers the whole footprint, plus a cap when OSM asked for a shape.
+     *
+     * <h2>Why the deck comes first</h2>
+     *
+     * <p>The shaped roofs are approximated -- a ridge for gables, an apex for domes and pyramids -- and an
+     * approximation over an arbitrary concave ring leaves gaps: each ring edge of a gable contributes one
+     * triangle to the ridge end nearest it, and the triangles do not tile a rectangle, let alone an
+     * L-shaped villa. The player would see through the holes into the building, which is the same
+     * symptom as no roof at all.
+     *
+     * <p>So every building gets a complete ear-clipped deck at the eave line, wound to face the sky, and
+     * the shaped cap is drawn <em>above</em> it. The deck is also what the player's own eye expects from
+     * the street: a box with a lid, and something pitched on top of the lid.
+     */
     private void addRoof(int ring, int start, int vertices, MeshData mesh, float topY, float tint,
                          int roofShape, boolean counterClockwise) {
         double centreE = 0;
@@ -166,6 +241,8 @@ public final class BuildingMesher {
         }
         centreE /= vertices;
         centreN /= vertices;
+
+        addRoofDeck(start, vertices, mesh, topY, tint, centreE, centreN, counterClockwise);
 
         switch (roofShape) {
             case Buildings.ROOF_DOME:
@@ -178,9 +255,10 @@ public final class BuildingMesher {
                 // 0..1 range would stretch a different amount on every building in the country.
                 int apexIndex = mesh.addVertex((float) centreE, apex, (float) centreN, 0, 1, 0,
                         SURFACE_ROOF, 0f, 0f, tint);
+                int[] cone = ringInOrder(start, vertices, counterClockwise);
                 for (int i = 0; i < vertices; i++) {
-                    int a = start + i;
-                    int b = start + (i + 1) % vertices;
+                    int a = cone[i];
+                    int b = cone[(i + 1) % vertices];
                     float ax = buildings.xz[a * 2];
                     float az = buildings.xz[a * 2 + 1];
                     float bx = buildings.xz[b * 2];
@@ -190,15 +268,13 @@ public final class BuildingMesher {
                     float length = (float) Math.sqrt(nx * nx + nz * nz);
                     nx = length > 0.01f ? nx / length : 0;
                     nz = length > 0.01f ? nz / length : 0;
+                    // The apex is above both corners, so this triangle's orientation is the ring's:
+                    // one consistent order and every face of the cone looks up.
                     int ia = mesh.addVertex(ax, topY, az, nx, 0.6f, nz, SURFACE_ROOF,
                             (float) (ax - centreE), (float) (az - centreN), tint);
                     int ib = mesh.addVertex(bx, topY, bz, nx, 0.6f, nz, SURFACE_ROOF,
                             (float) (bx - centreE), (float) (bz - centreN), tint);
-                    if (counterClockwise) {
-                        mesh.addTriangle(ia, apexIndex, ib);
-                    } else {
-                        mesh.addTriangle(ib, apexIndex, ia);
-                    }
+                    mesh.addTriangle(ia, ib, apexIndex);
                 }
                 break;
             }
@@ -229,9 +305,10 @@ public final class BuildingMesher {
                 int r2 = mesh.addVertex((float) (centreE + axisE * ridgeHalf), ridgeY,
                         (float) (centreN + axisN * ridgeHalf), 0, 1, 0, SURFACE_ROOF,
                         (float) (axisE * ridgeHalf), (float) (axisN * ridgeHalf), tint);
+                int[] slope = ringInOrder(start, vertices, counterClockwise);
                 for (int i = 0; i < vertices; i++) {
-                    int a = start + i;
-                    int b = start + (i + 1) % vertices;
+                    int a = slope[i];
+                    int b = slope[(i + 1) % vertices];
                     float ax = buildings.xz[a * 2];
                     float az = buildings.xz[a * 2 + 1];
                     float bx = buildings.xz[b * 2];
@@ -251,43 +328,39 @@ public final class BuildingMesher {
                             (float) (ax - centreE), (float) (az - centreN), tint);
                     int ib = mesh.addVertex(bx, topY, bz, rnx, 0.6f, rnz, SURFACE_ROOF,
                             (float) (bx - centreE), (float) (bz - centreN), tint);
-                    if (counterClockwise) {
-                        mesh.addTriangle(ia, near, ib);
-                    } else {
-                        mesh.addTriangle(ib, near, ia);
-                    }
+                    mesh.addTriangle(ia, ib, near);
                 }
                 break;
             }
-            default: {
-                // Flat roof: ear-clip the ring so concave footprints (L-shaped villas) roof correctly.
-                int[] triangle = new int[3];
-                int[] ringIndices = new int[vertices];
-                for (int i = 0; i < vertices; i++) {
-                    ringIndices[i] = start + i;
-                }
-                EarClipper clipper = new EarClipper(buildings.xz, ringIndices, vertices);
-                while (clipper.next(triangle)) {
-                    int i0 = mesh.addVertex(buildings.xz[triangle[0] * 2], topY,
-                            buildings.xz[triangle[0] * 2 + 1], 0, 1, 0, SURFACE_ROOF,
-                            (float) (buildings.xz[triangle[0] * 2] - centreE),
-                            (float) (buildings.xz[triangle[0] * 2 + 1] - centreN), tint);
-                    int i1 = mesh.addVertex(buildings.xz[triangle[1] * 2], topY,
-                            buildings.xz[triangle[1] * 2 + 1], 0, 1, 0, SURFACE_ROOF,
-                            (float) (buildings.xz[triangle[1] * 2] - centreE),
-                            (float) (buildings.xz[triangle[1] * 2 + 1] - centreN), tint);
-                    int i2 = mesh.addVertex(buildings.xz[triangle[2] * 2], topY,
-                            buildings.xz[triangle[2] * 2 + 1], 0, 1, 0, SURFACE_ROOF,
-                            (float) (buildings.xz[triangle[2] * 2] - centreE),
-                            (float) (buildings.xz[triangle[2] * 2 + 1] - centreN), tint);
-                    if (counterClockwise) {
-                        mesh.addTriangle(i0, i1, i2);
-                    } else {
-                        mesh.addTriangle(i2, i1, i0);
-                    }
-                }
+            default:
+                // Flat: the deck above *is* the roof, complete by ear clipping, and already drawn.
                 break;
-            }
+        }
+    }
+
+    /**
+     * The roof deck: the footprint filled at the eave line, ear-clipped so concave footprints (L-shaped
+     * villas all over Al Rayyan) are covered correctly, and wound so every triangle faces the sky.
+     */
+    private void addRoofDeck(int start, int vertices, MeshData mesh, float topY, float tint,
+                             double centreE, double centreN, boolean counterClockwise) {
+        int[] triangle = new int[3];
+        int[] ringIndices = ringInOrder(start, vertices, counterClockwise);
+        EarClipper clipper = new EarClipper(buildings.xz, ringIndices, vertices);
+        while (clipper.next(triangle)) {
+            int i0 = mesh.addVertex(buildings.xz[triangle[0] * 2], topY,
+                    buildings.xz[triangle[0] * 2 + 1], 0, 1, 0, SURFACE_ROOF,
+                    (float) (buildings.xz[triangle[0] * 2] - centreE),
+                    (float) (buildings.xz[triangle[0] * 2 + 1] - centreN), tint);
+            int i1 = mesh.addVertex(buildings.xz[triangle[1] * 2], topY,
+                    buildings.xz[triangle[1] * 2 + 1], 0, 1, 0, SURFACE_ROOF,
+                    (float) (buildings.xz[triangle[1] * 2] - centreE),
+                    (float) (buildings.xz[triangle[1] * 2 + 1] - centreN), tint);
+            int i2 = mesh.addVertex(buildings.xz[triangle[2] * 2], topY,
+                    buildings.xz[triangle[2] * 2 + 1], 0, 1, 0, SURFACE_ROOF,
+                    (float) (buildings.xz[triangle[2] * 2] - centreE),
+                    (float) (buildings.xz[triangle[2] * 2 + 1] - centreN), tint);
+            mesh.addTriangle(i0, i1, i2);
         }
     }
 

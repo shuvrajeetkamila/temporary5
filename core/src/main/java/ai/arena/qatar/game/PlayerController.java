@@ -72,6 +72,13 @@ public final class PlayerController {
     public boolean sprinting;
     /** Vertical input from the UP/DOWN buttons: +1 climbs, -1 descends. */
     public double climb;
+
+    /**
+     * How long a requested jump stays requested, in seconds: about three fixed steps, so a press on a
+     * frame that happens to run no physics step is not silently dropped.
+     */
+    private static final double JUMP_BUFFER_SECONDS = 0.05;
+    private double jumpBufferSeconds;
     /** Wheel brake / astern, 0..1, from the BRAKE button. */
     public boolean braking;
 
@@ -212,6 +219,22 @@ public final class PlayerController {
         altitudeTarget = Math.max(2.0, altitudeTarget + metres);
     }
 
+    /**
+     * Asks for a jump: the person leaves the ground on the next fixed step, once.
+     *
+     * <p>Deliberately not a held flag. A jump held down repeats the moment the feet touch again, which
+     * reads as the player bouncing across Qatar, and the body has no way to tell a new press from a
+     * finger that never moved.
+     */
+    public void requestJump() {
+        jumpBufferSeconds = JUMP_BUFFER_SECONDS;
+    }
+
+    /** True when a jump is queued or in progress: the HUD lights the button with it. */
+    public boolean jumpPending() {
+        return jumpBufferSeconds > 0.0;
+    }
+
     public void update(double dt) {
         VehicleState state = state();
         VehicleBody body = body();
@@ -223,7 +246,12 @@ public final class PlayerController {
                 input.throttle = forward;
                 input.strafe = strafe;
                 input.boost = sprinting;
-                input.jump = climb > 0.5;
+                // A jump is asked for once, by the JUMP button, and stays requested for a moment so a
+                // fixed step cannot miss it. It used to be `climb > 0.5` -- the UP button's held value --
+                // which meant a walker could not jump at all (UP is disabled while walking, because it is
+                // the flying machines' altitude control) and that the same button bunny-hopped when it was
+                // not. See `requestJump` and `HumanWalkTest.aJumpOnlyHappensWhenAsked`.
+                input.jump = jumpBufferSeconds > 0.0;
                 state.headingDegrees = VehicleState.wrap(state.headingDegrees);
                 break;
             case CAR:
@@ -254,6 +282,9 @@ public final class PlayerController {
         }
         input.clamp();
         body.step(state, input, surface, dt);
+        if (jumpBufferSeconds > 0.0) {
+            jumpBufferSeconds = Math.max(0.0, jumpBufferSeconds - dt);
+        }
 
         // ---- the stick springs back to trim ------------------------------------------------------
         double decay = 1.6 * dt;

@@ -181,6 +181,20 @@ final class FontCoverageTest {
             lines.add(loco.labelAr);
         }
 
+        // Every control's own labels, taken from the layout rather than listed here: a button whose
+        // Arabic label needs a letter the font does not carry draws as gaps, and the only place that
+        // would show up is a phone. JUMP was added in round eight, which is exactly when a check like
+        // this is worth having.
+        HudLayout layout = new HudLayout();
+        layout.resize(2400f, 1080f);
+        for (boolean bigMap : new boolean[]{false, true}) {
+            layout.setBigMapVisible(bigMap);
+            for (HudLayout.Button button : layout.buttons()) {
+                lines.add(button.label);
+                lines.add(button.labelAr);
+            }
+        }
+
         StringTable names = worldNames();
         if (names != null) {
             for (int i = 0; i < names.size(); i++) {

@@ -93,12 +93,15 @@ public final class HumanBody extends VehicleBody {
         double moveE = 0;
         double moveN = 0;
         if (dirLength > 1e-6 && magnitude > 0) {
+            // The direction already carries the sign of the walk: pulling the stick back puts `forward`
+            // negative, which points (dirE, dirN) behind the player. The speed is negative in exactly
+            // that same case, so the distance here is its magnitude and no second flip is applied --
+            // flipping it again is what made the player *walk forwards while pulling the stick back*.
+            // `HumanWalkTest.aBackwardsStickWalksBackwards` holds this: it is a one-character bug that
+            // looks like broken physics, and it survived a careful reading because both halves are
+            // individually sensible.
             moveE = dirE / dirLength * Math.abs(stepDistance);
             moveN = dirN / dirLength * Math.abs(stepDistance);
-            if (stepDistance < 0) {
-                moveE = -moveE;
-                moveN = -moveN;
-            }
         }
 
         // ---- the ground decides whether that move is allowed ------------------------------------

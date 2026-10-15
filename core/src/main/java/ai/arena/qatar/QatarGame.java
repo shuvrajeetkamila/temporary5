@@ -44,7 +44,7 @@ public final class QatarGame extends ApplicationAdapter {
      * that the panel reported, and the person installing the next one needs to see at a glance that it
      * is the next one and not the same file installed twice.
      */
-    public static final String VERSION = "0.1.0-m0+diag7";
+    public static final String VERSION = "0.1.0-m0+diag8";
 
     /**
      * Map raster resolution. 2048 covers the country at 126 m per pixel and cost seconds of blocking
@@ -123,9 +123,47 @@ public final class QatarGame extends ApplicationAdapter {
     private LoadStage stage = LoadStage.GL_INFO;
     private boolean stagePending = true;
     private boolean failed;
+    /** True when the game screen has been given up on and still has to be torn down inside a frame. */
+    private boolean rollback;
     private float elapsedSeconds;
     private boolean disposed;
     private StartupReport startup;
+
+    /**
+     * Whether the GL context is present and usable right now.
+     *
+     * <p>{@code Gdx.gl} is null before a context exists, after one is destroyed, and on a throttle-down
+     * where the surface went away -- and libGDX's {@code SpriteBatch.end()}, one of the first things any
+     * teardown does, calls straight through to {@code glDepthMask}. That call with no context is
+     * {@code NullPointerException: com.badlogic.gdx.Gdx.gl} on the GL thread: the app dies of its own
+     * cleanup, which is exactly what the eighth install did when the minimap was opened.
+     */
+    public static boolean glAvailable() {
+        return Gdx.gl != null && Gdx.graphics != null && Gdx.graphics.isGLThread();
+    }
+
+    /**
+     * Tears down whatever game screen exists, on the GL thread, and says so once if it cannot be done
+     * safely.
+     *
+     * <p>The one place that disposes {@link ai.arena.qatar.game.GameScreen} except {@link #dispose()}
+     * itself, which is the process ending and has nothing left to lose.
+     */
+    private void disposeScreen(boolean glReady) {
+        if (gameScreen == null) {
+            return;
+        }
+        ai.arena.qatar.game.GameScreen doomed = gameScreen;
+        gameScreen = null;
+        try {
+            doomed.dispose(glReady);
+        } catch (Throwable t) {
+            // A teardown that fails must not take the process with it: the screen is already out of the
+            // frame loop, so the worst case is a leaked mesh, and that is cheap next to this.
+            log.warn("could not release the game screen: " + t);
+            CrashJournal.record("dispose the game screen", t);
+        }
+    }
 
     private void createInternal() {
         // The crash handler and the breadcrumb trail are installed by the platform entry point before
@@ -231,17 +269,23 @@ public final class QatarGame extends ApplicationAdapter {
                 // away from the player the moment anything anywhere in a frame went wrong.
                 echoToPanel("giving up on the game screen after " + frameFailures
                         + " failed frames; the panel stays up", null);
-                try {
-                    gameScreen.dispose();
-                } catch (Throwable ignored) {
-                    // It has already failed; disposing it is a courtesy, not a requirement.
-                }
+                // The screen is dropped here, but *disposed* at the start of the next frame, inside
+                // renderFrame and inside its own try. Disposing touches GL (freeing meshes, ending the
+                // HUD's batch), and this catch block is the one place where the context is suspect:
+                // round eight closed the app here, from a HUD that could not finish its own teardown.
                 gameScreen = null;
+                rollback = true;
             }
         }
     }
 
     private void renderFrame() {
+        // Work left over from the last frame, done where the context is known to be current: the frame
+        // guard in render() calls this method and everything else it does is already guarded.
+        if (rollback) {
+            rollback = false;
+            disposeScreen(glAvailable());
+        }
         float frameDt = Math.min(Gdx.graphics.getDeltaTime(), 0.1f);
         elapsedSeconds += frameDt;
         if (boot != null) {
@@ -509,9 +553,7 @@ public final class QatarGame extends ApplicationAdapter {
             return;
         }
         disposed = true;
-        if (gameScreen != null) {
-            gameScreen.dispose();
-        }
+        disposeScreen(glAvailable());
         if (sceneRenderer != null) {
             sceneRenderer.dispose();
         }

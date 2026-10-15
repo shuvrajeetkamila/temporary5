@@ -104,6 +104,28 @@ public final class HudRenderer implements Disposable {
         batch.end();
     }
 
+    /**
+     * Releases the HUD, and the GL objects with it.
+     *
+     * <p>Guarded because {@link #dispose()} is reached from two places on two different threads: the
+     * game screen being torn down (GL context alive) and the launcher giving up on the world (context
+     * gone, or never created). On Android the second one closed the app from the *next* frame onwards:
+     * {@code batch.dispose()} ends the batch, {@code SpriteBatch.end()} calls {@code glDepthMask(...)}
+     * with no current context, libGDX's {@code Gdx.gl} is null, and the app died in the code that was
+     * supposed to clean up.
+     *
+     * <p>The GL objects are leaked instead when there is no context -- deliberately. The process is
+     * finished with them, the driver reclaims everything when the context dies with the process, and a
+     * leak is indistinguishable from correct code next to a crash at exit.
+     */
+    public void dispose(boolean glAvailable) {
+        if (glAvailable) {
+            dispose();
+        } else {
+            Gdx.app.log("HudRenderer", "no GL context: leaving the HUD's GL objects to the driver");
+        }
+    }
+
     /** Dims the world behind the full map so the map is readable. */
     public void drawScrim(float width, float height) {
         batch.setColor(0.02f, 0.03f, 0.05f, 0.82f);

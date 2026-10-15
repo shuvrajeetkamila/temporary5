@@ -70,6 +70,10 @@ and the core engine contracts**, with the remaining systems layered on top of th
   culling, which is how the controls became invisible on a phone). Each runs its own failure samples
   before it looks at the tree, and all six run first in the compile job; four of them exist because a
   red run, or a phone, taught the project something no local check could.
+
+  Winding and handedness are checked where they can be: `BuildingRoofTest` derives every roof normal from
+  the actual vertex positions with a real cross product, checks the ground as its control, and covers both
+  ring directions and all five roof shapes. It is the test that would have caught the roofless country.
 * Bundle formats `QTT1` (terrain), `QTM1` (material), `QTR1` (roads), `QTB1` (buildings), `QTC1`
   (checkpoints), `QTS1` (strings), little-endian, deterministic gzip. Row 0 is **south**.
 * `SHA256SUMS` for sources and per-file digests inside `manifest.json`; the compiler writes a
