@@ -1,0 +1,3 @@
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/QatarGame.java:142: error: cannot find symbol
+        return Gdx.gl != null && Gdx.graphics != null && Gdx.graphics.isGLThread();
+                                                                     ^
