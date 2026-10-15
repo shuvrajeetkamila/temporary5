@@ -1,18 +1,24 @@
-To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
 Daemon will be stopped at the end of the build 
 
-> Task :core:compileJava FAILED
+> Task :core:compileJava
 /home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/QatarGame.java:142: error: cannot find symbol
         return Gdx.gl != null && Gdx.graphics != null && Gdx.graphics.isGLThread();
                                                                      ^
   symbol:   method isGLThread()
   location: variable graphics of type Graphics
 1 error
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1792089718198.json
+
+> Task :core:compileJava FAILED
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1792090363450.json
 
 FAILURE: Build failed with an exception.
 
 * What went wrong:
+Execution failed for task ':core:compileJava'.
+> Compilation failed; see the compiler error output for details.
+
+* Try:
+> Run with --info option to get more log output.
 --
 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
@@ -32,5 +38,5 @@ Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Com
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 14s
+BUILD FAILED in 13s
 1 actionable task: 1 executed

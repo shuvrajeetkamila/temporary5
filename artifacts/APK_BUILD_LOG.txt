@@ -1,5 +1,5 @@
-> Task :android:generateDebugResources
 > Task :android:packageDebugResources
+> Task :android:mergeDebugResources
 
 > Task :core:compileJava FAILED
 /home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/QatarGame.java:142: error: cannot find symbol
@@ -9,12 +9,12 @@
   location: variable graphics of type Graphics
 1 error
 
-> Task :android:mergeDebugResources
 > Task :android:parseDebugLocalResources
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_6-1792089732223.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_6-1792090377206.json
 
+FAILURE: Build failed with an exception.
 --
-	at org.gradle.composite.internal.DefaultBuildController$BuildOpRunnable.run(DefaultBuildController.java:198)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Compilation failed; see the compiler error output for details.
@@ -32,5 +32,5 @@ Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Com
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 8s
+BUILD FAILED in 12s
 10 actionable tasks: 10 executed
