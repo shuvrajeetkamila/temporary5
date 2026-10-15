@@ -150,10 +150,20 @@ hint is two lines so the reshapers never flip the English one. `BilingualStatusT
 being Arabic, to carrying the same numbers, and to shaping into forms the shipped font carries. What
 remains is a native speaker: the Arabic is written for this project and nobody has reviewed it.
 
+**The map opens and closes, and says so.** The minimap carries "TAP TO OPEN MAP" and opens the full map
+on a tap; the MAP button does the same from anywhere on the screen; the open map carries ZOOM + and -,
+FIND ME, and CLOSE; and the phone's BACK key closes it too, caught with `setCatchKey(Keys.BACK, true)`
+only while the map is up -- so outside the map, BACK still leaves the game as a player expects it to.
+A teleport marks the *place* it went to, not the pixel that was touched: `MapView.screenXAt/screenYAt`
+are the inverse of `eastAt/northAt`, so the crosshair stays on the destination through the recentring,
+the panning and the zooming that follow. `drawTeleportMarker` had existed since step 4 and had never been
+called once -- a marker with no call site is a feature that is not there.
+
 **Tested.** `MapTeleportTest` holds the promises to the compiled geometry: pixels round trip to within a
-cell, water is water, a tap beside a primary road lands on that road, every tap over the whole raster
-lands inside the country, every locomotion type has a start, and zoom holds the point under the fingers
-still. It also caught two real bugs: inland water was outlined but never filled (so the raster believed a
+cell, a place round trips back to its own pixel on the map (at every zoom: the marker must name the place
+the player is standing on), water is water, a tap beside a primary road lands on that road, every tap over
+the whole raster lands inside the country, every locomotion type has a start, and zoom holds the point
+under the fingers still. It also caught two real bugs: inland water was outlined but never filled (so the raster believed a
 lake was dry land), and a tap in the water with no harbour or road in reach resolved to the tapped point —
 which is to say, into the sea. Water is filled now, and such a tap is moved to the nearest shore.
 

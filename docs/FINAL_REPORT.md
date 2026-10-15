@@ -9,14 +9,14 @@ repository, a CI run, or a byte count that can be re-derived.
 | | |
 |---|---|
 | **APK** | [`Qatar-The-Peninsula-v0.1.0-m0.apk`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk) |
-| **Bytes** | 19,199,654 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below, and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset. Android builds are not bit-reproducible, so two builds of the same commit differ by a few bytes and by their digest; the bytes and the digest here are the ones in the release as published by the run named below |
-| **SHA-256** | `05e5f7f4ef289a6319cd8141d34eb4638b9ac2c0cc823488c3089d981f10ae90` (the release API reports the same digest, and so does the 110-byte sidecar's contents) |
+| **Bytes** | 19,200,526 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below, and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset. Android builds are not bit-reproducible, so two builds of the same commit differ by a few bytes and by their digest; the bytes and the digest here are the ones in the release as published by the run named below |
+| **SHA-256** | `593f4f2cdb458f38850540d8b84c60b230fe44e1686e2712a8e3d831e2c0460d` (the release API reports the same digest, and so does the 110-byte sidecar's contents) |
 | **Sidecar** | [`…apk.sha256`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256) |
 | **Release** | https://github.com/shuvrajeetkamila/temporary5/releases/tag/v0.1.0-m0 (rolling: each green run republishes it) |
-| **Built from** | commit `9aeddcc`, branch `arena/4eb37624-temporary5` |
-| **CI runs for that commit** | Build APK [`38726437266`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38726437266) success · Compile gate [`38726437280`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38726437280) success · Protect the project [`38726437218`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38726437218) success |
-| **Tests at that commit** | 146 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_STATUS.txt`) |
-| **Build stamp on screen** | `0.1.0-m0+diag6` — the release asset keeps its name, so this is how two builds are told apart on a phone: the diagnostics panel prints the stamp on its first line |
+| **Built from** | commit `162711b`, branch `arena/4eb37624-temporary5` |
+| **CI runs for that commit** | Build APK [`38768362060`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38768362060) success (all 18 steps, including publish) · Compile gate [`38768362154`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38768362154) success · Build world data [`38768362094`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38768362094) success · Protect the project [`38768362062`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38768362062) success |
+| **Tests at that commit** | 153 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_SUMMARY.txt`) |
+| **Build stamp on screen** | `0.1.0-m0+diag7` — the release asset keeps its name, so this is how two builds are told apart on a phone: the diagnostics panel prints the stamp on its first line |
 | **Package** | `ai.arena.qatar.peninsula`, versionName `0.1.0-m0`, debug-signed, `minSdk 26`, `targetSdk 34` |
 | **ABIs** | `arm64-v8a`, `armeabi-v7a`, `x86_64` |
 | **Permissions** | none: no `INTERNET`, nothing to phone home to. The country is inside the APK. |
@@ -342,7 +342,7 @@ Four things were done, and the first is the one that lasts:
   pattern is a literal in the call and reports a specifier that cannot print the value it is given --
   only when that value's kind is provable. Thirteen self-tests run before it reads the tree, and it
   catches the real line when it is put back.
-* **`VERSION` is `0.1.0-m0+diag6`**, so the phone can tell this build from the one that failed.
+* **`VERSION` is `0.1.0-m0+diag7`**, so the phone can tell this build from the one that failed.
 
 ### Seventh install: the country, and nothing else
 
@@ -363,12 +363,21 @@ is missing, and on a desktop the state is never left in that condition.
   state first, since the player's body is drawn after the chunks.
 * `tools/check_ui_state.py` is the sixth source gate, and the one that encodes the lesson: no
   `SpriteBatch` may be opened in a method that has not called `GlState2D.beginUi()` first.
-* In the same round, at the request that arrived with the report: the map's **tap marker** (the crosshair
-  finally drawn where a teleport tap landed — `drawTeleportMarker` had never been called), the Android
-  **BACK key closes the open map** instead of leaving the app, and `HudLayoutTest` now asserts the whole
-  control set as geometry: the minimap is in the top-right, no button overlaps it (so a tap meant for it
-  cannot be swallowed), every button is on the screen at six resolutions, none overlaps another, and the
-  open map always has a CLOSE.
+* In the same round, at the request that arrived with the report: the map's **tap marker** — a crosshair
+  on the *place* that was travelled to, asked for again every frame through the new
+  `MapView.screenXAt/screenYAt`, so it stays on the destination while the map is panned or zoomed
+  (`drawTeleportMarker` had never been called at all) — the Android **BACK key closes the open map**
+  instead of leaving the app, and `HudLayoutTest` (six tests) now asserts the whole control set as
+  geometry: the minimap is in the top-right, no button overlaps it (so a tap meant for it cannot be
+  swallowed), every control is on the screen at six resolutions, none overlaps another, and the open map
+  always has a CLOSE. `MapTeleportTest` gained the round trip that keeps the marker honest.
+
+**Verified on this build, not argued**: compile gate `38768362154` — six source gates, all green on the
+first push — build world data `38768362094`, and build APK `38768362060` with every one of its 18 steps
+success: 153 tests, 0 failures, 0 errors (`artifacts/UNIT_TEST_SUMMARY.txt`), `validation=PASSED` and
+`status=PASSED` (`artifacts/APK_VALIDATION.txt`, `artifacts/QA_STATUS.txt`), APK **19,200,526 bytes**,
+SHA-256 `593f4f2c…`, and the release API's computed digest for the uploaded asset is that same value.
+The APK pays 872 bytes over the previous one, all of it new code and its documentation.
 
 ## Honest limitations
 
@@ -427,7 +436,7 @@ is missing, and on a desktop the state is never left in that condition.
 
 ```bash
 git clone https://github.com/shuvrajeetkamila/temporary5 && cd temporary5
-git checkout 9aeddcc            # the commit the published APK was built from
+git checkout 162711b            # the commit the published APK was built from
 # world data (downloads OSM + SRTM, compiles the country, validates it):
 python3 tools/fetch_sources.py && python3 tools/build_world.py && python3 tools/game_world.py
 python3 tools/validate_game_world.py --world android/assets/world     # 57/57
@@ -438,7 +447,7 @@ cd ../android && ../gradlew assembleDebug && python3 ../tools/validate_apk.sh \
     build/outputs/apk/debug/android-debug.apk
 ```
 
-The three checks CI runs on every push are `compile.yml` (the compile gate), `build.yml` (unit tests,
+The checks CI runs on every push are `compile.yml` (the compile gate), `build.yml` (unit tests,
 APK build and validation, release publication) and `archive.yml` (the repository archive). `data.yml`
 recompiles the country from source, and is the one workflow not to trigger on a path it also writes to:
 it publishes its own provenance into `data/geodata/**`, and while that directory was one of its push
