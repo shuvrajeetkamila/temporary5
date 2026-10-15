@@ -1,36 +1,50 @@
-To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
-Daemon will be stopped at the end of the build 
 
-> Task :core:compileJava FAILED
-/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/QatarGame.java:142: error: cannot find symbol
-        return Gdx.gl != null && Gdx.graphics != null && Gdx.graphics.isGLThread();
-                                                                     ^
-  symbol:   method isGLThread()
-  location: variable graphics of type Graphics
-1 error
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1792089718198.json
+ChunkMeshBudgetTest > a chunk is local to itself, so the renderer's transform lands its buildings right PASSED
+
+ChunkMeshBudgetTest > a primitive too big for any part is refused, never started FAILED
+    org.opentest4j.AssertionFailedError: four per wall edge plus a roof: eight per edge and twenty-four ==> expected: <64> but was: <82>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)
+        at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:563)
+        at app//ai.arena.qatar.render.ChunkMeshBudgetTest.impossiblePrimitiveIsRefused(ChunkMeshBudgetTest.java:106)
+
+ChunkMeshBudgetTest > the densest chunk of the committed country meshes inside every part PASSED
+
+--
+
+166 tests completed, 1 failed
+
+> Task :core:test FAILED
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1792090695682.json
 
 FAILURE: Build failed with an exception.
 
 * What went wrong:
+Execution failed for task ':core:test'.
+> There were failing tests. See the report at: file:///home/runner/work/temporary5/temporary5/core/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to get full insights.
 --
-	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
+	at org.gradle.composite.internal.DefaultBuildController$BuildOpRunnable.run(DefaultBuildController.java:198)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
-Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Compilation failed; see the compiler error output for details.
-	at org.gradle.api.internal.tasks.compile.JdkJavaCompiler.execute(JdkJavaCompiler.java:61)
-	at org.gradle.api.internal.tasks.compile.JdkJavaCompiler.execute(JdkJavaCompiler.java:41)
-	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.delegateAndHandleErrors(NormalizingJavaCompiler.java:98)
-	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.execute(NormalizingJavaCompiler.java:52)
-	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.execute(NormalizingJavaCompiler.java:38)
-	at org.gradle.api.internal.tasks.compile.AnnotationProcessorDiscoveringCompiler.execute(AnnotationProcessorDiscoveringCompiler.java:52)
-	at org.gradle.api.internal.tasks.compile.AnnotationProcessorDiscoveringCompiler.execute(AnnotationProcessorDiscoveringCompiler.java:38)
-	at org.gradle.api.internal.tasks.compile.ModuleApplicationNameWritingCompiler.execute(ModuleApplicationNameWritingCompiler.java:46)
-	at org.gradle.api.internal.tasks.compile.ModuleApplicationNameWritingCompiler.execute(ModuleApplicationNameWritingCompiler.java:36)
-	at org.gradle.jvm.toolchain.internal.DefaultToolchainJavaCompiler.execute(DefaultToolchainJavaCompiler.java:57)
+Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There were failing tests. See the report at: file:///home/runner/work/temporary5/temporary5/core/build/reports/tests/test/index.html
+	at org.gradle.api.tasks.testing.AbstractTestTask.handleTestFailures(AbstractTestTask.java:691)
+	at org.gradle.api.tasks.testing.AbstractTestTask.handleCollectedResults(AbstractTestTask.java:533)
+	at org.gradle.api.tasks.testing.AbstractTestTask.executeTests(AbstractTestTask.java:528)
+	at org.gradle.api.tasks.testing.Test.executeTests(Test.java:715)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at org.gradle.internal.reflect.JavaMethod.invoke(JavaMethod.java:125)
+	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.doExecute(StandardTaskAction.java:58)
+	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.execute(StandardTaskAction.java:51)
 --
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 14s
-1 actionable task: 1 executed
+BUILD FAILED in 26s
+4 actionable tasks: 4 executed
