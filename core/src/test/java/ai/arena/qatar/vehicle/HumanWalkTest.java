@@ -173,13 +173,13 @@ final class HumanWalkTest {
         controller.update(DT);
         assertFalse(controller.state().grounded, "the second request did not jump");
         controller.requestJump();                     // a press made while already in the air
-        boolean wasGrounded = false;                  // we are airborne right now
+        boolean standingBeforeFrame = false;                  // we are airborne right now
         int extra = 0;
         for (int frame = 0; frame < 240; frame++) {
-            if (wasGrounded && !controller.state().grounded) {
+            if (standingBeforeFrame && !controller.state().grounded) {
                 extra++;
             }
-            wasGrounded = controller.state().grounded;
+            standingBeforeFrame = controller.state().grounded;
             controller.update(DT);
         }
         assertEquals(0, extra, "a press made in mid-air jumped " + extra + " more times after landing");
