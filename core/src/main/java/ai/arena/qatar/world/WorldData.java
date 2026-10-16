@@ -33,6 +33,16 @@ public final class WorldData {
     public final FeatureIndex waterIndex;
     public final FeatureIndex pointIndex;
     public final FeatureIndex barrierIndex;
+    /**
+     * Where the walls have gates: the places the compiled roads cross them.
+     *
+     * <p>Derived here rather than stored in a bundle because the gates are not in one -- OpenStreetMap
+     * maps a gate as a node on a wall and this pipeline compiles ways -- and because both the collision
+     * and the mesher must derive them the same way or the game draws a wall it lets the player walk
+     * through. See {@link BarrierGates}: it is thirty lines of arithmetic over two bundles that are
+     * already in memory.
+     */
+    public final BarrierGates gates;
 
     private final long loadMillis;
 
@@ -73,6 +83,7 @@ public final class WorldData {
         this.barrierIndex = barriers == null ? null
                 : new FeatureIndex(barriers.bounds, barriers.count, manifest.originEast,
                         manifest.originNorth, width, height, 250.0);
+        this.gates = BarrierGates.of(this);
     }
 
     /** Points carry no stored bounds; a point's own coordinates are its bounding box. */

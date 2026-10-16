@@ -144,7 +144,9 @@ final class HumanSwimTest {
     @DisplayName("swimming is slower than walking, and both are the speeds the bodies claim")
     void swimmingIsSlowerThanWalking() {
         // Dry asphalt for the walking half, because the point of the comparison is the two bodies' own
-        // nominal speeds: sand costs a walker speed and that is a different rule, tested where it lives.
+        // nominal speeds: sand costs a walker speed, which is a different rule, tested where it lives.
+        // Both are read from the state rather than from the constants, so a body that quietly kept a
+        // surface factor in the water would be caught here rather than in the window.
         VehicleState onLand = swim(Surface.land(2.0, SurfaceMaterial.ID_DRY_ASPHALT), 20.0);
         VehicleState inWater = swim(shore(-100.0, 5.0), 20.0);
         assertEquals(HumanBody.WALK_SPEED_MS, onLand.speedMS, 0.01, "the walker's pace is its own");
@@ -213,10 +215,10 @@ final class HumanSwimTest {
             human.step(state, input, surface, DT);
         }
         // Six metres of water over a quay whose deck is six metres above the surface: the wall at the
-        // waterline is stone from the water to the sky, and there is no climbing it. The swimmer stops a
-        // step short of it -- a step being eighteen millimetres of swimming -- so what is asserted is
-        // which side of the wall they are on, not how close they got to it.
-        assertTrue(state.northM >= 10.0, "the swimmer climbed the quay: " + state.northM);
+        // waterline is stone from the water to the sky, and there is no climbing it. The swimmer stops on
+        // the water side of the quay -- within one frame's worth of swimming, eighteen millimetres -- so
+        // what is asserted is which side of the wall they are on, not how close they got to it.
+        assertTrue(state.northM < 10.0, "the swimmer climbed a six-metre quay: " + state.northM);
         assertTrue(state.blocked, "the swimmer is pressing into a wall and is not blocked");
         assertTrue(state.floating, "the body left the water without climbing out of it");
     }
