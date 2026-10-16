@@ -81,6 +81,58 @@ public final class SpawnClearer {
         return new Spot(eastM, northM, false, 0.0);
     }
 
+    /**
+     * The nearest place a body of a given kind could move from: on ground it can use, outside anything
+     * solid, and no more than a step away in height.
+     *
+     * <p>This is {@link #nearestClear} generalised for the rescue that runs while the player is holding
+     * the stick and going nowhere. A person needs water no deeper than they can wade; a car needs a shallow
+     * ford at worst; a boat needs enough water under its keel. All three need the place to be within a step
+     * of where they are, because a rescue that drops a car off a bridge is not a rescue.
+     *
+     * @param minWaterDepthM the least water the body can use (0 for anything that stands on the ground)
+     * @param maxWaterDepthM the most water the body can use (huge for a boat)
+     * @param maxStepM       the largest change in ground height the body will accept
+     */
+    public static Spot nearestUsable(Surface surface, double eastM, double northM, double minWaterDepthM,
+                                     double maxWaterDepthM, double maxStepM) {
+        double reference = surface.groundHeightM(eastM, northM);
+        if (usable(surface, eastM, northM, reference, minWaterDepthM, maxWaterDepthM, maxStepM)) {
+            return new Spot(eastM, northM, false, 0.0);
+        }
+        for (double radius = RING_STEP_M; radius <= MAX_SEARCH_M; radius += RING_STEP_M) {
+            for (int i = 0; i < DIRECTIONS; i++) {
+                double angle = (2.0 * Math.PI * i) / DIRECTIONS;
+                double candidateEast = eastM + Math.cos(angle) * radius;
+                double candidateNorth = northM + Math.sin(angle) * radius;
+                if (usable(surface, candidateEast, candidateNorth, reference, minWaterDepthM,
+                        maxWaterDepthM, maxStepM)) {
+                    return new Spot(candidateEast, candidateNorth, true, radius);
+                }
+            }
+        }
+        return new Spot(eastM, northM, false, 0.0);
+    }
+
+    /** Whether one candidate spot works for a body with those water and step limits. */
+    private static boolean usable(Surface surface, double eastM, double northM, double referenceGroundM,
+                                  double minWaterDepthM, double maxWaterDepthM, double maxStepM) {
+        if (!surface.collisionLoaded(eastM, northM)) {
+            // No collision data is not clear ground: it is unknown ground, and moving a body into it would
+            // be a guess. The rescue leaves a body where it is rather than somewhere nobody has compiled.
+            return false;
+        }
+        double depth = surface.waterDepthM(eastM, northM);
+        if (depth < minWaterDepthM || depth > maxWaterDepthM) {
+            return false;
+        }
+        double ground = surface.groundHeightM(eastM, northM);
+        if (ground - referenceGroundM > maxStepM || referenceGroundM - ground > maxStepM) {
+            return false;
+        }
+        return !surface.solidAt(eastM, northM, ground + 1.0);
+    }
+
     private SpawnClearer() {
     }
 }
