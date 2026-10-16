@@ -165,9 +165,12 @@ final class HorizonMeshTest {
         short[] indices = mesh.indices();
         float[] vertices = mesh.vertices();
         for (int t = 0; t < mesh.triangleCount(); t++) {
-            int a = indices[t * 3];
-            int b = indices[t * 3 + 1];
-            int c = indices[t * 3 + 2];
+            // The index buffer is unsigned 16-bit -- one short per index, which is exactly why a mesh holds
+            // at most 65 000 vertices -- so vertex 40 000 lives in the buffer as a negative short and a bare
+            // short read would index backwards through the vertex array. Masking is the faithful read.
+            int a = indices[t * 3] & 0xFFFF;
+            int b = indices[t * 3 + 1] & 0xFFFF;
+            int c = indices[t * 3 + 2] & 0xFFFF;
             assertTrue(a < mesh.vertexCount() && b < mesh.vertexCount() && c < mesh.vertexCount(),
                     label + " triangle " + t + " indexes a vertex that does not exist");
             double ux = vertices[b * MeshData.FLOATS_PER_VERTEX] - vertices[a * MeshData.FLOATS_PER_VERTEX];

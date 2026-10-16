@@ -145,7 +145,12 @@ final class SpawnClearerTest {
         assertTrue(SpawnClearer.isClear(shallow, 0.0, 0.0), "wading depth is not swimmable water");
     }
 
-    /** Ground at one height west of a line, at another east of it: a cliff, or a shore. */
+    /**
+     * Deep sea west of a line and ground under shallow water east of it: the shape a walker meets when they
+     * are out of their depth next to the shore. The shore test below uses it; the cliff test writes its own
+     * surface out in full, because it needs dry ground on both sides of the line -- the step rule has to be
+     * the only thing refusing the drop.
+     */
     private static Surface splitAtEast(double lineEastM, double westGroundM, double eastGroundM,
                                        double eastDepthM) {
         return new Surface() {
@@ -188,16 +193,49 @@ final class SpawnClearerTest {
     @Test
     @DisplayName("a rescue will not step a body off a cliff")
     void rescueRefusesADrop() {
-        // The ground is fifty metres lower to the east. Rings go outwards from the body, and the eastern
-        // candidates are the first ones considered -- and refused, because a step of fifty metres is not a
-        // step. The body is moved to the nearest ring of ground at its own height instead.
-        Surface cliff = splitAtEast(0.0, 50.0, 0.0, 0.0);
-        SpawnClearer.Spot spot = SpawnClearer.nearestUsable(cliff, -5.0, 0.0, 0.0,
+        // The body is wedged inside a compound's bounding box, dry, on a plateau; the ground fifty metres
+        // east of it is fifty metres lower. Rings go outwards from the body and the eastern candidates are
+        // the first ones considered -- and refused, because a step of fifty metres is not a step. The body
+        // is moved to the nearest ring of ground at its own height instead, one ring out, to the north-west.
+        final double bodyEast = -5.0;
+        final double wedgeRadiusM = 6.0;
+        Surface cliff = new Surface() {
+            @Override
+            public double groundHeightM(double eastM, double northM) {
+                return eastM < 0.0 ? 50.0 : 0.0;
+            }
+
+            @Override
+            public int materialId(double eastM, double northM) {
+                return eastM < 0.0 ? SurfaceMaterial.ID_URBAN_PAD : SurfaceMaterial.ID_SHALLOW_WATER;
+            }
+
+            @Override
+            public double waterDepthM(double eastM, double northM) {
+                return 0.0;
+            }
+
+            @Override
+            public boolean collisionLoaded(double eastM, double northM) {
+                return true;
+            }
+
+            @Override
+            public boolean solidAt(double eastM, double northM, double altitudeM) {
+                double de = eastM - bodyEast;
+                return de * de + northM * northM < wedgeRadiusM * wedgeRadiusM;
+            }
+        };
+        SpawnClearer.Spot spot = SpawnClearer.nearestUsable(cliff, bodyEast, 0.0, 0.0,
                 SpawnClearer.WADE_DEPTH_M, 1.5);
         assertTrue(spot.moved, "the body was wedged and nothing was found for it");
+        assertEquals(SpawnClearer.RING_STEP_M, spot.movedM, 1e-9,
+                "the nearest ground at the body's own height is one ring out: " + spot.movedM);
         assertEquals(50.0, cliff.groundHeightM(spot.eastM, spot.northM), 1e-9,
                 "the rescue stepped the body off the cliff: " + spot.eastM + ", " + spot.northM);
         assertTrue(spot.eastM <= 0.0, "and it did not land past the edge either: " + spot.eastM);
+        assertFalse(cliff.solidAt(spot.eastM, spot.northM, 51.0),
+                "and it did not land inside the box it was wedged in");
     }
 
     @Test
