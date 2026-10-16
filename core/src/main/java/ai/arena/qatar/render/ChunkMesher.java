@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ai.arena.qatar.world.Areas;
+import ai.arena.qatar.world.BarrierGates;
 import ai.arena.qatar.world.Barriers;
 import ai.arena.qatar.world.Buildings;
 import ai.arena.qatar.world.FeatureIndex;
@@ -368,6 +369,11 @@ public final class ChunkMesher {
         }
         Barriers barriers = world.barriers;
         for (int line = 0; line < barriers.count; line++) {
+            if (barriers.kind[line] == Barriers.KIND_GATE) {
+                // A gate is a way through, not a wall: the collision has always let bodies past one, and
+                // drawing it as masonry is the picture disagreeing with the physics.
+                continue;
+            }
             if (barriers.bounds[line * 4] > maxEast || barriers.bounds[line * 4 + 2] < minEast
                     || barriers.bounds[line * 4 + 1] > maxNorth
                     || barriers.bounds[line * 4 + 3] < minNorth) {
@@ -382,6 +388,12 @@ public final class ChunkMesher {
     /**
      * A barrier is a thin vertical ribbon: two triangles per segment, culled from far away. Each segment
      * is sized on its own (four vertices) because a wall can be a kilometre long.
+     *
+     * <p>The one wrinkle is the gates. A compound's wall has a driveway through it, and the country
+     * records the driveway and not the gate -- so {@link BarrierGates} derives where the opening is, and
+     * this method leaves exactly that much wall out. The pieces are drawn from the same crossing of the
+     * same road that the collision uses to decide the wall is passable there, so a gap a player can see
+     * is a gap a player can walk through, and a wall that is drawn is a wall that stops them.
      *
      * @return false when the chunk has no room left and the caller must stop
      */
@@ -401,25 +413,55 @@ public final class ChunkMesher {
             if (length < 0.3f) {
                 continue;
             }
-            MeshData part = mesh.detailPartFor(4);
-            if (part == null) {
-                return false;
+            // Every segment is offered to the gate rule; most walls are nowhere near a road and the answer
+            // is the whole segment, which is the drawing this method has always done.
+            double[] standing = world.gates == null ? null
+                    : world.gates.standingIntervals(ax, az, bx, bz);
+            if (standing == null) {
+                if (!addBarrierPiece(mesh, ax, az, bx, bz, height, tint)) {
+                    return false;
+                }
+                continue;
             }
-            float baseA = (float) world.terrainL1.heightBilinear(
-                    world.manifest.originEast + ax, world.manifest.originNorth + az);
-            float baseB = (float) world.terrainL1.heightBilinear(
-                    world.manifest.originEast + bx, world.manifest.originNorth + bz);
-            float nx = -dz / length;
-            float nz = dx / length;
-            float wall = VertexFormat.SURFACE_WALL;
-            int a0 = part.addVertex(ax, baseA, az, nx, 0, nz, wall, 0, 0, tint);
-            int a1 = part.addVertex(ax, baseA + height, az, nx, 0, nz, wall, 0, height, tint);
-            int b0 = part.addVertex(bx, baseB, bz, nx, 0, nz, wall, length, 0, tint);
-            int b1 = part.addVertex(bx, baseB + height, bz, nx, 0, nz, wall, length, height, tint);
-            part.addQuad(a0, a1, b1, b0);
-            // Both sides, so a compound wall is solid from inside and outside alike.
-            part.addQuad(a0, b0, b1, a1);
+            for (int piece = 0; piece + 1 < standing.length; piece += 2) {
+                float from = (float) standing[piece];
+                float to = (float) standing[piece + 1];
+                if (!addBarrierPiece(mesh, ax + dx * from, az + dz * from, ax + dx * to, az + dz * to,
+                        height, tint)) {
+                    return false;
+                }
+            }
         }
+        return true;
+    }
+
+    /** One piece of wall: two quads, one facing each way, from two points on the barrier's own line. */
+    private boolean addBarrierPiece(ChunkMesh mesh, float ax, float az, float bx, float bz, float height,
+                                    float tint) {
+        float dx = bx - ax;
+        float dz = bz - az;
+        float length = (float) Math.sqrt(dx * dx + dz * dz);
+        if (length < 0.3f) {
+            return true;                                // a piece of wall too short to see is not drawn
+        }
+        MeshData part = mesh.detailPartFor(8);
+        if (part == null) {
+            return false;
+        }
+        float baseA = (float) world.terrainL1.heightBilinear(
+                world.manifest.originEast + ax, world.manifest.originNorth + az);
+        float baseB = (float) world.terrainL1.heightBilinear(
+                world.manifest.originEast + bx, world.manifest.originNorth + bz);
+        float nx = -dz / length;
+        float nz = dx / length;
+        float wall = VertexFormat.SURFACE_WALL;
+        int a0 = part.addVertex(ax, baseA, az, nx, 0, nz, wall, 0, 0, tint);
+        int a1 = part.addVertex(ax, baseA + height, az, nx, 0, nz, wall, 0, height, tint);
+        int b0 = part.addVertex(bx, baseB, bz, nx, 0, nz, wall, length, 0, tint);
+        int b1 = part.addVertex(bx, baseB + height, bz, nx, 0, nz, wall, length, height, tint);
+        part.addQuad(a0, a1, b1, b0);
+        // Both sides, so a compound wall is solid from inside and outside alike.
+        part.addQuad(a0, b0, b1, a1);
         return true;
     }
 

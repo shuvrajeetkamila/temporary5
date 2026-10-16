@@ -122,6 +122,33 @@ final class BarrierCollisionTest {
     }
 
     @Test
+    @DisplayName("a wall lets a walker through at the gate, and stops them one metre to the side of it")
+    void theGateIsAWayThrough() {
+        // The fixture's wall crosses the fixture's residential road at (550, 180), and that crossing is the
+        // gate: the country records the driveway and not the gate, so the driveway is what the rule uses.
+        // This is the whole feature seen from a player's seat -- before it, every compound in Qatar was
+        // sealed and the only way in was the map.
+        double ground = surface.groundHeightM(550.0, 180.0);
+        assertFalse(surface.solidAt(550.0, 180.0, ground + 1.4), "the wall is solid at its own gate");
+        assertTrue(surface.solidAt(530.0, 180.0, ground + 1.4), "the wall has a hole in it beside the gate");
+        assertTrue(surface.solidAt(520.0, 180.0, ground + 1.4), "the hole is wider than the road");
+
+        HumanBody human = new HumanBody();
+        VehicleState state = new VehicleState();
+        human.spawn(state, 550.0, 150.0, surface, 0.0);
+        VehicleInput input = new VehicleInput();
+        input.throttle = 1.0;
+        for (double t = 0; t < 30.0; t += DT) {
+            human.step(state, input, surface, DT);
+        }
+        // Two metres past the wall is through it: what is being asserted is which side of the barrier the
+        // player is on, not how far they walked, because the walk depends on the material under their feet.
+        assertTrue(state.northM > 182.0, "the walker was stopped by a wall it should have walked through: "
+                + state.northM);
+        assertFalse(state.blocked, "the walker reports being blocked at an open gate");
+    }
+
+    @Test
     @DisplayName("a hedge stops a car")
     void hedgeStopsACar() {
         int hedge = -1;

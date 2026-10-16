@@ -1,6 +1,7 @@
 package ai.arena.qatar.game;
 
 import ai.arena.qatar.vehicle.Surface;
+import ai.arena.qatar.world.BarrierGates;
 import ai.arena.qatar.world.Barriers;
 import ai.arena.qatar.world.Buildings;
 import ai.arena.qatar.world.FeatureIndex;
@@ -27,6 +28,8 @@ public final class WorldSurface implements Surface {
     private final FeatureIndex buildingIndex;
     private final Barriers barriers;
     private final FeatureIndex barrierIndex;
+    /** Where the walls have gates: a wall is passable where a road crosses it. See {@link BarrierGates}. */
+    private final BarrierGates gates;
 
     public WorldSurface(GridTerrainSampler sampler, WorldData world) {
         this.sampler = sampler;
@@ -34,6 +37,7 @@ public final class WorldSurface implements Surface {
         this.buildingIndex = world.buildingIndex;
         this.barriers = world.barriers;
         this.barrierIndex = world.barrierIndex;
+        this.gates = world.gates;
     }
 
     @Override
@@ -148,8 +152,16 @@ public final class WorldSurface implements Surface {
                 double az = barriers.xz[(start + i) * 2 + 1];
                 double bx = barriers.xz[(start + i + 1) * 2];
                 double bz = barriers.xz[(start + i + 1) * 2 + 1];
-                if (distanceToSegment(localEastM, localNorthM, ax, az, bx, bz)
+                if (BarrierGates.distanceToSegment(localEastM, localNorthM, ax, az, bx, bz)
                         < BARRIER_HALF_WIDTH_M) {
+                    // The wall is there; whether it is a wall or a gateway is the country's own answer,
+                    // derived from the roads: every compound in Qatar has a driveway through its wall and
+                    // that driveway is where the gate is. See BarrierGates -- and note that the mesher
+                    // leaves a hole in the same place, from the same crossing of the same road, so what
+                    // the player sees and what stops them cannot disagree.
+                    if (gates != null && gates.isGate(localEastM, localNorthM)) {
+                        return true;
+                    }
                     hit[0] = true;
                     return false;
                 }
@@ -159,17 +171,4 @@ public final class WorldSurface implements Surface {
         return hit[0];
     }
 
-    /** Distance from a point to a line segment, in metres. */
-    private static double distanceToSegment(double px, double pz, double ax, double az, double bx,
-                                            double bz) {
-        double dx = bx - ax;
-        double dz = bz - az;
-        double lengthSquared = dx * dx + dz * dz;
-        if (lengthSquared < 1e-9) {
-            return Math.hypot(px - ax, pz - az);
-        }
-        double t = ((px - ax) * dx + (pz - az) * dz) / lengthSquared;
-        t = t < 0 ? 0 : (t > 1 ? 1 : t);
-        return Math.hypot(px - (ax + t * dx), pz - (az + t * dz));
-    }
 }
