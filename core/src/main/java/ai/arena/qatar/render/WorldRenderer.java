@@ -72,6 +72,15 @@ public final class WorldRenderer implements Disposable {
     private Mesh horizonLand;
     private Mesh horizonWater;
     private int horizonTriangles;
+    /**
+     * The skyline: the buildings beyond the detail radius, one coarse block each.
+     *
+     * <p>One mesh for walls and roofs together, because a block is a solid and the two are never drawn
+     * apart; unlike the sea it is single-sided from every angle the player can be at, so it needs no
+     * second pass and no cull-state switch.
+     */
+    private Mesh skyline;
+    private int skylineTriangles;
     /** One matrix per moving part, reused every frame: a car has four wheels, so this never grows. */
     private Matrix4[] partScratch = new Matrix4[8];
 
@@ -388,6 +397,52 @@ public final class WorldRenderer implements Disposable {
     }
 
     /**
+     * Uploads the skyline: the buildings beyond the detail radius, extruded as coarse blocks.
+     *
+     * <p>One mesh, like the horizon and for the same reason -- it is a few thousand blocks, not a stream --
+     * and one upload, because a block has no second layer. An empty mesh means there is no city within
+     * reach (the open desert, or a bundle without buildings) and that is not a failure.
+     */
+    public void uploadSkyline(MeshData blocks) {
+        if (!isReady()) {
+            return;
+        }
+        skyline = upload(skyline, blocks);
+        skylineTriangles = blocks == null ? 0 : blocks.triangleCount();
+    }
+
+    /** The skyline's own triangle count, which the panel reports alongside the chunks'. */
+    public int skylineTriangles() {
+        return skylineTriangles;
+    }
+
+    /** Drops the skyline: after a teleport it is the city around the place the player left. */
+    public void releaseSkyline() {
+        if (skyline != null) {
+            skyline.dispose();
+            skyline = null;
+        }
+        skylineTriangles = 0;
+    }
+
+    /**
+     * Draws the skyline, translated from the centre it was built around, with the world program bound and
+     * the fog set. Drawn after the chunks so that the real geometry wins the depth test where the two
+     * overlap: the band between {@code SkylineMesh.NEAR_M} and the detail radius is streamed properly, and
+     * what survives the depth test there is the detailed building, not the block.
+     */
+    public void drawSkyline(double offsetEast, double offsetNorth) {
+        if (!isReady() || skyline == null) {
+            return;
+        }
+        identity.setToTranslation((float) offsetEast, 0f, (float) offsetNorth);
+        worldProgram.setUniformMatrix("u_model", identity);
+        skyline.render(worldProgram, GL20.GL_TRIANGLES);
+        drawCalls++;
+        drawnTriangles += skyline.getNumIndices() / 3;
+    }
+
+    /**
      * Draws the horizon at its own distance from the floating origin. Called with the world program bound
      * and the fog set, exactly like a chunk; the only difference is that this mesh is a hundred times
      * bigger and there is only one of it.
@@ -513,6 +568,7 @@ public final class WorldRenderer implements Disposable {
             actorMesh = null;
         }
         releaseHorizon();
+        releaseSkyline();
         for (Mesh part : actorParts) {
             if (part != null) {
                 part.dispose();

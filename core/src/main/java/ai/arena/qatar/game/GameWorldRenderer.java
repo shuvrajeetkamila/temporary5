@@ -5,6 +5,7 @@ import ai.arena.qatar.render.ChunkMeshCache;
 import ai.arena.qatar.render.ChunkMesher;
 import ai.arena.qatar.render.ChunkMesher.ChunkMesh;
 import ai.arena.qatar.render.HorizonMesh;
+import ai.arena.qatar.render.SkylineMesh;
 import ai.arena.qatar.render.WorldRenderer;
 import ai.arena.qatar.world.WorldData;
 import ai.arena.qatar.world.WorldOrigin;
@@ -155,6 +156,23 @@ public final class GameWorldRenderer implements Disposable {
     private int horizonRebuilds;
     private boolean horizonFailed;
 
+    /**
+     * The city beyond the detail radius, and where it was built from.
+     *
+     * <p>Separate from the horizon because it is a different thing with a different lifetime: the horizon
+     * is the country out to eleven kilometres at 300 m a cell, and the skyline is the buildings of a city
+     * between two and eight kilometres, rebuilt on the same trigger and drawn in the same pass. The
+     * streamed chunks own the near half of it -- which is why it starts inside the detail radius rather
+     * than at it -- and the horizon owns everything past it.
+     */
+    private SkylineMesh.Skyline skyline;
+    private double skylineCentreEast;
+    private double skylineCentreNorth;
+    /** True when the skyline belongs to a place the player has left: see {@link #horizonStale}. */
+    private boolean skylineStale;
+    private int skylineRebuilds;
+    private boolean skylineFailed;
+
     public GameWorldRenderer(WorldData world, WorldOrigin origin, WorldRenderer renderer) {
         this.world = world;
         this.origin = origin;
@@ -190,8 +208,10 @@ public final class GameWorldRenderer implements Disposable {
         // The horizon is a hundred kilometres out of date the moment the player teleports, and it is drawn
         // from a mesh whose vertices are relative to where it was built: leaving it up would paste the
         // country around the old position over the new one. It is rebuilt on the next update, and until
-        // then the fog goes back to hiding the edge of the streamed world.
+        // then the fog goes back to hiding the edge of the streamed world. The skyline is the same fault
+        // with the same fix -- a city of the wrong country, pasted over the one the player arrived in.
         horizonStale = true;
+        skylineStale = true;
     }
 
     /** Recomputes bundle<->local translation; call after the floating origin rebases. */
@@ -234,7 +254,12 @@ public final class GameWorldRenderer implements Disposable {
             build(chosen, bundleEast, bundleNorth);
         }
         releaseDepartedChunks();
-        updateHorizon(bundleEast, bundleNorth);
+        // One of the two ring builds per frame at most. Both are a few milliseconds of work -- the horizon
+        // is twelve thousand triangles and the skyline is a search over the city -- and both fire on the
+        // same trigger, so without this a teleport into Doha would spend two of them in one frame. The
+        // second one follows a frame later, which nobody can see and a slow phone can feel.
+        boolean horizonBuilt = updateHorizon(bundleEast, bundleNorth);
+        updateSkyline(bundleEast, bundleNorth, horizonBuilt);
     }
 
     /**
@@ -243,18 +268,18 @@ public final class GameWorldRenderer implements Disposable {
      * <p>Called after the chunks have been built rather than before: the ground under the player's feet is
      * what they will notice missing, and the horizon is by definition the thing that can wait a frame.
      */
-    private void updateHorizon(double bundleEast, double bundleNorth) {
+    private boolean updateHorizon(double bundleEast, double bundleNorth) {
         if (horizonFailed || renderer == null || !renderer.isReady()) {
             // No shaders, no world: a horizon built now would be twelve thousand vertices with nowhere to
             // go, and the fog behaves as it did before the horizon existed until there is a renderer.
-            return;
+            return false;
         }
         if (horizon != null && !horizonStale) {
             double movedEast = bundleEast - horizonCentreEast;
             double movedNorth = bundleNorth - horizonCentreNorth;
             if (movedEast * movedEast + movedNorth * movedNorth
                     < HorizonMesh.REBUILD_MOVE_M * HorizonMesh.REBUILD_MOVE_M) {
-                return;
+                return false;
             }
         }
         try {
@@ -269,12 +294,51 @@ public final class GameWorldRenderer implements Disposable {
             horizonCentreNorth = bundleNorth;
             horizonStale = false;
             horizonRebuilds++;
+            return true;
         } catch (Throwable t) {
             // One failure is enough: this is the same call with the same inputs every time, and a phone
             // that cannot build it must carry on with the fog it had before, not with a crash.
             horizonFailed = true;
             ai.arena.qatar.boot.ScreenLog.GLOBAL.error("the far horizon could not be built; the fog "
                     + "keeps the edge of the world hidden instead", t);
+            return false;
+        }
+    }
+
+    /**
+     * Builds the skyline of the city beyond the detail radius, if it is missing, stale, or no longer
+     * centred near the player.
+     *
+     * <p>The same shape as {@link #updateHorizon}: rebuilt around the player every kilometre and a half,
+     * skipped while another ring is being built this frame, and one failure is enough to stop trying --
+     * a phone that cannot afford it keeps the world it already had, and the panel says so.
+     */
+    private void updateSkyline(double bundleEast, double bundleNorth, boolean builtSomethingElse) {
+        if (skylineFailed || builtSomethingElse || renderer == null || !renderer.isReady()) {
+            return;
+        }
+        if (skyline != null && !skylineStale) {
+            double movedEast = bundleEast - skylineCentreEast;
+            double movedNorth = bundleNorth - skylineCentreNorth;
+            if (movedEast * movedEast + movedNorth * movedNorth
+                    < SkylineMesh.REBUILD_MOVE_M * SkylineMesh.REBUILD_MOVE_M) {
+                return;
+            }
+        }
+        try {
+            SkylineMesh.Skyline built = SkylineMesh.build(world, bundleEast, bundleNorth);
+            renderer.uploadSkyline(built.blocks);
+            // The GPU has its copy; the CPU one is a couple of megabytes the phone can spend on chunks.
+            built.blocks.releaseArrays();
+            skyline = built;
+            skylineCentreEast = bundleEast;
+            skylineCentreNorth = bundleNorth;
+            skylineStale = false;
+            skylineRebuilds++;
+        } catch (Throwable t) {
+            skylineFailed = true;
+            ai.arena.qatar.boot.ScreenLog.GLOBAL.error("the distant city could not be built; the world "
+                    + "beyond the detail radius stays as bare as it was", t);
         }
     }
 
@@ -289,6 +353,31 @@ public final class GameWorldRenderer implements Disposable {
 
     public int horizonTriangles() {
         return renderer.horizonTriangles();
+    }
+
+    /** True when a skyline is on the GPU and belongs where the player is now. */
+    public boolean skylineReady() {
+        return skyline != null && !skylineStale && !skylineFailed;
+    }
+
+    public int skylineBlocks() {
+        return skyline == null ? 0 : skyline.blockCount;
+    }
+
+    public int skylineRebuilds() {
+        return skylineRebuilds;
+    }
+
+    public int skylineTriangles() {
+        return renderer.skylineTriangles();
+    }
+
+    /** One line describing the distant city, for the launch trace and the report. */
+    public String skylineDescription() {
+        if (skyline == null) {
+            return skylineFailed ? "skyline FAILED" : "skyline pending";
+        }
+        return skyline.describe();
     }
 
     /**
@@ -373,6 +462,7 @@ public final class GameWorldRenderer implements Disposable {
         // The fog follows what is actually being drawn: with a horizon under it, out to the horizon's own
         // far edge; without one, out to the streamed chunks and no further.
         boolean horizonUp = horizonReady();
+        boolean skylineUp = skylineReady();
         renderer.setFogRange(horizonUp ? (float) HorizonMesh.FAR_M : (float) drawRadiusM, horizonUp);
         drawnChunks = 0;
         culledChunks = 0;
@@ -409,6 +499,12 @@ public final class GameWorldRenderer implements Disposable {
             // chunks are already in the depth buffer, so the near half of it is rejected by the GPU
             // before it is ever shaded: what is left is the distance.
             renderer.drawHorizon(horizonCentreEast - bundleOffsetEast, horizonCentreNorth - bundleOffsetNorth);
+        }
+        if (skylineUp) {
+            // Also one draw call, and drawn after the chunks so the real buildings win where the two
+            // overlap: a coarse block exists to fill the distance, never to cover the street the player
+            // is standing in.
+            renderer.drawSkyline(skylineCentreEast - bundleOffsetEast, skylineCentreNorth - bundleOffsetNorth);
         }
         // No state hand-over here on purpose: the player's body may still be drawn with this pass's
         // state, and WorldRenderer.drawActor ends the 3D frame once the body is on the screen. The HUD
@@ -521,6 +617,13 @@ public final class GameWorldRenderer implements Disposable {
                 + ", horizon " + (horizonReady() ? (horizonTriangles() / 1000) + "k tris"
                         + (horizonRebuilds > 1 ? " x" + horizonRebuilds : "")
                         : horizonFailed ? "FAILED" : "pending")
+                // The distant city in one number: how many blocks of it are on the GPU. A count of zero
+                // in the middle of Doha is the whole of this feature failing quietly, and the tenth
+                // install's report is why the panel prints a number rather than nothing.
+                + ", city " + (skylineReady() ? skylineBlocks() + " blocks, "
+                        + (skylineTriangles() / 1000) + "k tris"
+                        + (skylineRebuilds > 1 ? " x" + skylineRebuilds : "")
+                        : skylineFailed ? "FAILED" : "pending")
                 + (failedChunks() > 0 ? ", " + failedChunks() + " FAILED" : "");
     }
 

@@ -23,6 +23,9 @@ import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.utils.Disposable;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * The playable screen: the world, the camera, the controls and the two maps.
  *
@@ -118,6 +121,12 @@ public final class GameScreen extends InputAdapter implements Disposable {
 
     private float statusRefresh;
     private String statusLine = "";
+    /**
+     * The status panel, as the lines the HUD draws: the player's own line, then the world's measurements
+     * wrapped to the width of a phone. See {@code StatusText} -- it was one line until the numbers added
+     * over the last four rounds pushed its right-hand half off the screen.
+     */
+    private List<String> statusLines = Collections.emptyList();
     private String statusLineArabic = "";
 
     /**
@@ -510,6 +519,10 @@ public final class GameScreen extends InputAdapter implements Disposable {
         statusRefresh -= dt;
         if (statusRefresh <= 0f) {
             statusRefresh = 0.25f;
+            statusLines = StatusText.englishLines(controller.describe(),
+                    rig.east + offsetEastToBundle(), rig.north + offsetNorthToBundle(),
+                    worldRenderer.describe(), Gdx.graphics.getFramesPerSecond());
+            // One line, for the tests and the crash report: the same text the panel shows, un-wrapped.
             statusLine = StatusText.english(controller.describe(),
                     rig.east + offsetEastToBundle(), rig.north + offsetNorthToBundle(),
                     worldRenderer.describe(), Gdx.graphics.getFramesPerSecond());
@@ -521,8 +534,10 @@ public final class GameScreen extends InputAdapter implements Disposable {
         float margin = height * 0.02f;
         float step = hud.lineHeight() * 1.2f;
         float lineY = height - margin;
-        hud.drawStatus(statusLine, margin, lineY);
-        lineY -= step;
+        for (String line : statusLines) {
+            hud.drawStatus(line, margin, lineY);
+            lineY -= step;
+        }
         hud.drawStatusArabic(statusLineArabic, margin, lineY);
         if (layout.bigMapVisible()) {
             lineY -= step;
