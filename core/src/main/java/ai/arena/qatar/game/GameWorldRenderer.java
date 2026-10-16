@@ -4,6 +4,7 @@ import ai.arena.qatar.render.ChunkCulling;
 import ai.arena.qatar.render.ChunkMeshCache;
 import ai.arena.qatar.render.ChunkMesher;
 import ai.arena.qatar.render.ChunkMesher.ChunkMesh;
+import ai.arena.qatar.render.BodyMesher;
 import ai.arena.qatar.render.FarLayerMesh;
 import ai.arena.qatar.render.HorizonMesh;
 import ai.arena.qatar.render.SkylineMesh;
@@ -193,6 +194,23 @@ public final class GameWorldRenderer implements Disposable {
     /** The road segment count last written to the launch trace, by the same rule as the skyline's. */
     private int farLayerLoggedSegments = -1;
 
+    /**
+     * The cars driving the roads around the player.
+     *
+     * <p>Kept in bundle metres, because that is the frame the compiled ways are in, and converted to local
+     * metres at draw time: a floating-origin rebase moves the whole fleet then, without any of it noticing.
+     * Cleared on a teleport, because the traffic around the place the player left is not the traffic at the
+     * place they arrived.
+     */
+    private final ai.arena.qatar.game.Traffic traffic = new ai.arena.qatar.game.Traffic();
+    private final java.util.List<BodyMesher.Part> trafficParts =
+            BodyMesher.parts(BodyMesher.Body.CAR);
+    private final Matrix4 trafficScratch = new Matrix4();
+    /** The traffic as contacts, for the controller's push: four numbers per car, refilled each frame. */
+    private final double[] trafficContacts = new double[ai.arena.qatar.game.Traffic.MAX_CARS * 4];
+    private int trafficContactCount;
+    private boolean trafficMeshUploaded;
+
     public GameWorldRenderer(WorldData world, WorldOrigin origin, WorldRenderer renderer) {
         this.world = world;
         this.origin = origin;
@@ -235,6 +253,23 @@ public final class GameWorldRenderer implements Disposable {
         // And the far layer with them: the roads around the old position drawn over the new one is the
         // same fault a third time, and the fix is the same -- rebuild before drawing rather than after.
         farLayerStale = true;
+        // The traffic goes entirely: it belongs to the roads it is driving, and those roads are now a
+        // hundred kilometres behind the player. The fleet refills around the arrival over the next few
+        // frames, on the roads that are there.
+        traffic.clear();
+    }
+
+    /** The traffic near the player as push-out contacts: four numbers per car, east, north, height, radius. */
+    public double[] trafficContacts() {
+        return trafficContacts;
+    }
+
+    public int trafficContactCount() {
+        return trafficContactCount;
+    }
+
+    public int trafficCars() {
+        return traffic.count();
     }
 
     /** Recomputes bundle<->local translation; call after the floating origin rebases. */
@@ -281,6 +316,17 @@ public final class GameWorldRenderer implements Disposable {
         // is twelve thousand triangles and the skyline is a search over the city -- and both fire on the
         // same trigger, so without this a teleport into Doha would spend two of them in one frame. The
         // second one follows a frame later, which nobody can see and a slow phone can feel.
+        // The traffic first: it is the cheapest thing here and the only one that moves every frame, and a
+        // car that appears on a road the player is looking at should not wait behind a chunk build.
+        traffic.update(world, bundleEast, bundleNorth, deltaSeconds);
+        trafficContactCount = traffic.contactsInto(trafficContacts);
+        // The contacts are handed to the controller, which works in local metres near the floating origin,
+        // while the fleet is kept in the bundle's own frame: the conversion happens here, once, in the one
+        // place that knows both. A push computed in the wrong frame is a shove of fifty kilometres.
+        for (int i = 0; i < trafficContactCount; i++) {
+            trafficContacts[i * 4] -= bundleOffsetEast;
+            trafficContacts[i * 4 + 1] -= bundleOffsetNorth;
+        }
         boolean horizonBuilt = updateHorizon(bundleEast, bundleNorth);
         boolean skylineBuilt = updateSkyline(bundleEast, bundleNorth, horizonBuilt);
         updateFarLayer(bundleEast, bundleNorth, horizonBuilt || skylineBuilt);
@@ -618,9 +664,35 @@ public final class GameWorldRenderer implements Disposable {
             renderer.drawFarLayer(farLayerCentreEast - bundleOffsetEast,
                     farLayerCentreNorth - bundleOffsetNorth);
         }
+        drawTraffic();
         // No state hand-over here on purpose: the player's body may still be drawn with this pass's
         // state, and WorldRenderer.drawActor ends the 3D frame once the body is on the screen. The HUD
         // does not depend on either of them: HudRenderer.begin() sets its own state (see GlState2D).
+    }
+
+    /**
+     * Draws the traffic, in local metres: the fleet is kept in bundle metres and converted here, which is
+     * the only place the floating origin has to be applied to it.
+     *
+     * <p>Inside the world's own pass and before the player's body, because the body's own draw ends the 3D
+     * frame. The cars are drawn without the polygon offset the far layer uses: they are three-dimensional
+     * geometry standing on the ground, not a painting of it, and a car that lost the depth test against the
+     * road it is driving on would flicker down the whole street.
+     */
+    private void drawTraffic() {
+        if (!trafficMeshUploaded) {
+            renderer.setTrafficMesh(BodyMesher.mesh(BodyMesher.Body.CAR), trafficParts);
+            trafficMeshUploaded = true;
+        }
+        renderer.beginTraffic();
+        for (int i = 0; i < trafficContactCount; i++) {
+            ai.arena.qatar.game.Traffic.Car car = traffic.car(i);
+            double localEast = car.eastM - bundleOffsetEast;
+            double localNorth = car.northM - bundleOffsetNorth;
+            renderer.drawTrafficCar(BodyMesher.transform(trafficScratch, localEast, car.heightM,
+                            localNorth, car.headingDegrees), trafficParts, localEast, car.heightM,
+                    localNorth, car.headingDegrees, car.spinDegrees);
+        }
     }
 
     /** Uploads the player's body, and the parts of it that move, for the locomotion being played. */
@@ -742,6 +814,9 @@ public final class GameWorldRenderer implements Disposable {
                         + (farLayerTriangles() / 1000) + "k tris"
                         + (farLayerRebuilds > 1 ? " x" + farLayerRebuilds : "")
                         : farLayerFailed ? "FAILED" : "pending")
+                // And the traffic, which is the one number on this panel that says whether the country is
+                // inhabited: zero cars on a road in Doha is the feature failing quietly.
+                + ", traffic " + trafficCars() + " cars"
                 + (failedChunks() > 0 ? ", " + failedChunks() + " FAILED" : "");
     }
 

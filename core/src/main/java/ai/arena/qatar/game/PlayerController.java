@@ -509,6 +509,42 @@ public final class PlayerController {
     }
 
     /**
+     * Pushes the player out of the moving traffic.
+     *
+     * <p>The same push as a parked machine, and for the same reason: a car that drives through the player
+     * is not a car, it is a decoration. The rule is deliberately one-way -- the traffic never slows for the
+     * player and never steers round them -- because the alternative is a traffic simulation, and what this
+     * is instead is a handful of cars on the country's own roads. What the player feels is what they would
+     * feel: a shove back out of the lane, and a machine that has to gather its speed again.
+     *
+     * <p>Contacts arrive as four numbers per car -- east, north, height, radius -- in the controller's own
+     * local frame, which the caller has already converted to.
+     */
+    public void resolveTrafficContacts(double[] contacts, int count, double dt) {
+        if (contacts == null || count <= 0 || dt <= 0.0) {
+            return;
+        }
+        VehicleState state = state();
+        double radius = VehicleContact.radiusM(loco);
+        for (int i = 0; i < count; i++) {
+            if (i * 4 + 3 >= contacts.length) {
+                return;
+            }
+            VehicleContact.Resolved contact = VehicleContact.separate(state.eastM, state.northM,
+                    state.heightM, radius, contacts[i * 4], contacts[i * 4 + 1], contacts[i * 4 + 2],
+                    contacts[i * 4 + 3]);
+            if (contact.pushedM <= 0.0) {
+                continue;
+            }
+            state.eastM = contact.eastM;
+            state.northM = contact.northM;
+            state.speedMS *= Math.pow(0.1, dt / CONTACT_SLOWING_S);
+            state.blocked = true;
+            state.slip = Math.max(state.slip, Math.min(1.0, contact.pushedM));
+        }
+    }
+
+    /**
      * How fast the wheels, the propeller or the rotors are turning, in degrees per second. Given the
      * machine, these are the real numbers: a car wheel turns at v/r, an aeroplane engine idles at 700 rpm
      * and turns 2,400 at full power, a rotor head is governed near 330 rpm whatever the collective does.

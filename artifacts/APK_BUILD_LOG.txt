@@ -13,6 +13,17 @@
 /home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/FarLayerMesh.java:654: error: incompatible types: possible lossy conversion from double to float
         addPalmWall(pass.mesh, east - trunk, north + trunk, east - trunk, north - trunk, baseY, trunkTop,
                                     ^
+
+> Task :android:createDebugCompatibleScreenManifests
+> Task :android:extractDeepLinksDebug
+> Task :android:parseDebugLocalResources
+
+> Task :android:processDebugMainManifest
+/home/runner/work/temporary5/temporary5/android/src/main/AndroidManifest.xml:18:9-41 Warning:
+	android:extractNativeLibs should not be specified in this source AndroidManifest.xml file. See https://d.android.com/guide/topics/manifest/application-element#extractNativeLibs for more information.
+The AGP Upgrade Assistant can remove the attribute from the AndroidManifest.xml file and update the build file accordingly. See https://d.android.com/studio/build/agp-upgrade-assistant for more information.
+
+> Task :core:compileJava FAILED
 Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
 4 errors
 
@@ -25,8 +36,6 @@ FAILURE: Build failed with an exception.
 
 * What went wrong:
 Execution failed for task ':core:compileJava'.
-> Compilation failed; see the compiler error output for details.
-
 --
 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)

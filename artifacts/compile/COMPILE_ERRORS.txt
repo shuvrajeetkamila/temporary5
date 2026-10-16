@@ -1,3 +1,15 @@
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/Traffic.java:4: error: cannot find symbol
+import ai.arena.qatar.vehicle.Loco;
+                             ^
+--
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/Traffic.java:5: error: cannot find symbol
+import ai.arena.qatar.vehicle.VehicleContact;
+                             ^
+--
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:208: error: cannot find symbol
+    private final Matrix4 trafficScratch = new Matrix4();
+                  ^
+--
 /home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/FarLayerMesh.java:648: error: incompatible types: possible lossy conversion from double to float
         addPalmWall(pass.mesh, east - trunk, north - trunk, east + trunk, north - trunk, baseY, trunkTop,
                                     ^
@@ -10,3 +22,10 @@
 /home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/FarLayerMesh.java:654: error: incompatible types: possible lossy conversion from double to float
         addPalmWall(pass.mesh, east - trunk, north + trunk, east - trunk, north - trunk, baseY, trunkTop,
                                     ^
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:208: error: cannot find symbol
+    private final Matrix4 trafficScratch = new Matrix4();
+                                               ^
+--
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/Traffic.java:337: error: cannot find symbol
+            out[written * 4 + 3] = VehicleContact.radiusM(Loco.CAR);
+                                                          ^
