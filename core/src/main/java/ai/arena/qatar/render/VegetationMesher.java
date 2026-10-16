@@ -307,6 +307,13 @@ public final class VegetationMesher {
                                      float dz, double nx, double ny, double nz, float uLow,
                                      float uHigh, double variation, float tint, int material) {
         boolean up = orientationMatches(ax, ay, az, bx, by, bz, dx, dy, dz, nx, ny, nz);
+        // Whichever way round the winding went, the four vertices are written in the order the GPU has
+        // to read them -- that is what the flip is for -- so the indices are simply the four that were
+        // just written, in the order they were written. Writing vertices without indices is what the
+        // eleventh install shipped: `WorldRenderer.upload` refuses a mesh with no indices, so every palm
+        // and every bush in the country existed in the vertex buffer and nowhere on the screen, and the
+        // only visible symptom was a chunk that was cheaper than it should have been.
+        int first = mesh.vertexCount();
         if (up) {
             addVertex(mesh, ax, ay, az, uLow, variation, tint, material);
             addVertex(mesh, bx, by, bz, uLow, variation, tint, material);
@@ -318,6 +325,7 @@ public final class VegetationMesher {
             addVertex(mesh, bx, by, bz, uLow, variation, tint, material);
             addVertex(mesh, ax, ay, az, uLow, variation, tint, material);
         }
+        mesh.addQuad(first, first + 1, first + 2, first + 3);
     }
 
     /** The same for a triangle. */
@@ -326,6 +334,7 @@ public final class VegetationMesher {
                                          double nx, double ny, double nz, float u0, float u1,
                                          double variation, float tint, int material) {
         boolean up = orientationMatches(ax, ay, az, bx, by, bz, cx, cy, cz, nx, ny, nz);
+        int first = mesh.vertexCount();
         if (up) {
             addVertex(mesh, ax, ay, az, u0, variation, tint, material);
             addVertex(mesh, bx, by, bz, u1, variation, tint, material);
@@ -335,6 +344,7 @@ public final class VegetationMesher {
             addVertex(mesh, cx, cy, cz, u1, variation, tint, material);
             addVertex(mesh, bx, by, bz, u1, variation, tint, material);
         }
+        mesh.addTriangle(first, first + 1, first + 2);
     }
 
     /** True when the winding (a, b, c) has its front face towards the desired normal. */

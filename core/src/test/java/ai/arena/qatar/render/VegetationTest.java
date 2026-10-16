@@ -98,22 +98,49 @@ final class VegetationTest {
                 materials(400.0, SurfaceMaterial.ID_FARM_SOIL), mesh, 1.0, 20_000);
         assertTrue(stats.plants() > 0, "no plants at all");
 
-        for (int i = 0; i < mesh.vertexCount(); i++) {
-            float x = mesh.vertices()[i * FLOATS];
-            float y = mesh.vertices()[i * FLOATS + 1];
-            float z = mesh.vertices()[i * FLOATS + 2];
-            assertEquals(VertexFormat.SURFACE_VEGETATION, mesh.vertices()[i * FLOATS + 6], 1e-6f,
-                    "a plant vertex is not painted as vegetation");
-            assertTrue(x >= 0.0f && x <= 400.0f && z >= 0.0f && z <= 400.0f,
-                    "a plant grew outside its polygon at " + x + ", " + z);
-            // The trunk is set 25 cm into the ground so no seam shows, and a palm's crown is metres up.
-            assertTrue(y >= GROUND_M - 0.3f, "a plant vertex is below the ground: " + y);
-            assertTrue(y <= GROUND_M + 20.0f, "a plant is absurdly tall: " + y);
-            // The ground is flat, so every plant's base sits on it and none of them floats.
-            assertTrue(y <= GROUND_M + VegetationMesher.PALM_HEIGHT_MAX_M
-                            + VegetationMesher.CROWN_RADIUS_MAX_M,
-                    "a plant is taller than the mesher can draw: " + y);
+        int vertex = 0;
+        int plants = 0;
+        while (vertex < mesh.vertexCount()) {
+            boolean palm = mesh.vertices()[vertex * FLOATS + 9] < 0.5f;
+            int size = palm ? VegetationMesher.PALM_VERTICES : VegetationMesher.BUSH_VERTICES;
+            assertTrue(vertex + size <= mesh.vertexCount(), "a plant runs off the end of its own group");
+            double baseEast = 0.0;
+            double baseNorth = 0.0;
+            for (int i = vertex; i < vertex + size; i++) {
+                float x = mesh.vertices()[i * FLOATS];
+                float y = mesh.vertices()[i * FLOATS + 1];
+                float z = mesh.vertices()[i * FLOATS + 2];
+                assertEquals(VertexFormat.SURFACE_VEGETATION, mesh.vertices()[i * FLOATS + 6], 1e-6f,
+                        "a plant vertex is not painted as vegetation");
+                assertEquals(palm ? 0.0f : 1.0f, mesh.vertices()[i * FLOATS + 9], 1e-6f,
+                        "a plant's own vertices disagree about what kind of plant it is");
+                baseEast += x;
+                baseNorth += z;
+                // A crown leans over the edge of its polygon -- that is what foliage does -- so the
+                // generous bound is the polygon plus the widest crown the mesher grows.
+                assertTrue(x >= -VegetationMesher.CROWN_RADIUS_MAX_M
+                                && x <= 400.0 + VegetationMesher.CROWN_RADIUS_MAX_M
+                                && z >= -VegetationMesher.CROWN_RADIUS_MAX_M
+                                && z <= 400.0 + VegetationMesher.CROWN_RADIUS_MAX_M,
+                        "a plant grew far outside its polygon at " + x + ", " + z);
+                // The trunk is set 25 cm into the ground so no seam shows, and a palm's crown is metres up.
+                assertTrue(y >= GROUND_M - 0.3f, "a plant vertex is below the ground: " + y);
+                // The ground is flat, so every plant stands on it and none of them floats.
+                assertTrue(y <= GROUND_M + VegetationMesher.PALM_HEIGHT_MAX_M
+                                + VegetationMesher.CROWN_RADIUS_MAX_M,
+                        "a plant is taller than the mesher can draw: " + y);
+            }
+            // The trunk -- the plant's own axis, the mean of its vertices -- is inside the polygon, which
+            // is the rule the scatter follows: plants are grown where the land use says there is land to
+            // grow them on.
+            baseEast /= size;
+            baseNorth /= size;
+            assertTrue(baseEast >= 0.0 && baseEast <= 400.0 && baseNorth >= 0.0 && baseNorth <= 400.0,
+                    "a plant stands outside its own polygon at " + baseEast + ", " + baseNorth);
+            vertex += size;
+            plants++;
         }
+        assertTrue(plants > 5, "only " + plants + " plants were checked");
     }
 
     @Test
