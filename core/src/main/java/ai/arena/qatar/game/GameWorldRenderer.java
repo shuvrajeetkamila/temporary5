@@ -4,6 +4,7 @@ import ai.arena.qatar.render.ChunkCulling;
 import ai.arena.qatar.render.ChunkMeshCache;
 import ai.arena.qatar.render.ChunkMesher;
 import ai.arena.qatar.render.ChunkMesher.ChunkMesh;
+import ai.arena.qatar.render.HorizonMesh;
 import ai.arena.qatar.render.WorldRenderer;
 import ai.arena.qatar.world.WorldData;
 import ai.arena.qatar.world.WorldOrigin;

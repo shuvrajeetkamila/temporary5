@@ -18,7 +18,11 @@ blocks, then:
     reported it from the middle of a compile gate rather than from here;
   * fails on an `@Override` that is not sitting on a method, which is what an inserted method
     between an annotation and its method looks like, and which the compiler reports as
-    "method does not override or implement a method from a supertype".
+    "method does not override or implement a method from a supertype";
+  * fails on a type this project declares in *another package* being used without an import, which is
+    what `HorizonMesh` was in `GameWorldRenderer` on commit 45dc5a0: the code was correct, the syntax
+    was correct, every other local check passed, and javac stopped at `package HorizonMesh does not
+    exist` because the file said `HorizonMesh.Horizon` and meant `ai.arena.qatar.render.HorizonMesh`.
 
 It always runs its own embedded samples first -- a missing import, a correct file, a qualified call, a
 wildcard import, a file's own helper, an assertion in a comment -- because a checker that has never
@@ -79,6 +83,63 @@ JS_ROOTS = {
 }
 
 MATH_MEMBER = re.compile(r"(?<![\w.$])Math\.([A-Za-z_]\w*)")
+
+# Every type this project declares, and the package it declares it in. A file may use a type from
+# another package only through a single-type import, a wildcard import, or its own package -- which is
+# the rule javac enforces and the one this gate now enforces a second earlier.
+# No line anchor and no modifier list: a top-level class, a nested one and a local one all look the
+# same to javac, and the `class`/`interface`/`enum`/`record` keyword followed by a capitalised name is
+# what a declaration is. `Foo.class` is not, because the keyword there is preceded by a dot.
+TYPE_DECLARATION = re.compile(r"(?<![\w.])(?:class|interface|enum|record)\s+([A-Z]\w*)")
+PACKAGE_DECLARATION = re.compile(r"^\s*package\s+([\w.]+)\s*;", re.MULTILINE)
+IMPORT_DECLARATION = re.compile(r"^\s*import\s+(?:static\s+)?([\w.]+)\s*;", re.MULTILINE)
+WILDCARD_IMPORT = re.compile(r"^\s*import\s+(?:static\s+)?([\w.]+)\.\*\s*;", re.MULTILINE)
+# A capitalised identifier in code: a type name, never a variable in this project's style.
+CAPITALISED_NAME = re.compile(r"(?<![\w.$])([A-Z]\w*)(?![\w])")
+
+
+def declared_types(paths) -> dict:
+    """A simple name -> the packages that declare a type with that name.
+
+    Only `core/src` is scanned, and only the names the project itself writes: a name that comes from
+    libGDX or the JDK is not in this index and is therefore never reported, which is deliberate -- this
+    gate is for the imports a change *forgot*, and those are always of code that is in the tree.
+    """
+    index: dict = {}
+    for path in paths:
+        text = path.read_text(encoding="utf-8", errors="replace")
+        match = PACKAGE_DECLARATION.search(strip_java(text))
+        package = match.group(1) if match else ""
+        stripped = strip_java(text)
+        for name in set(TYPE_DECLARATION.findall(stripped)):
+            index.setdefault(name, set()).add(package)
+    return index
+
+
+def own_type_names(source: str) -> set:
+    return set(TYPE_DECLARATION.findall(source))
+
+
+def unresolved_types(source: str, index: dict) -> list:
+    """(line, name, packages) for every cross-package type name this file never imports."""
+    package_match = PACKAGE_DECLARATION.search(source)
+    own_package = package_match.group(1) if package_match else ""
+    imports = IMPORT_DECLARATION.findall(source)
+    imported = {name.rsplit(".", 1)[-1] for name in imports}
+    wildcards = set(WILDCARD_IMPORT.findall(source))
+    declared_here = own_type_names(source)
+    found: list = []
+    for match in CAPITALISED_NAME.finditer(source):
+        name = match.group(1)
+        packages = index.get(name)
+        if not packages:
+            continue
+        if own_package in packages or name in declared_here or name in imported:
+            continue
+        if packages & wildcards:
+            continue
+        found.append((source.count("\n", 0, match.start()) + 1, name, sorted(packages)))
+    return found
 DRIFTED_OVERRIDE = re.compile(r"^\s*@Override\s*$")
 COMMENT_LINE = re.compile(r"^\s*(/\*|\*|//)")
 
@@ -218,15 +279,26 @@ def drifted_overrides(raw: str, source: str) -> list[tuple[int, str]]:
     return found
 
 
-def check_file(path: Path) -> list[str]:
+def check_file(path: Path, index: dict | None = None) -> list[str]:
     raw_source = path.read_text(encoding="utf-8", errors="replace")
     source = strip_java(raw_source)
-    problems = [
+    problems = []
+    if index:
+        package_match = PACKAGE_DECLARATION.search(source)
+        this_package = package_match.group(1) if package_match else "?"
+        for line, name, packages in unresolved_types(source, index):
+            problems.append(
+                shown(path) + ":" + str(line) + ": `" + name + "` is a type this project declares in `"
+                + packages[0] + "`, but this file is in `" + this_package + "` and never imports it: "
+                + "javac stops here with \"package " + name + " does not exist\" or \"cannot find "
+                + "symbol\" -- add `import " + packages[0] + "." + name + ";`"
+            )
+    problems.extend([
         f"{shown(path)}:{line}: {name}(...) is called unqualified but was never "
         f"imported -- add `import static org.junit.jupiter.api.Assertions.{name};` or qualify "
         f"the call, because the compiler will stop here"
         for line, name in undefined_calls(source)
-    ]
+    ])
 
     problems.extend(
         f"{shown(path)}:{line}: java.lang.Math does not declare `{member}`"
@@ -279,6 +351,37 @@ def selftest() -> int:
     no_method = "class T {\n    @Override\n    int field = 1;\n}\n"
 
     failures = 0
+    # The mistake the compile gate caught on 45dc5a0: a type used from another package with no import.
+    index = {"HorizonMesh": {"ai.arena.qatar.render"}, "Horizon": {"ai.arena.qatar.render"}}
+    missing_import = "package ai.arena.qatar.game;\n" \
+                     "class T { HorizonMesh.Horizon h; void f() { HorizonMesh.build(); } }\n"
+    with_import = "package ai.arena.qatar.game;\n" \
+                  "import ai.arena.qatar.render.HorizonMesh;\n" \
+                  "class T { HorizonMesh.Horizon h; void f() { HorizonMesh.build(); } }\n"
+    wildcard_import = "package ai.arena.qatar.game;\n" \
+                      "import ai.arena.qatar.render.*;\n" \
+                      "class T { HorizonMesh.Horizon h; }\n"
+    same_package = "package ai.arena.qatar.render;\n" \
+                   "class T { HorizonMesh.Horizon h; }\n"
+    own_declaration = "package ai.arena.qatar.game;\n" \
+                      "class T { static class HorizonMesh { } HorizonMesh h; }\n"
+    other_package_var = "package ai.arena.qatar.game;\n" \
+                        "class T { void f() { android.horizonMesh = 1; } }\n"
+    for label, text, expected in [
+        ("a type used from another package with no import", missing_import, 2),
+        ("the same with the import", with_import, 0),
+        ("a wildcard import of its package", wildcard_import, 0),
+        ("a type in the file's own package", same_package, 0),
+        ("the file's own nested type", own_declaration, 0),
+        ("a qualified reference through another name", other_package_var, 0),
+    ]:
+        found = unresolved_types(strip_java(text), index)
+        if len(found) != expected:
+            print(f"FAIL  selftest '{label}': expected {expected}, got {found}")
+            failures += 1
+        else:
+            print(f"ok    selftest '{label}': {len(found)} unresolved type(s)")
+
     cases = [
         ("a missing assertion import", broken, ["assertEquals"]),
         ("a correct file", correct, []),
@@ -329,9 +432,11 @@ def main() -> int:
     failures = selftest()
     print("== source tree ==")
     files = sorted(SOURCE_ROOT.rglob("*.java")) if SOURCE_ROOT.is_dir() else []
+    index = declared_types(files)
+    print(f"    {len(index)} type names declared in the tree, checked against every file's imports")
     problems: list[str] = []
     for path in files:
-        problems.extend(check_file(path))
+        problems.extend(check_file(path, index))
     for problem in problems:
         print("FAIL ", problem)
     if not files:
