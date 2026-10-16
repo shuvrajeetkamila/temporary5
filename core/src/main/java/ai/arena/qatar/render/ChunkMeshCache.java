@@ -180,12 +180,18 @@ public final class ChunkMeshCache {
             }
         }
 
-        // Evict what is now far outside the resident window, oldest use first.
+        // Evict what is now far outside the resident window. The window is the radius the caller asked
+        // for -- the renderer's draw radius, which shrinks when the phone is struggling -- plus a margin
+        // so that a chunk streaming in behind the player is not dropped before it is drawn. Reading the
+        // constant here instead of the parameter meant a cache that could never let go of a seven
+        // kilometre ring, whatever the frame could afford to draw, and it is also what made a teleport
+        // drag the whole wrong country along with it until the memory budget took it back.
+        double evictRadius = Math.max(ChunkMesher.CHUNK_M, radiusM) + EVICT_MARGIN_M;
         Iterator<Map.Entry<Long, Entry>> iterator = resident.entrySet().iterator();
         while (iterator.hasNext()) {
             Entry entry = iterator.next().getValue();
             double distance = Math.sqrt(distance2(entry, focusEast, focusNorth));
-            if (distance > TERRAIN_RADIUS_M + EVICT_MARGIN_M) {
+            if (distance > evictRadius) {
                 drop(iterator, entry);
                 evictedChunks++;
             }

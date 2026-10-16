@@ -197,6 +197,31 @@ public final class PlayerController {
         return surface;
     }
 
+    /**
+     * Moves every body into a new local frame: the local half of a floating-origin rebase.
+     *
+     * <p>{@link ai.arena.qatar.world.WorldOrigin} keeps the invariant {@code global = local + origin},
+     * and {@code applyRebase} documents the other half: every local transform in the game must move by
+     * the same {@code -delta} in the same frame. The bodies are the ones that matter, because they are
+     * what the camera is derived from ({@link #syncRig} puts the rig on the body every frame) and what
+     * the ground is sampled for.
+     *
+     * <p>This method not existing is what broke the tenth install's map. A teleport far enough to rebase
+     * moved the origin and the rig but left the bodies at their old local coordinates; the next frame's
+     * {@link #update} pulled the rig straight back onto the stale body, so the origin rebased again, and
+     * again, once per frame, tens of kilometres at a time. The country streamed past the player at
+     * thousands of kilometres a second, the ground under the walker stopped being their ground, and
+     * nothing on foot or on wheels would move a metre -- while the helicopter flew, because flying is
+     * what it does.
+     */
+    public void shiftLocal(double deltaEastM, double deltaNorthM) {
+        for (VehicleState state : states) {
+            state.eastM -= deltaEastM;
+            state.northM -= deltaNorthM;
+        }
+        syncRig(state());
+    }
+
     public void setLoco(Loco next) {
         if (next == loco) {
             return;

@@ -185,6 +185,17 @@ final class FontCoverageTest {
         lines.add(HudText.FLY_LABEL_AR);
         lines.add(HudText.FLY_HINT_EN);
         lines.add(HudText.FLY_HINT_AR);
+        // The stuck reports: what the game says when a body that has been asked to move does not.
+        lines.add(HudText.STUCK_SOLID);
+        lines.add(HudText.STUCK_SOLID_AR);
+        lines.add(HudText.STUCK_WATER);
+        lines.add(HudText.STUCK_WATER_AR);
+        lines.add(HudText.STUCK_TERRAIN);
+        lines.add(HudText.STUCK_TERRAIN_AR);
+        lines.add(HudText.STUCK_AIR);
+        lines.add(HudText.STUCK_AIR_AR);
+        lines.add(HudText.STUCK_OTHER);
+        lines.add(HudText.STUCK_OTHER_AR);
 
         PlayerController controller = new PlayerController(new CameraRig(TerrainSampler.FLAT, 0.0, 0.0));
         for (Loco loco : Loco.values()) {

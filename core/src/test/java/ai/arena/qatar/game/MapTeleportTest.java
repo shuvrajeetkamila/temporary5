@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -140,6 +141,59 @@ final class MapTeleportTest {
                 assertNotNull(target.label);
             }
         }
+    }
+
+    @Test
+    @DisplayName("a tap beside the map is not a place: the letterbox is not the country")
+    void tapsOffTheMapAreRefused() {
+        MapView view = new MapView(raster);
+        // A phone-shaped rectangle for a square raster: 2400 x 864 leaves 768 px of scrim on each side,
+        // and that scrim is exactly where the thumb lands when someone aims at the edge of the map.
+        view.setViewport(0f, 108f, 2400f, 864f);
+        assertTrue(view.containsPoint(1200f, 540f), "the middle of the map is not on the map");
+        assertFalse(view.containsPoint(90f, 540f), "a tap on the scrim was read as a tap on the map");
+        assertFalse(view.containsPoint(2310f, 540f), "a tap on the scrim was read as a tap on the map");
+        assertFalse(view.containsPoint(1200f, 60f), "a tap above the map was read as a tap on the map");
+        // And the reason the guard exists: what a tap in the scrim resolves to is outside the country.
+        double outside = view.eastAt(90f);
+        assertTrue(outside < 0.0 || outside > raster.widthM(),
+                "the scrim maps to " + outside + " m east, inside the raster: the guard is not needed and "
+                        + "this test is describing something that does not happen");
+    }
+
+    @Test
+    @DisplayName("a destination carries the direction the place faces")
+    void theDestinationCarriesItsOwnDirection() {
+        // The compiled bundle stores a direction as a mathematical angle (0 east, anticlockwise) because
+        // that is how the compiler measures a runway; this project's bodies steer by heading degrees
+        // (0 north, clockwise). A runway whose bearing is 90 in bundle terms runs north.
+        assertEquals(0.0, TeleportService.headingFromFacing(90.0), 1e-9,
+                "a runway pointing north in the bundle's convention");
+        assertEquals(270.0, TeleportService.headingFromFacing(180.0), 1e-9,
+                "a runway pointing west in the bundle's convention");
+        assertEquals(45.0, TeleportService.headingFromFacing(45.0), 1e-9, "a runway pointing north-east");
+        assertEquals(-1.0, TeleportService.headingFromFacing(0.0), 1e-9,
+                "a stored zero means the data has no direction, not that the place faces north");
+
+        // End to end, on the fixture's own runway threshold: 50 m east of the manifest's origin and
+        // 1450 m north of it, with a stored facing of 90.
+        TeleportService.Target target = teleport.resolve(55.0, 1455.0);
+        assertTrue(target.snappedToSpawn, "the tap beside the runway threshold did not find it: "
+                + target);
+        assertEquals(0.0, target.headingDegrees, 1e-6,
+                "arriving at the runway threshold should face down the runway, and it faces "
+                        + target.headingDegrees);
+    }
+
+    @Test
+    @DisplayName("a tap on a road arrives facing along it")
+    void aRoadTapFacesTheRoad() {
+        // The fixture's east-west way runs along northing 850 from x=5 to x=1500.
+        TeleportService.Target target = teleport.resolve(120.0, 852.0);
+        assertTrue(target.snappedToRoad, "the tap on the road did not find it: " + target);
+        assertEquals(90.0, target.headingDegrees, 1.0,
+                "a west-to-east road should be faced west-to-east (heading 90), and the destination is "
+                        + target.headingDegrees);
     }
 
     @Test

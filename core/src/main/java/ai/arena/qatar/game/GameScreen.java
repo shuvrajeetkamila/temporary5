@@ -88,6 +88,11 @@ public final class GameScreen extends InputAdapter implements Disposable {
     private boolean mapPressedButton;
 
     private String message = "";
+    /** The Arabic twin of {@link #message}, when it has one: the stuck reports are bilingual. */
+    private String messageArabic = "";
+    /** Metres of odometer at the last stuck check, and how long the player has been asking to move. */
+    private double lastOdometerM;
+    private float stuckSeconds;
     private float messageSeconds;
     /**
      * Where the last tap on the map put the player, as a place rather than a pixel, and how long to keep
@@ -356,6 +361,7 @@ public final class GameScreen extends InputAdapter implements Disposable {
         }
 
         teleportMarkSeconds = Math.max(0f, teleportMarkSeconds - dt);
+        reportStuckIfAskedAndNotMoving(dt);
         frameSection = "the controls";
         if (hud != null) {
             int width = Gdx.graphics.getWidth();
@@ -538,6 +544,9 @@ public final class GameScreen extends InputAdapter implements Disposable {
         }
         if (messageSeconds > 0f && !message.isEmpty()) {
             hud.drawMessage(message, margin, height * 0.18f, false);
+            if (!messageArabic.isEmpty()) {
+                hud.drawMessage(messageArabic, margin, height * 0.18f - step * 1.2f, true);
+            }
         }
         if (!hud.fontsReady()) {
             hud.drawStatus("(HUD fonts missing)", margin, margin);
@@ -570,9 +579,70 @@ public final class GameScreen extends InputAdapter implements Disposable {
             return;
         }
         origin.applyRebase(delta);
-        rig.east -= delta.x;
-        rig.north -= delta.z;
-        worldRenderer.updateOffsets();
+        // Everything local moves by -delta in the same frame: every body (and, through it, the rig --
+        // see PlayerController.shiftLocal) as well as the renderer's bundle offset. Shifting the rig
+        // alone was the bug: the boss's own position was recomputed from the body a few lines later, so
+        // it was put straight back at the stale coordinate and the origin rebased again on the very next
+        // frame, for ever.
+        if (controller != null) {
+            controller.shiftLocal(delta.x, delta.z);
+        } else {
+            rig.east -= delta.x;
+            rig.north -= delta.z;
+        }
+        if (worldRenderer != null) {
+            worldRenderer.updateOffsets();
+        }
+    }
+
+    /**
+     * Says why a body that has been asked to move is not moving, in both languages.
+     *
+     * <p>The tenth install's report was "cant walk, use car": four words, because a speed of zero is all
+     * the screen said. The game knows better than that -- the body's own state names the rule that
+     * refused it -- and a player who is stuck is owed the reason on the screen rather than in a bug
+     * report. Two seconds of asking is the threshold: shorter than that is a player still deciding.
+     */
+    private void reportStuckIfAskedAndNotMoving(float dt) {
+        if (controller == null || layout == null || layout.bigMapVisible()) {
+            return;
+        }
+        double odometer = controller.state().odometerM;
+        boolean asked = Math.abs(controller.forward) > 0.15 || Math.abs(controller.strafe) > 0.15
+                || Math.abs(controller.climb) > 0.05;
+        boolean moved = odometer - lastOdometerM > 0.02;
+        lastOdometerM = odometer;
+        if (!asked || moved) {
+            stuckSeconds = 0f;
+            return;
+        }
+        stuckSeconds += dt;
+        if (stuckSeconds < 2.0f) {
+            return;
+        }
+        stuckSeconds = 0f;                                  // say it again in another two seconds
+        ai.arena.qatar.vehicle.VehicleState state = controller.state();
+        boolean loaded = worldSurface == null || worldSurface.collisionLoaded(state.eastM, state.northM);
+        if (!loaded) {
+            message = HudText.STUCK_TERRAIN;
+            messageArabic = HudText.STUCK_TERRAIN_AR;
+        } else if (state.wading || worldSurface == null
+                || worldSurface.waterDepthM(state.eastM, state.northM) > ai.arena.qatar.vehicle.HumanBody.WADE_DEPTH_M) {
+            message = HudText.STUCK_WATER;
+            messageArabic = HudText.STUCK_WATER_AR;
+        } else if (state.blocked) {
+            message = HudText.STUCK_SOLID;
+            messageArabic = HudText.STUCK_SOLID_AR;
+        } else if (!state.grounded) {
+            message = HudText.STUCK_AIR;
+            messageArabic = HudText.STUCK_AIR_AR;
+        } else {
+            message = HudText.STUCK_OTHER;
+            messageArabic = HudText.STUCK_OTHER_AR;
+        }
+        messageSeconds = 3.0f;
+        ai.arena.qatar.boot.ScreenLog.GLOBAL.warn("asked to move and did not: " + message
+                + " -- " + state.describe());
     }
 
     /**
@@ -859,6 +929,7 @@ public final class GameScreen extends InputAdapter implements Disposable {
         markMapOpen(true);
         mapView.centreOnWorld(rig.east + offsetEastToBundle(), rig.north + offsetNorthToBundle());
         message = "";
+        messageArabic = "";
     }
 
     // ---------------------------------------------------------------- big map gestures
@@ -964,6 +1035,18 @@ public final class GameScreen extends InputAdapter implements Disposable {
             // would report it as a drawing failure, which is worse than saying what is missing.
             return;
         }
+        if (!mapView.containsPoint(screenX, screenY)) {
+            // The map keeps its aspect ratio inside the rectangle it is given, so there are bands of
+            // scrim beside it that belong to the map *screen* and not to the map. A tap there used to be
+            // resolved as a world position anyway -- extrapolated past the country's edge -- and the
+            // player was sent to whatever that arithmetic produced. A tap off the map is not a place.
+            message = "Tap on the map to travel";
+            messageArabic = "";
+            messageSeconds = 2.0f;
+            return;
+        }
+        double beforeEast = rig.east;
+        double beforeNorth = rig.north;
         double pixelX = mapView.uAt(screenX) * raster.width;
         double pixelY = mapView.vAt(screenY) * raster.height;
         TeleportService.Target target = teleport.fromMapPixel(pixelX, pixelY);
@@ -985,8 +1068,25 @@ public final class GameScreen extends InputAdapter implements Disposable {
                 }
             }
         }
+        // Arrive facing the way the place faces: a runway threshold points down its runway and a road
+        // vertex points along its road, so the player who taps a road can drive off instead of turning
+        // around first. A place with no mapped direction keeps whatever heading the player had.
+        double heading = target.headingDegrees >= 0.0 ? target.headingDegrees
+                : controller.state().headingDegrees;
+        // How far this was, measured in the frame the player is still in.
+        double travelledM = Math.hypot(localEast - beforeEast, localNorth - beforeNorth);
         rig.placeAt(localEast, localNorth);
-        controller.placePlayer(localEast, localNorth);
+        controller.placeAll(localEast, localNorth, heading);
+        // The origin rebases in this frame, not the next one: the player is now tens of kilometres from
+        // where the frame started, and a frame that runs with a stale floating origin draws the country
+        // around the wrong place. See rebaseIfNeeded and PlayerController.shiftLocal.
+        rebaseIfNeeded();
+        if (worldRenderer != null) {
+            // And the streaming is told: what is resident is a hundred kilometres of the wrong country,
+            // and the frame after a jump is the one that has to have the ground in it. The cache's own
+            // distance eviction drops the old window on the next update; this pays for the new one.
+            worldRenderer.onPlayerJumped();
+        }
         mapView.centreOnWorld(target.east, target.north);
         teleportMarkEast = target.east;
         teleportMarkNorth = target.north;
@@ -994,7 +1094,9 @@ public final class GameScreen extends InputAdapter implements Disposable {
         teleportMarkSeconds = 3.0f;
         String where = target.label == null || target.label.isEmpty() ? "unnamed place" : target.label;
         String how = target.snappedToSpawn ? "spawn" : (target.snappedToRoad ? "road" : "open ground");
-        message = "Travelled to " + where + " (" + how + ")";
+        message = String.format(java.util.Locale.ROOT, "Travelled to %s (%s), %.0f m away, facing %.0f",
+                where, how, travelledM, heading);
+        messageArabic = "";
         messageSeconds = 4.5f;
         Gdx.app.log("GameScreen", "Teleport -> " + where + " as " + how + " " + target);
     }

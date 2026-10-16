@@ -35,6 +35,16 @@ public final class TeleportService {
         /** True when the tap was in water and the player was placed on the nearest shore instead. */
         public boolean snappedToShore;
         public boolean onWater;
+        /**
+         * The direction the destination faces, in this project's heading degrees (0 north, 90 east), or
+         * -1 when the data has no direction to offer.
+         *
+         * <p>A runway threshold faces down its runway and a road vertex faces along its road, which is
+         * the difference between arriving somewhere able to drive off and arriving pointing at a wall.
+         * The compiled point bundle stores the direction as a mathematical angle (0 east, anticlockwise)
+         * because that is how the compiler measures it, so it is converted here, once.
+         */
+        public double headingDegrees = -1.0;
         public String label = "";
         public int spawnKind = -1;
 
@@ -82,6 +92,7 @@ public final class TeleportService {
                     target.snappedToSpawn = true;
                     target.spawnKind = points.kind[nearest];
                     target.label = world.strings.get(points.nameIndex[nearest]);
+                    target.headingDegrees = headingFromFacing(points.facingDeg[nearest]);
                     target.onWater = raster != null && raster.isWaterAt(target.east, target.north);
                     return target;
                 }
@@ -91,7 +102,7 @@ public final class TeleportService {
         // Otherwise snap to the nearest road vertex, measured on the real geometry.
         Roads roads = world.roads;
         if (roads != null && world.roadIndex != null) {
-            double[] best = {Double.MAX_VALUE, 0, 0, -1};
+            double[] best = {Double.MAX_VALUE, 0, 0, -1, 0, -1};
             world.roadIndex.query(east - SNAP_RADIUS_M, north - SNAP_RADIUS_M, east + SNAP_RADIUS_M,
                     north + SNAP_RADIUS_M, line -> {
                 if (line < 0 || line >= roads.count || roads.roadClass[line] > MIN_ROAD_CLASS) {
@@ -108,6 +119,15 @@ public final class TeleportService {
                         best[1] = roads.xz[(start + i) * 2];
                         best[2] = roads.xz[(start + i) * 2 + 1];
                         best[3] = line;
+                        // The road's own direction at this vertex, from its neighbours along the way: what
+                        // the player faces when they arrive. A one-point way has no direction to give.
+                        int previous = i > 0 ? i - 1 : i;
+                        int next = i + 1 < points_n ? i + 1 : i;
+                        double tangentEast = roads.xz[(start + next) * 2] - roads.xz[(start + previous) * 2];
+                        double tangentNorth = roads.xz[(start + next) * 2 + 1]
+                                - roads.xz[(start + previous) * 2 + 1];
+                        best[5] = tangentEast == 0.0 && tangentNorth == 0.0 ? -1.0
+                                : wrapDegrees(Math.toDegrees(Math.atan2(tangentEast, tangentNorth)));
                     }
                 }
                 return true;
@@ -117,6 +137,7 @@ public final class TeleportService {
                 target.north = best[2];
                 target.snappedToRoad = true;
                 target.label = world.strings.get(roads.nameIndex[(int) best[3]]);
+                target.headingDegrees = best[5];
                 target.onWater = raster != null && raster.isWaterAt(target.east, target.north);
             }
         }
@@ -166,6 +187,24 @@ public final class TeleportService {
             }
         }
         return null;
+    }
+
+    /**
+     * The compiled point bundle's facing as a heading: the compiler measures direction as a
+     * mathematical angle (0 east, anticlockwise, from the runway end towards its other end), and this
+     * project's bodies steer by heading degrees (0 north, clockwise). A stored zero means "no
+     * direction", not "north".
+     */
+    static double headingFromFacing(double facingDegrees) {
+        if (facingDegrees <= 0.0 || facingDegrees >= 360.0) {
+            return -1.0;
+        }
+        return wrapDegrees(90.0 - facingDegrees);
+    }
+
+    private static double wrapDegrees(double degrees) {
+        double d = degrees % 360.0;
+        return d < 0 ? d + 360.0 : d;
     }
 
     private double worldEast(int pixelX) {

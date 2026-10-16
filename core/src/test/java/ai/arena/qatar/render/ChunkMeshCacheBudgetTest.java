@@ -78,6 +78,41 @@ public class ChunkMeshCacheBudgetTest {
     }
 
     @Test
+    @DisplayName("the ring the window keeps is the ring the caller asked for")
+    void evictionFollowsTheCallersRadius() {
+        ChunkMeshCache cache = new ChunkMeshCache();
+        int columns = 12;
+        int rows = 8;
+        for (int x = 0; x < columns; x++) {
+            for (int z = 0; z < rows; z++) {
+                cache.put(x, z, meshOf(400));
+            }
+        }
+        // Twelve by eight chunks of 500 m is a 6 x 4 km window. It is inside the default radius and
+        // nowhere near inside a two-kilometre one, which is what a struggling phone's renderer passes.
+        cache.update(0, 0, 0, 2000.0);
+        Set<Long> resident = residentKeys(cache);
+        assertTrue(resident.contains(ChunkMeshCache.key(0, 0)),
+                "the chunk under the player was evicted by a two-kilometre window");
+        assertFalse(resident.contains(ChunkMeshCache.key(columns - 1, rows - 1)),
+                "a chunk 6.9 km away survived a two-kilometre window: the cache is holding a country "
+                        + "the frame cannot draw, which is what a teleport then drags along with it");
+
+        // And the default radius keeps the same window, which is what makes the parameter a radius
+        // rather than a second, contradicting policy.
+        ChunkMeshCache wide = new ChunkMeshCache();
+        for (int x = 0; x < columns; x++) {
+            for (int z = 0; z < rows; z++) {
+                wide.put(x, z, meshOf(400));
+            }
+        }
+        wide.update(0, 0, 0);
+        assertEquals(columns * rows, wide.residentCount(),
+                "the default radius evicted chunks the old behaviour kept: the renderer's radius and the "
+                        + "default have to agree at the far end of the window");
+    }
+
+    @Test
     @DisplayName("uploading a chunk frees its CPU copy without losing it from the budget")
     void uploadFreesTheCpuCopyAndKeepsTheCount() {
         ChunkMeshCache cache = new ChunkMeshCache();

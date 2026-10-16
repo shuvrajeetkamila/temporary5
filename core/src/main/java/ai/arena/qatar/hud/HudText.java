@@ -36,6 +36,32 @@ public final class HudText {
             "Drag the right ring: up flies forward, down slows. The left ring is the lever: forward climbs.";
     public static final String FLY_HINT_AR =
             "اسحب الحلقة اليمنى: للأعلى للطيران، وللأسفل للتباطؤ. والحلقة اليسرى للارتفاع: للأمام للصعود.";
+    // ---------------------------------------------------------------------------------------------
+    // Why the player is not moving.
+    //
+    // The tenth install's report was "cant walk, use car" -- four words and no diagnosis, which is what
+    // a player can honestly tell us about a screen that shows a speed of zero. The game knows the
+    // reason: a body that has been asked to move for two seconds and has not moved is blocked, and the
+    // state says by what. These are the reasons, in the two languages the HUD speaks.
+    // ---------------------------------------------------------------------------------------------
+    public static final String STUCK_SOLID =
+            "Cannot move: something solid is in the way";
+    public static final String STUCK_SOLID_AR = "لا يمكن التحرك: هناك شيء صلب في الطريق";
+
+    public static final String STUCK_WATER = "Cannot move: the water here is too deep";
+    public static final String STUCK_WATER_AR = "لا يمكن التحرك: الماء هنا عميق جدًا";
+
+    public static final String STUCK_TERRAIN =
+            "Cannot move yet: the ground here is loading";
+    public static final String STUCK_TERRAIN_AR = "لا يمكن التحرك بعد: الأرض هنا قيد التحميل";
+
+    public static final String STUCK_AIR = "Cannot move: the machine is not on the ground";
+    public static final String STUCK_AIR_AR = "لا يمكن التحرك: المركبة ليست على الأرض";
+
+    public static final String STUCK_OTHER =
+            "Cannot move here: see the diagnostics line";
+    public static final String STUCK_OTHER_AR = "لا يمكن التحرك هنا: راجع سطر التشخيص";
+
     /** The flying stick's own word, under its ring, exactly as the movement stick has one. */
     public static final String FLY_LABEL = "FLY";
     public static final String FLY_LABEL_AR = "طيران";

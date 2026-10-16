@@ -128,6 +128,38 @@ final class StreamingWorkTest {
     }
 
     @Test
+    @DisplayName("a jump drops the window that was left behind, and fills the new one nearest first")
+    void aJumpLeavesTheOldWindowBehind() {
+        ChunkMeshCache cache = new ChunkMeshCache();
+        for (int frame = 0; frame < 600; frame++) {
+            for (ChunkMeshCache.Entry candidate : cache.update(0, 0, GameWorldRenderer.STREAM_BUDGET,
+                    GameWorldRenderer.DRAW_RADIUS_M)) {
+                cache.markUploaded(cache.put(candidate.chunkX, candidate.chunkZ, meshOf(9_000)));
+            }
+        }
+        assertTrue(cache.residentCount() > 40,
+                "the window never filled, so a jump has nothing to leave behind: "
+                        + cache.residentCount() + " chunks");
+
+        // The tap: a hundred kilometres away, which is one tap on the big map.
+        double jumpEast = 100_000.0;
+        double jumpNorth = 60_000.0;
+        List<ChunkMeshCache.Entry> wanted = cache.update(jumpEast, jumpNorth,
+                GameWorldRenderer.STREAM_BUDGET, GameWorldRenderer.DRAW_RADIUS_M);
+
+        assertEquals(0, cache.residentCount(), "the window the player left came with them: "
+                + cache.residentCount() + " chunks are still resident a hundred kilometres behind");
+        assertEquals(0, cache.residentVertices(), "the old window's vertices are still on the budget");
+        assertTrue(!wanted.isEmpty(), "nothing was queued to build at the new place");
+        // And the queue starts under the player's feet, not at the edge of the new window: the first
+        // frame after a teleport is the one that decides whether they arrive on ground or in a void.
+        ChunkMeshCache.Entry first = wanted.get(0);
+        double distance = Math.hypot(first.centreEast - jumpEast, first.centreNorth - jumpNorth);
+        assertTrue(distance <= ChunkMesher.CHUNK_M,
+                "the first chunk queued after a jump is " + distance + " m from where the player landed");
+    }
+
+    @Test
     @DisplayName("the frame rate is capped, and the renderer's budgets are the ones the camera assumes")
     void theFrameRateIsCapped() {
         // A phone asked for unlimited frames renders until it overheats: this is the constant that stops

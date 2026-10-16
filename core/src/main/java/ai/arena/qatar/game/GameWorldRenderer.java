@@ -52,6 +52,16 @@ public final class GameWorldRenderer implements Disposable {
     public static final int WARMUP_BUDGET = 6;
     /** How long the warm-up budget is used, in seconds. */
     public static final float WARMUP_SECONDS = 4.0f;
+    /**
+     * How long the bigger warm-up budget lasts after the player arrives somewhere new, in seconds.
+     *
+     * <p>A teleport is the one movement in this game that is not continuous: the resident window is a
+     * hundred kilometres of the wrong country, and the frame after the jump has to have ground in it or
+     * the player arrives in an empty world and falls through it. Two and a half seconds of the warm-up
+     * budget is 150 chunks -- the ground under the player and everything within about a kilometre, which
+     * is what the eye checks first.
+     */
+    public static final float JUMP_WARMUP_SECONDS = 2.5f;
     /** How many chunk failures are reported before the log is left alone (the holes still stay). */
     private static final int MAX_REPORTED_FAILURES = 5;
 
@@ -76,7 +86,6 @@ public final class GameWorldRenderer implements Disposable {
     private final LongMap<Boolean> uploaded = new LongMap<>();
     private final LongMap<Boolean> liveKeys = new LongMap<>();
 
-    private float elapsed;
     private float lastDelta = 0.016f;
     private int uploadedChunks;
     private int releasedChunks;
@@ -120,6 +129,8 @@ public final class GameWorldRenderer implements Disposable {
     private double drawRadiusM = DRAW_RADIUS_M;
     /** Exponential moving average of the frame time, in milliseconds, over roughly the last second. */
     private double frameMsEma = 16.0;
+    /** Seconds left of the bigger streaming budget: the start-up warm-up, or the one after a jump. */
+    private float warmupLeft = WARMUP_SECONDS;
     /** Chunks drawn and chunks skipped in the last frame, for the diagnostics line. */
     private int drawnChunks;
     private int culledChunks;
@@ -147,6 +158,19 @@ public final class GameWorldRenderer implements Disposable {
         return renderer.isReady();
     }
 
+    /**
+     * Tells the streaming that the player just arrived somewhere discontinuous -- a map teleport.
+     *
+     * <p>The window that is resident belongs to the place they left; the cache's own distance eviction
+     * drops it on the next update (that is what the eviction radius is for), and this re-arms the
+     * bigger build budget so the place they arrived at fills in over two seconds instead of ten.
+     * Without it a teleport landed on a player standing in an empty world, waiting for the nearest
+     * three chunks a frame.
+     */
+    public void onPlayerJumped() {
+        warmupLeft = JUMP_WARMUP_SECONDS;
+    }
+
     /** Recomputes bundle<->local translation; call after the floating origin rebases. */
     public void updateOffsets() {
         bundleOffsetEast = origin.originEast() - world.manifest.originEast;
@@ -157,7 +181,7 @@ public final class GameWorldRenderer implements Disposable {
     public void update(double localEast, double localNorth, float deltaSeconds) {
         cacheFocusEast = localEast;
         cacheFocusNorth = localNorth;
-        elapsed += deltaSeconds;
+        warmupLeft = Math.max(0f, warmupLeft - deltaSeconds);
         lastDelta = deltaSeconds;
         updateOffsets();
         double bundleEast = localEast + bundleOffsetEast;
@@ -179,7 +203,7 @@ public final class GameWorldRenderer implements Disposable {
             drawRadiusM = Math.min(DRAW_RADIUS_M, drawRadiusM + 15.0);
         }
 
-        int budget = elapsed < WARMUP_SECONDS ? WARMUP_BUDGET : STREAM_BUDGET;
+        int budget = warmupLeft > 0f ? WARMUP_BUDGET : STREAM_BUDGET;
         // Half a kilometre of slack over the draw radius: the cache may hold a ring more than it draws,
         // which is what keeps chunks resident while the player moves along a chunk boundary.
         double buildRadius = Math.min(ChunkMeshCache.TERRAIN_RADIUS_M, drawRadiusM + ChunkMesher.CHUNK_M);
@@ -402,6 +426,11 @@ public final class GameWorldRenderer implements Disposable {
                 + (residentVertices() / 1000) + "k verts of " + (geometryBudgetVertices() / 1000)
                 + "k, " + String.format(java.util.Locale.ROOT, "%.1f ms, fog %.1f km",
                         frameMsEma, drawRadiusM / 1000.0)
+                // The rebase count is on the panel because a floating origin that moves when it should
+                // not is invisible from inside the game: the world still looks like the world. A count
+                // that climbs while the player is not travelling is the signature of the bug that broke
+                // the tenth install's map -- one rebase per frame, tens of kilometres at a time.
+                + ", " + origin.rebaseCount() + " rebases"
                 + (failedChunks() > 0 ? ", " + failedChunks() + " FAILED" : "");
     }
 

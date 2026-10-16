@@ -115,6 +115,28 @@ public final class MapView {
     }
 
     /**
+     * True when a screen point is on the drawn map rather than on the letterbox around it.
+     *
+     * <p>The map keeps the raster's own aspect ratio inside the rectangle it is given (see
+     * {@link #setViewport}), so there are bands of scrim beside it or above and below it that belong to
+     * the map *screen* and not to the map. A tap in one of those bands used to be resolved as a world
+     * position anyway -- the raster extrapolated past the country's edge, or clamped into a shoreline
+     * nowhere near the finger -- which is the tenth install's "the teleport happens abnormally". A tap
+     * off the map is not a place, and the gesture asks this before it resolves anything.
+     */
+    public boolean containsPoint(float screenX, float screenY) {
+        if (fitW <= 0f || fitH <= 0f) {
+            return false;
+        }
+        float drawW = fitW * zoom;
+        float drawH = fitH * zoom;
+        float drawX = rectX + rectW * 0.5f - drawW * 0.5f;
+        float drawY = rectY + rectH * 0.5f - drawH * 0.5f;
+        return screenX >= drawX && screenX <= drawX + drawW
+                && screenY >= drawY && screenY <= drawY + drawH;
+    }
+
+    /**
      * The screen pixel a place is drawn at: the inverse of {@link #eastAt(float)} and
      * {@link #northAt(float)}.
      *
