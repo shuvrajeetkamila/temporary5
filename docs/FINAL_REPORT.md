@@ -9,14 +9,14 @@ repository, a CI run, or a byte count that can be re-derived.
 | | |
 |---|---|
 | **APK** | [`Qatar-The-Peninsula-v0.1.0-m0.apk`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk) |
-| **Bytes** | 19,226,838 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below, and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset. Android builds are not bit-reproducible, so two builds of the same commit differ by a few bytes and by their digest; the bytes and the digest here are the ones in the release as published by the run named below |
-| **SHA-256** | `8efb1d0b81ebd341104359dd2a19cdfc55517193df0d12c3acbd7c26fdb61871` — the digest in the run's `artifacts/APK_VALIDATION.txt`, in the release notes, and in the 110-byte `.sha256` sidecar the same step wrote |
+| **Bytes** | 19,232,514 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below, and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset. Android builds are not bit-reproducible, so two builds of the same commit differ by a few bytes and by their digest; the bytes and the digest here are the ones in the release as published by the run named below |
+| **SHA-256** | `d0e7975eda8ade9460d89b809fe716c3a65370b00001b061eabdd92058178ad2` — the digest in the run's `artifacts/APK_VALIDATION.txt`, in the release notes, and in the 110-byte `.sha256` sidecar the same step wrote |
 | **Sidecar** | [`…apk.sha256`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256) |
 | **Release** | https://github.com/shuvrajeetkamila/temporary5/releases/tag/v0.1.0-m0 (rolling: each green run republishes it) |
-| **Built from** | commit `ebfa20b`, branch `arena/4eb37624-temporary5` |
-| **CI runs for that commit** | Build APK [`38894342258`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38894342258) success (including publish) · Compile gate [`38894342296`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38894342296) success · Protect the project [`38894342292`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38894342292) success. No world-data run this time: the country was not recompiled, so the build compiled the bundle inside its own job |
-| **Tests at that commit** | 225 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_SUMMARY.txt`) |
-| **Build stamp on screen** | `0.1.0-m0+diag11` — the release asset keeps its name, so this is how two builds are told apart on a phone: the diagnostics panel prints the stamp on its first line |
+| **Built from** | commit `4442728`, branch `arena/4eb37624-temporary5` |
+| **CI runs for that commit** | Build APK [`38900539049`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38900539049) success (including publish) · Compile gate [`38900539066`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38900539066) success · Protect the project [`38900539595`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38900539095) success. No world-data run this time: the country was not recompiled, so the build compiled the bundle inside its own job |
+| **Tests at that commit** | 239 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_SUMMARY.txt`) |
+| **Build stamp on screen** | `0.1.0-m0+diag12` — the release asset keeps its name, so this is how two builds are told apart on a phone: the diagnostics panel prints the stamp on its first line |
 | **Package** | `ai.arena.qatar.peninsula`, versionName `0.1.0-m0`, debug-signed, `minSdk 26`, `targetSdk 34` |
 | **ABIs** | `arm64-v8a`, `armeabi-v7a`, `x86_64` |
 | **Permissions** | none: no `INTERNET`, nothing to phone home to. The country is inside the APK. |
@@ -708,11 +708,62 @@ the only thing refusing the drop; it asserts the landing is one ring out, at the
 the box. `ebfa20b` is that fix and the build the release now carries: **225 tests, 0 skipped, 0 failures,
 0 errors**, APK **19,226,838 bytes**, SHA-256 `8efb1d0b…`, `validation=PASSED`, stamp `0.1.0-m0+diag11`.
 
+### Twelfth install: the city past the detail radius, and a panel that fits
+
+Two faults, and the first one had been in the game since the first install without ever showing itself on
+the screen this laptop can check.
+
+**The country had no buildings past two and a half kilometres.** The streamed chunks carry real OSM
+geometry out to the detail radius -- walls, gabled roofs, domes, arcades -- and the eleventh install's
+horizon filled in the country beyond six kilometres. The band between them was bare ground: from a
+helicopter, Doha ended at a line and sand began on the far side of it, and the far half of the city, the
+part a player flying or driving north actually looks at, did not exist.
+
+`SkylineMesh` is not a second detail system; it is the same bundle read the same way with everything that
+costs a vertex thrown away. Each footprint becomes its bounding rectangle instead of its OSM ring, a flat
+lid instead of a roof shape, the terrain under the block's centre instead of the levelled base: five quads
+where the detailed mesher spends ten per ring vertex. Ninety-metre thinning cells keep the tallest
+building in each cell and drop the rest -- tallest rather than first, because the raster is dense and the
+towers are what a skyline is -- so Doha's hundred thousand mapped buildings inside eight kilometres become
+a few thousand silhouettes. It starts at 2.2 km, inside the detail radius, so the chunks own the boundary
+and the two are drawn together in a band rather than leaving a ring of nothing between them; it stops at
+8 km, where the horizon's ground and the fog take over. It is rebuilt around the player every kilometre and
+a half and after a teleport, at most one of the two ring builds per frame, and it is one draw call.
+
+The winding is computed from the geometry rather than remembered, because this frame's (east, north) plane
+is left-handed: the hand rule that works on a diagram is the opposite of the one that works here, and one
+sign error turns every wall of the skyline inside out. That is exactly what the eighth install reported as
+"they look like walls", one round after the roofs had been wound the wrong way. `SkylineMeshTest` checks
+every block of the fixture city, and every block of a 3,250-block mesh built to fill the vertex budget: each
+triangle faces the sky or faces away from its own block's centre, the winding agrees with the normal the
+shader was given, no index names a vertex that does not exist, nothing is drawn inside the detail radius or
+past the far edge, and a cap keeps the tallest blocks rather than the first ones found.
+
+**The diagnostics panel had grown off the right-hand edge of the screen.** It was one line, around two
+hundred characters long, drawn at the HUD's fixed scale -- which is proportional to the screen, so about
+eighty characters fit on any phone. The numbers added over the last four rounds, the rebases and the
+horizon and the new city among them, were drawn where nobody can read them, on the panel every report
+since the fourth install has been diagnosed from. The panel now wraps into lines that fit, with the
+player's own line kept whole and first: every character survives the wrap in order, a token with no
+separator in it is split rather than dropped, and the last measurement -- the one at the end of the line,
+which is where the new numbers always go -- lands on a line the player can read. `StatusTextTest` holds it
+against the exact two-hundred-character line this build draws.
+
+**Green build (round twelve):** run `38900539049` on `4442728` -- 239 tests, 0 skipped, 0 failures, 0
+errors, `gradle_exit=0`, `assemble_exit=0`, `validation=PASSED`, `status=PASSED`, APK **19,232,514 bytes**,
+SHA-256 `d0e7975e…`, release asset updated at 12:36:10Z, stamp `0.1.0-m0+diag12`. The two features cost
+5,676 bytes over the previous install, which is the whole of their cost: no new assets, no new fonts, no
+new permissions.
+
 ## Honest limitations
 
 1. **This build has been on a phone eleven times, and every report found something real** — thirty
    faults
-   in all, listed in the sections above, each one now fixed and, where a test can hold it, held. Two
+   in all, listed in the sections above, each one now fixed and, where a test can hold it, held. The
+   twelfth install found two more without anyone touching a phone, and one of them is the reason this
+   paragraph is worth reading: the diagnostics panel had been printing its own tail off the right-hand
+   edge of the screen for four installs, so the numbers the last four reports were asked to read out were
+   the ones nobody could see. Two
    reports arrived with no symptom in them at all, so an audit was the diagnosis; one arrived as a stack
    trace of the JVM's own printer, so the frames had to be chosen better before the next one was useful.
    The seventh was the most instructive of all: a report with nothing in it, from a build whose
@@ -730,7 +781,14 @@ the box. `ebfa20b` is that fix and the build the release now carries: **225 test
    **The tenth install's teleport fault and the eleventh's horizon have not been measured on a phone by
    anyone here either**: what can be said is what changed, and that the two faults the tenth and eleventh
    reports describe now have tests that fail without the fixes -- one rebase per frame is asserted against,
-   and so is every cell of the ring and every cell of the coastline. **The ninth install's heat has not
+   and so is every cell of the ring and every cell of the coastline. **The twelfth install's skyline has
+   not been seen on a phone either**, and it is the first feature in this build that changes what the
+   player looks at rather than what they can do: what can be said is that every block of it is asserted,
+   cell by cell, against the committed fixture, and that the panel now prints how many blocks are on the
+   GPU -- so a phone that draws none of them says so in its own report instead of looking like a city that
+   was never there. The skyline's cost on a handset is the one number that matters and the one number
+   nobody here can measure: a few thousand blocks, one draw call, rebuilt every kilometre and a half, with
+   the search itself -- every building inside eight kilometres, visited once -- the part to watch. **The ninth install's heat has not
    been measured on a phone by anyone here.** What can be said is what
    changed and how much of the work it removes: the frame rate is capped at 60, most of the disc is culled
    before it is drawn, the streaming cache stops meshing when its window is full rather than rebuilding the
@@ -745,9 +803,11 @@ the box. `ebfa20b` is that fix and the build the release now carries: **225 test
 4. ~~The world is drawn only within the streaming radius: beyond roughly 6 km it fades into fog and
    stops.~~ **Fixed in the eleventh install**: the streamed chunks still end at roughly 6 km, but the
    country's own terrain at 300 m a cell carries the view on to 11.4 km, which is inside the camera's far
-   plane, and the fog now ends there rather than hiding the boundary. What is still not drawn at distance
-   is anything the detail radius owns -- buildings, roads and palms beyond 2.5 km -- so a skyline appears
-   as the player approaches it rather than being there from the start.
+   plane, and the fog now ends there rather than hiding the boundary. **The buildings followed in the
+   twelfth install**: past the 2.5 km detail radius the real footprints are extruded as one coarse block
+   each out to 8 km, thinned to the tallest building per 90 m cell, so the city carries on to where the
+   horizon and the fog take over. What is still not drawn at distance is anything else the detail radius
+   owns: roads and palms beyond 2.5 km, so the coast road and the palms stop and the blocks keep going.
 5. ~~Vehicles do not collide with each other.~~ **Partly fixed this round**: the machines the player is
    not in are solid to the one they are, and are parked in a line behind them at a spawn, a teleport or a
    vehicle change. The parked machines themselves are not simulated -- an aeroplane parked in the sea stays
@@ -793,7 +853,7 @@ the box. `ebfa20b` is that fix and the build the release now carries: **225 test
 
 ```bash
 git clone https://github.com/shuvrajeetkamila/temporary5 && cd temporary5
-git checkout ebfa20b            # the commit the published APK was built from
+git checkout 4442728            # the commit the published APK was built from
 # world data (downloads OSM + SRTM, compiles the country, validates it):
 python3 tools/fetch_sources.py && python3 tools/build_world.py && python3 tools/game_world.py
 python3 tools/validate_game_world.py --world android/assets/world     # 57/57

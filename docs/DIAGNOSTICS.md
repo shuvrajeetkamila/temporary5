@@ -37,7 +37,7 @@ into a panel that dies with the process, then deleted the file.
 1. Open the app again. If it closed, the dialog will have the reason from the previous run.
 2. Press **Copy** and paste the text into the message. That is the whole diagnosis: throwable, frames and
    the last stage with its heap figure.
-3. If the app now starts, the panel's first line says the version -- `0.1.0-m0+diag11` for this round --
+3. If the app now starts, the panel's first line says the version -- `0.1.0-m0+diag12` for this round --
    and the same text is in `last-crash.txt` if the dialog was dismissed.
 
 Nothing here needs a cable, a developer machine or `adb`.
@@ -53,7 +53,7 @@ world could not load -- leaves it up for good, behind the dialog that says why.
 
 | Line | Meaning |
 |---|---|
-| `Qatar: The Peninsula 0.1.0-m0+diag11 on 1080x2400` | The build stamp and the surface size: the first thing to check that the new build is the one installed |
+| `Qatar: The Peninsula 0.1.0-m0+diag12 on 1080x2400` | The build stamp and the surface size: the first thing to check that the new build is the one installed |
 | `GL vendor=`, `GL renderer=`, `GL version=` | The driver: Mali, Adreno, PowerVR. Every driver bug so far has been a driver refusing a shader |
 | `Manifest: …` | The compiled world was read: grid size, building and road counts |
 | `Country loaded in … ms` | The bundles were verified against their manifest digests and parsed |
@@ -69,6 +69,8 @@ world could not load -- leaves it up for good, behind the dialog that says why.
 | `the diagnostics panel failed to draw and fell back to bars` | The panel itself hit an error: it now draws one coloured bar per line instead of text |
 | `chunks … rebases` | How many times the floating origin has moved since the launch. It should climb only when the player has travelled far -- a count that climbs while they stand still is the eleventh install's teleport fault, and it is printed for exactly that reason |
 | `horizon 11 km, 6144 cells …` | The far horizon: the country at 300 m a cell out to 11.4 km, which is what stops the world ending in fog. `pending` means it has not been built yet; `FAILED` means it threw and the fog is hiding the edge of the streamed world instead |
+| `city 2600 blocks, 26k tris` | The skyline: the buildings past the 2.5 km detail radius, one coarse block each, out to 8 km. **This is the line to read over Doha.** In the middle of the city the block count should be in the hundreds or thousands; `0 blocks` over Doha means the thinning found nothing, and `pending` or `FAILED` means the skyline is not on the GPU at all -- either way the horizon and the ground beyond 2.5 km will look bare, which is what the twelfth install fixed |
+| `skyline 8 km, 2600 blocks of 18420, 26k triangles` | The same thing in words, in the launch trace: how many blocks were built out of how many buildings the search found inside the band. A block count far below the number considered means the thinning cells are doing their job; `TRUNCATED` means the vertex budget stopped the build and the far blocks are missing |
 | `Control failed: …` | A touch or key handler threw. The event was discarded and the game carried on; the handler is named. Before the eleventh install this class of failure closed the app, silently, because the input callbacks are outside the frame guard |
 
 ## What the alert's frames are, and why they changed

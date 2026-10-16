@@ -796,14 +796,41 @@ ever satisfy. Fixed in `ebfa20b`; run `38894342258` on that commit: **225 tests,
 errors**, `gradle_exit=0`, `assemble_exit=0`, `validation=PASSED`, `status=PASSED`, APK **19,226,838
 bytes**, SHA-256 `8efb1d0b…`, stamp `0.1.0-m0+diag11`.
 
+### The twelfth report: no words from the phone, so the code was read instead
+
+The user asked, again, for the work to continue -- "keep building" -- and the loop this round had nothing
+from the phone to go on, so the round was spent reading what the last installs had actually left behind.
+
+**The city stopped at the detail radius.** The streamed chunks carry real buildings to 2.5 km and the
+eleventh install's horizon carries the country from 6 km to 11.4 km; between the two there was nothing, so
+the far half of Doha was bare ground. `SkylineMesh` fills it: each building past the detail radius becomes
+one block -- its bounding rectangle, extruded from the ground under its centre to its own roof height --
+thinned so that only the tallest building in each 90 m cell survives, out to 8 km. It starts inside the
+detail radius so the chunks own the boundary, it overlaps the horizon so there is no seam, it is rebuilt
+around the player every 1.5 km and after a teleport, at most one of the two ring builds per frame, and it
+is one draw call. The winding is computed from the geometry, because the roofs the eighth install lost were
+lost to exactly this handedness.
+
+**The diagnostics panel was being drawn off the screen.** One line, around two hundred characters, at a
+scale that fits about eighty per screen: the numbers added in the last four rounds -- the fog, the rebases,
+the horizon -- were drawn where they could not be read, on the panel every report is diagnosed from. The
+panel now wraps to the width of a phone, and the wrap loses nothing: every character of the report lands
+on some line, and the last measurement -- where new numbers always go -- lands on a line the player can
+read.
+
+**Green build (round twelve):** run `38900539049` on `4442728` -- 239 tests, 0 skipped, 0 failures, 0
+errors, `gradle_exit=0`, `assemble_exit=0`, `validation=PASSED`, `status=PASSED`, APK **19,232,514 bytes**,
+SHA-256 `d0e7975e…`, stamp `0.1.0-m0+diag12`.
+
 ### Next up, in order
 
-1. **Detail at distance.** The horizon is terrain only: buildings, roads and palms end at the 2.5 km detail
-   radius, so a skyline arrives as the player approaches it. The next step is a coarse building layer --
-   the largest footprints extruded at low detail out to 6-8 km -- which is a second detail radius rather
-   than a new system.
-2. **A profile on a phone.** The panel reports frame time, chunks, triangles and draws; nobody has read it
-   on a handset yet, and the horizon's own cost (twelve thousand triangles) should be visible in it.
+1. **Roads and palms at distance.** The twelfth install gave the buildings a coarse layer out to 8 km; the
+   detail radius still owns roads and vegetation, so a helicopter sees the coast road stop at 2.5 km while
+   the blocks carry on. Same shape as the skyline: the compiled road ways thinned by class, drawn as a
+   single ribbon mesh.
+2. **A profile on a phone.** The panel reports frame time, chunks, triangles, draws, the horizon and now
+   the block count; nobody has read it on a handset yet, and the skyline's search -- every building inside
+   8 km, once per rebuild -- is the one number this laptop cannot measure.
 3. **The rescue's inverse.** A body that has been *driven* into a compound can be rescued out; a body that
    has been driven into water cannot be rescued anywhere if the shore is more than 160 m away, and the
    message says so. Swimming, or a "call the boat" button, is the honest fix.

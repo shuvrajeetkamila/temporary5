@@ -172,6 +172,8 @@ public final class GameWorldRenderer implements Disposable {
     private boolean skylineStale;
     private int skylineRebuilds;
     private boolean skylineFailed;
+    /** The block count last written to the launch trace: see the logging rule in {@link #updateSkyline}. */
+    private int skylineLoggedBlocks = -1;
 
     public GameWorldRenderer(WorldData world, WorldOrigin origin, WorldRenderer renderer) {
         this.world = world;
@@ -335,6 +337,14 @@ public final class GameWorldRenderer implements Disposable {
             skylineCentreNorth = bundleNorth;
             skylineStale = false;
             skylineRebuilds++;
+            // The launch trace gets the city in words, once when the world arrives and once again
+            // whenever the count moves by a quarter -- driving out of Doha and into the desert, or back.
+            // Every rebuild at a log line apiece would bury the trace it is there to explain.
+            if (skylineRebuilds == 1 || Math.abs(built.blockCount - skylineLoggedBlocks) * 4
+                    > Math.max(4, skylineLoggedBlocks)) {
+                skylineLoggedBlocks = built.blockCount;
+                ai.arena.qatar.boot.ScreenLog.GLOBAL.log("World: " + built.describe());
+            }
         } catch (Throwable t) {
             skylineFailed = true;
             ai.arena.qatar.boot.ScreenLog.GLOBAL.error("the distant city could not be built; the world "
