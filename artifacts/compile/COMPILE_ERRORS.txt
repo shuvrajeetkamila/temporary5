@@ -1,0 +1,7 @@
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/ChunkCulling.java:42: error: cannot find symbol
+    public static final double CHUNK_SPHERE_RADIUS_M = Math.hypot(HALF_SPAN_M * Math.SQRT2,
+                                                                                    ^
+--
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/WorldSurface.java:44: error: method does not override or implement a method from a supertype
+    @Override
+    ^
