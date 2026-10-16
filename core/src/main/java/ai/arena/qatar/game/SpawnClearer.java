@@ -31,16 +31,27 @@ public final class SpawnClearer {
     /** Water deeper than this is not somewhere a person can stand (they would have to swim). */
     public static final double WADE_DEPTH_M = 1.2;
 
-    /** The result of a search: where to stand, and whether it is where we asked for. */
+    /**
+     * The result of a search: where to stand, and how far it had to go to find it.
+     *
+     * <p>{@code found} and {@code moved} are two different questions and the callers need both: a rescue
+     * that is handed back the place it asked for should leave the body alone, and a boat that is called
+     * into water wants to know the difference between "the water you asked about is fine" and "there is no
+     * water within six hundred metres".
+     */
     public static final class Spot {
         public final double eastM;
         public final double northM;
+        /** True when a usable place was found at all, whether or not it is the one asked about. */
+        public final boolean found;
+        /** True when the usable place is somewhere other than the one asked about. */
         public final boolean moved;
         public final double movedM;
 
-        Spot(double eastM, double northM, boolean moved, double movedM) {
+        Spot(double eastM, double northM, boolean found, boolean moved, double movedM) {
             this.eastM = eastM;
             this.northM = northM;
+            this.found = found;
             this.moved = moved;
             this.movedM = movedM;
         }
@@ -66,7 +77,7 @@ public final class SpawnClearer {
      */
     public static Spot nearestClear(Surface surface, double eastM, double northM) {
         if (isClear(surface, eastM, northM)) {
-            return new Spot(eastM, northM, false, 0.0);
+            return new Spot(eastM, northM, true, false, 0.0);
         }
         for (double radius = RING_STEP_M; radius <= MAX_SEARCH_M; radius += RING_STEP_M) {
             for (int i = 0; i < DIRECTIONS; i++) {
@@ -74,11 +85,11 @@ public final class SpawnClearer {
                 double candidateEast = eastM + Math.cos(angle) * radius;
                 double candidateNorth = northM + Math.sin(angle) * radius;
                 if (isClear(surface, candidateEast, candidateNorth)) {
-                    return new Spot(candidateEast, candidateNorth, true, radius);
+                    return new Spot(candidateEast, candidateNorth, true, true, radius);
                 }
             }
         }
-        return new Spot(eastM, northM, false, 0.0);
+        return new Spot(eastM, northM, false, false, 0.0);
     }
 
     /**
@@ -96,22 +107,37 @@ public final class SpawnClearer {
      */
     public static Spot nearestUsable(Surface surface, double eastM, double northM, double minWaterDepthM,
                                      double maxWaterDepthM, double maxStepM) {
+        return nearestUsable(surface, eastM, northM, minWaterDepthM, maxWaterDepthM, maxStepM, MAX_SEARCH_M);
+    }
+
+    /**
+     * The same search with the radius asked for.
+     *
+     * <p>Sixteen hundred rings of eight metres is a rescue; six hundred metres is a boat call, and the two
+     * want different answers. A rescue that looked six hundred metres out would be a teleport, which is
+     * what {@link #MAX_SEARCH_M} exists to prevent; a boat that only looked a hundred and sixty metres out
+     * would be no use to a swimmer in the middle of a bay, which is the whole reason a boat can be called.
+     * The radius is a parameter rather than a constant so each caller can be right about its own case.
+     */
+    public static Spot nearestUsable(Surface surface, double eastM, double northM, double minWaterDepthM,
+                                     double maxWaterDepthM, double maxStepM, double searchRadiusM) {
         double reference = surface.groundHeightM(eastM, northM);
         if (usable(surface, eastM, northM, reference, minWaterDepthM, maxWaterDepthM, maxStepM)) {
-            return new Spot(eastM, northM, false, 0.0);
+            return new Spot(eastM, northM, true, false, 0.0);
         }
-        for (double radius = RING_STEP_M; radius <= MAX_SEARCH_M; radius += RING_STEP_M) {
+        double limit = Math.max(RING_STEP_M, searchRadiusM);
+        for (double radius = RING_STEP_M; radius <= limit; radius += RING_STEP_M) {
             for (int i = 0; i < DIRECTIONS; i++) {
                 double angle = (2.0 * Math.PI * i) / DIRECTIONS;
                 double candidateEast = eastM + Math.cos(angle) * radius;
                 double candidateNorth = northM + Math.sin(angle) * radius;
                 if (usable(surface, candidateEast, candidateNorth, reference, minWaterDepthM,
                         maxWaterDepthM, maxStepM)) {
-                    return new Spot(candidateEast, candidateNorth, true, radius);
+                    return new Spot(candidateEast, candidateNorth, true, true, radius);
                 }
             }
         }
-        return new Spot(eastM, northM, false, 0.0);
+        return new Spot(eastM, northM, false, false, 0.0);
     }
 
     /** Whether one candidate spot works for a body with those water and step limits. */

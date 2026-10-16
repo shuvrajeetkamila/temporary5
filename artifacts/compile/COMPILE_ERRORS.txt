@@ -1,0 +1,12 @@
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/FarLayerMesh.java:648: error: incompatible types: possible lossy conversion from double to float
+        addPalmWall(pass.mesh, east - trunk, north - trunk, east + trunk, north - trunk, baseY, trunkTop,
+                                    ^
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/FarLayerMesh.java:650: error: incompatible types: possible lossy conversion from double to float
+        addPalmWall(pass.mesh, east + trunk, north - trunk, east + trunk, north + trunk, baseY, trunkTop,
+                                    ^
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/FarLayerMesh.java:652: error: incompatible types: possible lossy conversion from double to float
+        addPalmWall(pass.mesh, east + trunk, north + trunk, east - trunk, north + trunk, baseY, trunkTop,
+                                    ^
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/FarLayerMesh.java:654: error: incompatible types: possible lossy conversion from double to float
+        addPalmWall(pass.mesh, east - trunk, north + trunk, east - trunk, north - trunk, baseY, trunkTop,
+                                    ^
