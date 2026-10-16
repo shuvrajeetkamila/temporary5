@@ -1,6 +1,25 @@
-> Task :android:packageDebugResources
+> Task :android:generateDebugResources
 
 > Task :core:compileJava
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/Traffic.java:4: error: cannot find symbol
+import ai.arena.qatar.vehicle.Loco;
+                             ^
+  symbol:   class Loco
+  location: package ai.arena.qatar.vehicle
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/Traffic.java:5: error: cannot find symbol
+import ai.arena.qatar.vehicle.VehicleContact;
+                             ^
+  symbol:   class VehicleContact
+  location: package ai.arena.qatar.vehicle
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:208: error: cannot find symbol
+    private final Matrix4 trafficScratch = new Matrix4();
+                  ^
+  symbol:   class Matrix4
+  location: class GameWorldRenderer
+
+> Task :android:packageDebugResources
+
+> Task :core:compileJava FAILED
 /home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/FarLayerMesh.java:648: error: incompatible types: possible lossy conversion from double to float
         addPalmWall(pass.mesh, east - trunk, north - trunk, east + trunk, north - trunk, baseY, trunkTop,
                                     ^
@@ -13,27 +32,22 @@
 /home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/FarLayerMesh.java:654: error: incompatible types: possible lossy conversion from double to float
         addPalmWall(pass.mesh, east - trunk, north + trunk, east - trunk, north - trunk, baseY, trunkTop,
                                     ^
-
-> Task :android:createDebugCompatibleScreenManifests
-> Task :android:extractDeepLinksDebug
-> Task :android:parseDebugLocalResources
-
-> Task :android:processDebugMainManifest
-/home/runner/work/temporary5/temporary5/android/src/main/AndroidManifest.xml:18:9-41 Warning:
-	android:extractNativeLibs should not be specified in this source AndroidManifest.xml file. See https://d.android.com/guide/topics/manifest/application-element#extractNativeLibs for more information.
-The AGP Upgrade Assistant can remove the attribute from the AndroidManifest.xml file and update the build file accordingly. See https://d.android.com/studio/build/agp-upgrade-assistant for more information.
-
-> Task :core:compileJava FAILED
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:208: error: cannot find symbol
+    private final Matrix4 trafficScratch = new Matrix4();
+                                               ^
+  symbol:   class Matrix4
+  location: class GameWorldRenderer
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/Traffic.java:337: error: cannot find symbol
+            out[written * 4 + 3] = VehicleContact.radiusM(Loco.CAR);
+                                                          ^
+  symbol:   variable Loco
+  location: class Traffic
 Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
-4 errors
+9 errors
 
-> Task :android:processDebugManifest
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_6-1792174008015.json
-
-FAILURE: Build failed with an exception.
-
-* What went wrong:
-Execution failed for task ':core:compileJava'.
+> Task :android:mergeDebugResources
+> Task :android:parseDebugLocalResources
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_6-1792174639752.json
 --
 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
@@ -54,4 +68,4 @@ Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Com
 
 
 BUILD FAILED in 12s
-14 actionable tasks: 14 executed
+10 actionable tasks: 10 executed

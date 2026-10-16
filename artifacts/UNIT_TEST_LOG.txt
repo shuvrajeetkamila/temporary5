@@ -1,6 +1,21 @@
 Daemon will be stopped at the end of the build 
 
 > Task :core:compileJava
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/Traffic.java:4: error: cannot find symbol
+import ai.arena.qatar.vehicle.Loco;
+                             ^
+  symbol:   class Loco
+  location: package ai.arena.qatar.vehicle
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/Traffic.java:5: error: cannot find symbol
+import ai.arena.qatar.vehicle.VehicleContact;
+                             ^
+  symbol:   class VehicleContact
+  location: package ai.arena.qatar.vehicle
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:208: error: cannot find symbol
+    private final Matrix4 trafficScratch = new Matrix4();
+                  ^
+  symbol:   class Matrix4
+  location: class GameWorldRenderer
 /home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/FarLayerMesh.java:648: error: incompatible types: possible lossy conversion from double to float
         addPalmWall(pass.mesh, east - trunk, north - trunk, east + trunk, north - trunk, baseY, trunkTop,
                                     ^
@@ -13,11 +28,21 @@ Daemon will be stopped at the end of the build
 /home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/render/FarLayerMesh.java:654: error: incompatible types: possible lossy conversion from double to float
         addPalmWall(pass.mesh, east - trunk, north + trunk, east - trunk, north - trunk, baseY, trunkTop,
                                     ^
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:208: error: cannot find symbol
+    private final Matrix4 trafficScratch = new Matrix4();
+                                               ^
+  symbol:   class Matrix4
+  location: class GameWorldRenderer
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/Traffic.java:337: error: cannot find symbol
+            out[written * 4 + 3] = VehicleContact.radiusM(Loco.CAR);
+                                                          ^
+  symbol:   variable Loco
+  location: class Traffic
 Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
-4 errors
+9 errors
 
 > Task :core:compileJava FAILED
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1792173991071.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1792174621405.json
 
 FAILURE: Build failed with an exception.
 
@@ -28,7 +53,7 @@ Execution failed for task ':core:compileJava'.
 * Try:
 > Run with --info option to get more log output.
 --
-	at org.gradle.composite.internal.DefaultBuildController$BuildOpRunnable.run(DefaultBuildController.java:198)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Compilation failed; see the compiler error output for details.
@@ -46,5 +71,5 @@ Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Com
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 16s
+BUILD FAILED in 18s
 1 actionable task: 1 executed
