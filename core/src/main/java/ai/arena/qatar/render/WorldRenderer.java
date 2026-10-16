@@ -41,6 +41,12 @@ public final class WorldRenderer implements Disposable {
     public static final float FOG_START = 900.0f;
     public static final float FOG_END = 5600.0f;
     /**
+     * The furthest the fog may run when a horizon is being drawn: the camera's far plane (12 km) with a
+     * little room, because fog that ended exactly at the far plane would leave a hard line where clipped
+     * geometry stopped.
+     */
+    public static final float MAX_FOG_M = 11800.0f;
+    /**
      * The fog actually in force, which follows the draw radius.
      *
      * <p>When the renderer shortens how far it draws, the fog has to shorten with it, or the world ends
@@ -57,6 +63,15 @@ public final class WorldRenderer implements Disposable {
     private Mesh actorMesh;
     /** Wheels, a propeller, rotors: the parts of that body that turn where they are. */
     private Mesh[] actorParts = new Mesh[0];
+    /**
+     * The far horizon: the country at 300 m a cell, out to just inside the camera's far plane.
+     *
+     * <p>Not streamed and not chunked -- one mesh, rebuilt only when the player has travelled far enough
+     * that its centre is no longer where they are. It is what stops the world ending in fog.
+     */
+    private Mesh horizonLand;
+    private Mesh horizonWater;
+    private int horizonTriangles;
     /** One matrix per moving part, reused every frame: a car has four wheels, so this never grows. */
     private Matrix4[] partScratch = new Matrix4[8];
 
@@ -188,9 +203,33 @@ public final class WorldRenderer implements Disposable {
      * fog at all.
      */
     public void setFogRange(float farMetres) {
-        float far = Math.max(600f, Math.min(FOG_END, farMetres));
+        setFogRange(farMetres, false);
+    }
+
+    /**
+     * Sets how far the fog runs, in metres, and whether a far horizon is being drawn under it.
+     *
+     * <p>Two different worlds, and the caller says which one it is in:
+     * <ul>
+     *   <li><b>No horizon.</b> The fog ends where the streamed chunks end, and it is dense: the edge of the
+     *       loaded world is hidden inside haze. This is what the game did everywhere until the horizon
+     *       existed, and it is what it still does while the horizon is being rebuilt.</li>
+     *   <li><b>Horizon.</b> The fog runs to the horizon's own far edge -- inside the camera's far plane --
+     *       so the mesh's rim is exactly the colour of the sky's haze and there is no line where it ends.
+     *       It starts a little sooner than the old fog did, because the streaming boundary at five or six
+     *       kilometres is still a change of resolution, and haze is what hides it.</li>
+     * </ul>
+     */
+    public void setFogRange(float farMetres, boolean farHorizon) {
+        float limit = farHorizon ? MAX_FOG_M : FOG_END;
+        float far = Math.max(600f, Math.min(limit, farMetres));
         fogEnd = far;
-        fogStart = Math.max(200f, far * 0.26f);
+        fogStart = Math.max(200f, far * (farHorizon ? 0.22f : 0.26f));
+    }
+
+    /** The fog distance currently in force, for the diagnostics panel. */
+    public float fogEndMetres() {
+        return fogEnd;
     }
 
     /** Uploads the GPU meshes for one chunk. Re-uploading a resident chunk replaces its meshes. */
@@ -315,6 +354,64 @@ public final class WorldRenderer implements Disposable {
      * Draws the player's body. The world program must still be bound, so this is called straight after
      * the chunk loop and the uniforms are already set.
      */
+    /**
+     * Uploads the far horizon: the coarsened country that fills the space between the streaming window and
+     * the sky. Two meshes for the same reason a chunk has two -- the sea is drawn double sided, the land
+     * is not -- and one translation, exactly as a chunk is drawn.
+     */
+    public void uploadHorizon(MeshData land, MeshData water) {
+        if (!isReady()) {
+            return;
+        }
+        horizonLand = upload(horizonLand, land);
+        horizonWater = upload(horizonWater, water);
+        horizonTriangles = (land == null ? 0 : land.triangleCount())
+                + (water == null ? 0 : water.triangleCount());
+    }
+
+    /** The horizon's own triangle count, which the panel reports alongside the chunks'. */
+    public int horizonTriangles() {
+        return horizonTriangles;
+    }
+
+    /** Drops the horizon: after a teleport it is the country around the place the player left. */
+    public void releaseHorizon() {
+        if (horizonLand != null) {
+            horizonLand.dispose();
+            horizonLand = null;
+        }
+        if (horizonWater != null) {
+            horizonWater.dispose();
+            horizonWater = null;
+        }
+        horizonTriangles = 0;
+    }
+
+    /**
+     * Draws the horizon at its own distance from the floating origin. Called with the world program bound
+     * and the fog set, exactly like a chunk; the only difference is that this mesh is a hundred times
+     * bigger and there is only one of it.
+     */
+    public void drawHorizon(double offsetEast, double offsetNorth) {
+        if (!isReady() || (horizonLand == null && horizonWater == null)) {
+            return;
+        }
+        identity.setToTranslation((float) offsetEast, 0f, (float) offsetNorth);
+        worldProgram.setUniformMatrix("u_model", identity);
+        if (horizonLand != null) {
+            horizonLand.render(worldProgram, GL20.GL_TRIANGLES);
+            drawCalls++;
+            drawnTriangles += horizonLand.getNumIndices() / 3;
+        }
+        if (horizonWater != null) {
+            Gdx.gl.glDisable(GL20.GL_CULL_FACE);
+            horizonWater.render(worldProgram, GL20.GL_TRIANGLES);
+            Gdx.gl.glEnable(GL20.GL_CULL_FACE);
+            drawCalls++;
+            drawnTriangles += horizonWater.getNumIndices() / 3;
+        }
+    }
+
     public void drawActor(Matrix4 transform) {
         if (actorMesh == null || !isReady()) {
             return;
@@ -415,6 +512,7 @@ public final class WorldRenderer implements Disposable {
             actorMesh.dispose();
             actorMesh = null;
         }
+        releaseHorizon();
         for (Mesh part : actorParts) {
             if (part != null) {
                 part.dispose();

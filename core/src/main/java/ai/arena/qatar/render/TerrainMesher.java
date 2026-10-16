@@ -14,6 +14,19 @@ import ai.arena.qatar.world.TerrainGrid;
  * <p>Surface type and tint per vertex come from the compiled material grid, which is why the country
  * looks like Qatar and not like one pink rectangle: rock, sand, sabkha, mangrove and urban pads are all
  * real classes from the data.
+ *
+ * <h2>The coastline, and the hole that was along all of it</h2>
+ *
+ * <p>A cell of the grid is classified once -- land or water -- by the flag at the corner it starts at, and
+ * each layer meshes the cells it owns and nothing else. That sounds obvious, and it is the fix for a bug
+ * that had been in every build: the land pass drew a cell only when all four of its corners were land, and
+ * the water pass drew one only when all four were water, so a cell straddling the shore was drawn by
+ * neither. Two hundred metres of nothing ran along every coast in the country, with the sky behind it,
+ * exactly where a player in a boat or a plane looks hardest.
+ *
+ * <p>The heights then have to agree, or the fix would only trade one gap for another: the height of a
+ * lattice point is the same in both layers ({@link #latticeHeight}), so a shared edge is one edge and not
+ * two surfaces that nearly touch.
  */
 public final class TerrainMesher {
 
@@ -75,26 +88,22 @@ public final class TerrainMesher {
         java.util.Arrays.fill(vertexIndex, -1);
 
         if (land) {
-            // Build only the land vertices: water cells become holes, so the coast is exact.
-            for (int row = row0; row <= row1; row++) {
-                for (int col = col0; col <= col1; col++) {
+            for (int row = row0; row < row1; row++) {
+                for (int col = col0; col < col1; col++) {
+                    // A cell belongs to the layer its own classification names, and to exactly one of them.
+                    // Before this, the land pass drew a cell only when all four of its corners were land and
+                    // the water pass drew one only when all four were water, so every cell straddling the
+                    // shore was drawn by neither: a band up to two cells wide -- two hundred metres at the
+                    // detailed resolution -- of nothing at all along every coast in the country, with the
+                    // sky behind it. Going out to sea in a boat meant looking down at a hole where the beach
+                    // should be, and the same hole ran along the whole shore seen from the air.
                     if (terrainCellIsWater(col, row)) {
                         continue;
                     }
-                    int local = (row - row0) * cols + (col - col0);
-                    vertexIndex[local] = addLandVertex(mesh, col, row, originEast, originNorth, cell);
-                }
-            }
-            for (int row = row0; row < row1; row++) {
-                for (int col = col0; col < col1; col++) {
-                    int a = vertexIndex[(row - row0) * cols + (col - col0)];
-                    int b = vertexIndex[(row - row0) * cols + (col - col0 + 1)];
-                    int c = vertexIndex[(row - row0 + 1) * cols + (col - col0 + 1)];
-                    int d = vertexIndex[(row - row0 + 1) * cols + (col - col0)];
-                    // A cell is drawn only when all four corners are land: the shoreline stays crisp.
-                    if (a < 0 || b < 0 || c < 0 || d < 0) {
-                        continue;
-                    }
+                    int a = latticeVertex(mesh, vertexIndex, cols, row0, col0, true, col, row, originEast, originNorth, cell);
+                    int b = latticeVertex(mesh, vertexIndex, cols, row0, col0, true, col + 1, row, originEast, originNorth, cell);
+                    int c = latticeVertex(mesh, vertexIndex, cols, row0, col0, true, col + 1, row + 1, originEast, originNorth, cell);
+                    int d = latticeVertex(mesh, vertexIndex, cols, row0, col0, true, col, row + 1, originEast, originNorth, cell);
                     // Counter-clockwise seen from above (+Y), so the default GL winding faces up.
                     mesh.addQuad(a, d, c, b);
                 }
@@ -102,29 +111,72 @@ public final class TerrainMesher {
             return;
         }
 
-        // Water: a plane at sea level over every cell that touches water, drawn double sided by the
-        // shader, so a lake seen from a boat does not disappear.
-        for (int row = row0; row <= row1; row++) {
-            for (int col = col0; col <= col1; col++) {
+        // Water: the sea's own cells, drawn double sided by the shader, so a lake seen from a boat does
+        // not disappear. A cell whose corners are all its own is a flat sheet at sea level; the corners
+        // it shares with the land are at the land's height, so the water meets the shore exactly and there
+        // is no sliver of nothing between the two layers for the player to see the sky through.
+        for (int row = row0; row < row1; row++) {
+            for (int col = col0; col < col1; col++) {
                 if (!terrainCellIsWater(col, row)) {
                     continue;
                 }
-                int local = (row - row0) * cols + (col - col0);
-                vertexIndex[local] = addWaterVertex(mesh, col, row, originEast, originNorth, cell);
-            }
-        }
-        for (int row = row0; row < row1; row++) {
-            for (int col = col0; col < col1; col++) {
-                int a = vertexIndex[(row - row0) * cols + (col - col0)];
-                int b = vertexIndex[(row - row0) * cols + (col - col0 + 1)];
-                int c = vertexIndex[(row - row0 + 1) * cols + (col - col0 + 1)];
-                int d = vertexIndex[(row - row0 + 1) * cols + (col - col0)];
-                if (a < 0 || b < 0 || c < 0 || d < 0) {
-                    continue;
-                }
+                int a = latticeVertex(mesh, vertexIndex, cols, row0, col0, false, col, row, originEast, originNorth, cell);
+                int b = latticeVertex(mesh, vertexIndex, cols, row0, col0, false, col + 1, row, originEast, originNorth, cell);
+                int c = latticeVertex(mesh, vertexIndex, cols, row0, col0, false, col + 1, row + 1, originEast, originNorth, cell);
+                int d = latticeVertex(mesh, vertexIndex, cols, row0, col0, false, col, row + 1, originEast, originNorth, cell);
                 mesh.addQuad(a, d, c, b);
             }
         }
+    }
+
+    /**
+     * The vertex for one lattice point, added the first time this pass needs it.
+     *
+     * <p>Shared between the cells of a pass, and only the cells of that pass: a land quad and a sea quad
+     * may be drawn at the same point at different heights, which is exactly what a coastline is, and each
+     * pass keeps its own copy.
+     */
+    private int latticeVertex(MeshData mesh, int[] vertexIndex, int cols, int row0, int col0,
+                              boolean land, int col, int row, double originEast, double originNorth,
+                              double cell) {
+        int local = (row - row0) * cols + (col - col0);
+        if (vertexIndex[local] < 0) {
+            vertexIndex[local] = land
+                    ? addLandVertex(mesh, col, row, originEast, originNorth, cell)
+                    : addWaterVertex(mesh, col, row, originEast, originNorth, cell);
+        }
+        return vertexIndex[local];
+    }
+
+    /**
+     * True when the cell that <em>starts</em> at this lattice point is water.
+     *
+     * <p>This is the classification the two passes divide the world by, and the indexing is the whole
+     * subtlety: the grid stores one height and one land flag per lattice point, the cell a mesher draws at
+     * {@code (col, row)} spans the lattice points {@code (col, row)} to {@code (col + 1, row + 1)}, and the
+     * flag at the corner it starts at is therefore that cell's own flag. A point past the last column or
+     * row counts as water: there is no cell there to draw, and the edge of the compiled country is the sea.
+     */
+
+    /**
+     * The height of a lattice point, which both layers agree on.
+     *
+     * <p>Two cases, and the coastline is the interesting one:
+     * <ul>
+     *   <li><b>The point's own cell is land.</b> Its compiled height plus the terrain lift -- the ground as
+     *       the rest of the world sees it. A water cell that reaches this point therefore rises to the
+     *       shore, which is what a sea meeting a beach does.</li>
+     *   <li><b>The point's own cell is water.</b> The sea surface (with the water lift), whether the point
+     *       is drawn as sea or as the last few metres of the beach. The compiled bathymetry is deliberately
+     *       not used here: a corner dropped to the seabed would hang the shoreline over the water it stands
+     *       in, and the player would see the sky through the gap.</li>
+     * </ul>
+     */
+    private double latticeHeight(int col, int row) {
+        if (terrainCellIsWater(col, row)) {
+            return SEA_LEVEL + WATER_LIFT;
+        }
+        return terrain.heights[row * terrain.cols + col] + LAND_LIFT;
     }
 
     private boolean terrainCellIsWater(int col, int row) {
@@ -138,8 +190,13 @@ public final class TerrainMesher {
                               double cell) {
         double east = originEast + col * cell;
         double north = originNorth + row * cell;
-        double height = terrain.heights[row * terrain.cols + col];
-        int material = materials == null ? 5 : materials.idAt(east, north);
+        boolean water = terrainCellIsWater(col, row);
+        // Over water the vertex is the waterline, not the bathymetry. The tide-line rule in the shader
+        // already paints a land square whose material is 15 or 16 as wet sand, which is exactly what this
+        // vertex is, and its height is the sea surface, so the beach and the water meet along their shared
+        // edge with no step and no gap between them.
+        double height = latticeHeight(col, row);
+        int material = materials == null ? (water ? 16 : 5) : materials.idAt(east, north);
         float[] slope = slopeAt(col, row, originEast, originNorth, cell);
         // Texture coordinates: one tile per 25 m, so surface detail keeps a constant real-world size.
         float u = (float) ((east - originEast) / 25.0);
@@ -147,7 +204,7 @@ public final class TerrainMesher {
         float tint = surfaceTint(material, slope[0], slope[1], slope[2]);
         // The material id travels with the vertex: the shader's own palette says sabkha is pale grey
         // and mangrove is dark green, and only the id can tell it so.
-        return mesh.addVertexMaterial((float) (east - originEast), (float) height + LAND_LIFT,
+        return mesh.addVertexMaterial((float) (east - originEast), (float) height,
                 (float) (north - originNorth), slope[0], slope[1], slope[2], SURFACE_LAND, u, v, tint,
                 material);
     }
@@ -156,11 +213,15 @@ public final class TerrainMesher {
                                double cell) {
         double east = originEast + col * cell;
         double north = originNorth + row * cell;
+        // The sea is flat except where it shares a corner with the land, and there it rises to meet it: a
+        // water cell's outer corner sits at the land's own height, so the two layers share an edge instead
+        // of leaving a step the player can see through. Over open water this is sea level, to the metre.
+        double height = latticeHeight(col, row);
         int material = materials == null ? 16 : materials.idAt(east, north);
         float u = (float) ((east - originEast) / 25.0);
         float v = (float) ((north - originNorth) / 25.0);
         float tint = material == 15 ? 0.35f : 0.8f; // shallow water reads lighter than open sea
-        return mesh.addVertex((float) (east - originEast), SEA_LEVEL + WATER_LIFT,
+        return mesh.addVertex((float) (east - originEast), (float) height,
                 (float) (north - originNorth), 0.0f, 1.0f, 0.0f, SURFACE_WATER, u, v, tint);
     }
 

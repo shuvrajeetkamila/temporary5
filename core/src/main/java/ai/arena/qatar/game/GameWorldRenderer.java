@@ -137,6 +137,23 @@ public final class GameWorldRenderer implements Disposable {
     /** Scratch space for the camera's frustum planes: reused every frame, allocated once. */
     private final float[] frustumPlanes = new float[ChunkCulling.PLANE_FLOATS];
 
+    /**
+     * The far horizon, and where it was built from.
+     *
+     * <p>One mesh, not a stream: the whole ring is twelve thousand triangles, so it is cheaper to rebuild
+     * it around the player every kilometre and a half than it would be to keep a table of which piece of it
+     * is resident. Null means there is none -- a bundle without a coarse grid, or a build that failed --
+     * and the fog then behaves exactly as it did before the horizon existed.
+     */
+    private HorizonMesh.Horizon horizon;
+    private double horizonCentreEast;
+    private double horizonCentreNorth;
+    /** True when the horizon on the GPU belongs to a place the player has left: it is not drawn until
+     * the next rebuild replaces it, because a horizon of the wrong country is worse than none. */
+    private boolean horizonStale;
+    private int horizonRebuilds;
+    private boolean horizonFailed;
+
     public GameWorldRenderer(WorldData world, WorldOrigin origin, WorldRenderer renderer) {
         this.world = world;
         this.origin = origin;
@@ -169,6 +186,11 @@ public final class GameWorldRenderer implements Disposable {
      */
     public void onPlayerJumped() {
         warmupLeft = JUMP_WARMUP_SECONDS;
+        // The horizon is a hundred kilometres out of date the moment the player teleports, and it is drawn
+        // from a mesh whose vertices are relative to where it was built: leaving it up would paste the
+        // country around the old position over the new one. It is rebuilt on the next update, and until
+        // then the fog goes back to hiding the edge of the streamed world.
+        horizonStale = true;
     }
 
     /** Recomputes bundle<->local translation; call after the floating origin rebases. */
@@ -211,6 +233,61 @@ public final class GameWorldRenderer implements Disposable {
             build(chosen, bundleEast, bundleNorth);
         }
         releaseDepartedChunks();
+        updateHorizon(bundleEast, bundleNorth);
+    }
+
+    /**
+     * Builds the far horizon around the player, if it is missing, stale, or no longer centred near them.
+     *
+     * <p>Called after the chunks have been built rather than before: the ground under the player's feet is
+     * what they will notice missing, and the horizon is by definition the thing that can wait a frame.
+     */
+    private void updateHorizon(double bundleEast, double bundleNorth) {
+        if (horizonFailed || renderer == null || !renderer.isReady()) {
+            // No shaders, no world: a horizon built now would be twelve thousand vertices with nowhere to
+            // go, and the fog behaves as it did before the horizon existed until there is a renderer.
+            return;
+        }
+        if (horizon != null && !horizonStale) {
+            double movedEast = bundleEast - horizonCentreEast;
+            double movedNorth = bundleNorth - horizonCentreNorth;
+            if (movedEast * movedEast + movedNorth * movedNorth
+                    < HorizonMesh.REBUILD_MOVE_M * HorizonMesh.REBUILD_MOVE_M) {
+                return;
+            }
+        }
+        try {
+            HorizonMesh.Horizon built = HorizonMesh.build(world, bundleEast, bundleNorth);
+            renderer.uploadHorizon(built.land, built.water);
+            // The GPU has its own copy of these twelve thousand vertices; the CPU one is a megabyte the
+            // phone can spend on chunks instead.
+            built.land.releaseArrays();
+            built.water.releaseArrays();
+            horizon = built;
+            horizonCentreEast = bundleEast;
+            horizonCentreNorth = bundleNorth;
+            horizonStale = false;
+            horizonRebuilds++;
+        } catch (Throwable t) {
+            // One failure is enough: this is the same call with the same inputs every time, and a phone
+            // that cannot build it must carry on with the fog it had before, not with a crash.
+            horizonFailed = true;
+            ai.arena.qatar.boot.ScreenLog.GLOBAL.error("the far horizon could not be built; the fog "
+                    + "keeps the edge of the world hidden instead", t);
+        }
+    }
+
+    /** True when a horizon is on the GPU and belongs where the player is now. */
+    public boolean horizonReady() {
+        return horizon != null && !horizonStale && !horizonFailed;
+    }
+
+    public int horizonRebuilds() {
+        return horizonRebuilds;
+    }
+
+    public int horizonTriangles() {
+        return renderer.horizonTriangles();
     }
 
     /**
@@ -292,7 +369,10 @@ public final class GameWorldRenderer implements Disposable {
      */
     public void render(Camera camera) {
         renderer.begin(camera, lastDelta);
-        renderer.setFogRange((float) drawRadiusM);
+        // The fog follows what is actually being drawn: with a horizon under it, out to the horizon's own
+        // far edge; without one, out to the streamed chunks and no further.
+        boolean horizonUp = horizonReady();
+        renderer.setFogRange(horizonUp ? (float) HorizonMesh.FAR_M : (float) drawRadiusM, horizonUp);
         drawnChunks = 0;
         culledChunks = 0;
         double focusEast = cacheFocusEast;
@@ -322,6 +402,12 @@ public final class GameWorldRenderer implements Disposable {
             }
             renderer.draw(entry.key(), offsetEast, offsetNorth);
             drawnChunks++;
+        }
+        if (horizonUp) {
+            // One draw call under the whole world, translated from the centre it was built around. The
+            // chunks are already in the depth buffer, so the near half of it is rejected by the GPU
+            // before it is ever shaded: what is left is the distance.
+            renderer.drawHorizon(horizonCentreEast - bundleOffsetEast, horizonCentreNorth - bundleOffsetNorth);
         }
         // No state hand-over here on purpose: the player's body may still be drawn with this pass's
         // state, and WorldRenderer.drawActor ends the 3D frame once the body is on the screen. The HUD
@@ -431,6 +517,9 @@ public final class GameWorldRenderer implements Disposable {
                 // that climbs while the player is not travelling is the signature of the bug that broke
                 // the tenth install's map -- one rebase per frame, tens of kilometres at a time.
                 + ", " + origin.rebaseCount() + " rebases"
+                + ", horizon " + (horizonReady() ? (horizonTriangles() / 1000) + "k tris"
+                        + (horizonRebuilds > 1 ? " x" + horizonRebuilds : "")
+                        : horizonFailed ? "FAILED" : "pending")
                 + (failedChunks() > 0 ? ", " + failedChunks() + " FAILED" : "");
     }
 

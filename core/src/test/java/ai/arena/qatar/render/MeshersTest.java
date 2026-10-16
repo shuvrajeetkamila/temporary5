@@ -74,14 +74,13 @@ final class MeshersTest {
         MeshData land = mesher.mesh(0, 0, 1600, 1600, true);
         assertFalse(land.isEmpty(), "the land mesh has geometry");
 
-        // Columns 0..10 are land and 11..15 are water. A cell is drawn only when all four of its
-        // corners are land, so 10 cell-columns x 15 cell-rows = 150 land cells, two triangles each.
-        int waterCells = 5 * 16;
-        int expectedCells = 16 * 16 - waterCells;
-        assertEquals(300, land.triangleCount(),
-                "land is 10 x 15 cells of two triangles, water cells are skipped");
-        assertTrue(land.triangleCount() <= expectedCells * 2,
-                "no more triangles than land cells allow: " + land.triangleCount());
+        // Columns 0..10 are land and 11..15 are water, and the mesher covers the 15 cells of each axis
+        // that the clamped corner range allows. A cell belongs to the layer its own flag names -- land
+        // here, water there, never both and never neither -- so the land is 11 x 15 cells of two
+        // triangles. The eleventh column is the shoreline cell: it was the one the old rule threw away,
+        // because its eastern corners stand in water.
+        assertEquals(11 * 15 * 2, land.triangleCount(),
+                "land is 11 x 15 cells of two triangles, including the shoreline column");
 
         float[] vertices = land.vertices();
         int upFacing = 0;
@@ -102,12 +101,54 @@ final class MeshersTest {
 
         MeshData water = mesher.mesh(0, 0, 1600, 1600, false);
         assertFalse(water.isEmpty(), "the sea is meshed as a water plane");
+        assertEquals(4 * 15 * 2, water.triangleCount(),
+                "the sea is the four water columns of fifteen cells, two triangles each");
         float[] waterVertices = water.vertices();
         for (int i = 0; i < water.vertexCount(); i++) {
             assertEquals(TerrainMesher.SEA_LEVEL + 0.05f,
                     waterVertices[i * MeshData.FLOATS_PER_VERTEX + 1], 1e-4f,
-                    "every water vertex sits at sea level");
+                    "every water vertex of this fixture sits at sea level: the land is west of it, so the "
+                            + "sea has no shore to climb here");
         }
+    }
+
+    @Test
+    @DisplayName("the two layers tile the country: every cell is drawn once, and they meet at the shore")
+    void coastlineHasNoGap() {
+        TerrainMesher mesher = new TerrainMesher(terrain, materials);
+        MeshData land = mesher.mesh(0, 0, 1600, 1600, true);
+        MeshData water = mesher.mesh(0, 0, 1600, 1600, false);
+
+        // The cells the mesher covers at all: 15 x 15 of them, two triangles each. Counted across both
+        // layers this is the whole grid, which is the assertion that matters: the coastline bug was a band
+        // of cells that no layer drew, and a total that comes up short is that band, still there.
+        int coveredCells = 15 * 15;
+        assertEquals(coveredCells * 2, land.triangleCount() + water.triangleCount(),
+                "every cell of the grid is meshed by exactly one layer");
+
+        // And the two layers meet rather than nearly meet. Column 11 is the first water column: the land's
+        // eastern edge and the sea's western edge are the same lattice points, and both put them at the
+        // waterline -- so a boat looking back at the beach sees beach, not a slit of sky.
+        float[] landBounds = land.bounds();
+        float[] waterBounds = water.bounds();
+        assertEquals(1100.0f, landBounds[3], 0.5f, "the land reaches the waterline column: "
+                + java.util.Arrays.toString(landBounds));
+        assertEquals(1100.0f, waterBounds[0], 0.5f, "the sea starts at the same column: "
+                + java.util.Arrays.toString(waterBounds));
+        assertEquals(TerrainMesher.SEA_LEVEL + 0.05f, landBounds[1], 1e-3f,
+                "the land's lowest vertex is the waterline it meets the sea at: "
+                        + java.util.Arrays.toString(landBounds));
+        float[] landVertices = land.vertices();
+        int shoreVertices = 0;
+        for (int i = 0; i < land.vertexCount(); i++) {
+            int at = i * MeshData.FLOATS_PER_VERTEX;
+            if (Math.abs(landVertices[at] - 1100.0f) < 0.5f) {
+                assertEquals(TerrainMesher.SEA_LEVEL + 0.05f, landVertices[at + 1], 1e-3f,
+                        "a land vertex standing in the water column is at the waterline, not on the seabed");
+                shoreVertices++;
+            }
+        }
+        assertTrue(shoreVertices >= 15, "the shore has a vertex for every row of cells: " + shoreVertices);
     }
 
     @Test
