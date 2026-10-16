@@ -9,14 +9,14 @@ repository, a CI run, or a byte count that can be re-derived.
 | | |
 |---|---|
 | **APK** | [`Qatar-The-Peninsula-v0.1.0-m0.apk`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk) |
-| **Bytes** | 19,201,474 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below, and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset. Android builds are not bit-reproducible, so two builds of the same commit differ by a few bytes and by their digest; the bytes and the digest here are the ones in the release as published by the run named below |
-| **SHA-256** | `09cdf423ef4f46981e7821134212aa45185e4463f05c45a1746626a2df5857e3` (the release API reports the same digest, and so does the 110-byte sidecar's contents) |
+| **Bytes** | 19,216,978 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below, and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset. Android builds are not bit-reproducible, so two builds of the same commit differ by a few bytes and by their digest; the bytes and the digest here are the ones in the release as published by the run named below |
+| **SHA-256** | `bfef57c18e95a097538f0c5659ec195f45769ff31ef012667d2733b7ceb1c56c` — the digest in the run's `artifacts/APK_VALIDATION.txt`, in the release notes, and in the 110-byte `.sha256` sidecar the same step wrote |
 | **Sidecar** | [`…apk.sha256`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256) |
 | **Release** | https://github.com/shuvrajeetkamila/temporary5/releases/tag/v0.1.0-m0 (rolling: each green run republishes it) |
-| **Built from** | commit `03daa4e`, branch `arena/4eb37624-temporary5` |
-| **CI runs for that commit** | Build APK [`38791617660`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38791617660) success (including publish) · Compile gate [`38791617643`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38791617643) success · Protect the project [`38791617545`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38791617545) success. No world-data run this time: the country was not recompiled, so the build restored the compiled bundle instead |
-| **Tests at that commit** | 166 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_SUMMARY.txt`) |
-| **Build stamp on screen** | `0.1.0-m0+diag8` — the release asset keeps its name, so this is how two builds are told apart on a phone: the diagnostics panel prints the stamp on its first line |
+| **Built from** | commit `7dcf9f4`, branch `arena/4eb37624-temporary5` |
+| **CI runs for that commit** | Build APK [`38878207670`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38878207670) success (including publish) · Compile gate [`38878207681`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38878207681) success · Protect the project [`38878207723`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38878207723) success. No world-data run this time: the country was not recompiled, so the build compiled the bundle inside its own job |
+| **Tests at that commit** | 206 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_SUMMARY.txt`) |
+| **Build stamp on screen** | `0.1.0-m0+diag9` — the release asset keeps its name, so this is how two builds are told apart on a phone: the diagnostics panel prints the stamp on its first line |
 | **Package** | `ai.arena.qatar.peninsula`, versionName `0.1.0-m0`, debug-signed, `minSdk 26`, `targetSdk 34` |
 | **ABIs** | `arm64-v8a`, `armeabi-v7a`, `x86_64` |
 | **Permissions** | none: no `INTERNET`, nothing to phone home to. The country is inside the APK. |
@@ -451,8 +451,7 @@ was built for: javac is not available here, so the gates are the compiler.
 **Verified on this build, not argued**: compile gate `38791617643` (six source gates green), Build APK
 `38791617660` with `tests=166 skipped=0 failures=0 errors=0` (`artifacts/UNIT_TEST_SUMMARY.txt`),
 `validation=PASSED` (`artifacts/APK_VALIDATION.txt`) and `status=PASSED` (`artifacts/QA_STATUS.txt`), APK
-**19,201,474 bytes**, SHA-256 `09cdf423…`, which is the digest the release API computes for the uploaded
-asset and the contents of the 110-byte sidecar. The APK pays 948 bytes over the previous one.
+**19,201,474 bytes**, SHA-256 `09cdf423…`. The APK paid 948 bytes over the one before it.
 
 ### Ninth install: the phone got hot, and the human and the car would not move
 
@@ -545,7 +544,28 @@ parked in a line behind you at a spawn, a teleport or a vehicle change, because 
 11-metre aeroplane and a 9-metre helicopter without overlapping them); and **streaming profiling** (the
 panel's numbers, above).
 
-**What this round cost.** Two compile errors, both worth the round trip because both are now gates:
+**What this round cost, and what its own tests found.** Three builds, and the first two were red -- for
+reasons worth writing down, because every one of them was found by the round's own tests rather than by a
+phone:
+
+* Build one: two compile errors (below). Both are now gates.
+* Build two: **eleven of 205 tests failed**, and two of the eleven were real defects that nothing had been
+  able to see before -- the helicopter that rested 20 cm above its own skids, and (found by the *next*
+  build) palms and scrub written with vertices and no triangles at all, so that the country's vegetation
+  was in the vertex buffer, in the vertex budget, and nowhere on the screen: `WorldRenderer.upload` refuses
+  a mesh with an empty index buffer. The other nine failures were the tests' own faults, and each one is
+  worth knowing, because a test that lies costs a build every time it runs:
+  a culling test that could not run at all (`Frustum.update` calls the native `Matrix4.prj`, so a JVM
+  cannot construct a `PerspectiveCamera` -- the rounds' own fault for reading a library from memory, and
+  the fix is that the frustum planes now come from this project's arithmetic, which the renderer also
+  uses); an allocation check that was reading a *comment* for a `new Color(`; a vertex-budget assertion
+  made after the one frame of overshoot the round-eight budget test deliberately documents; two car spawn
+  points in the country that stand in water rather than in a wall, which the test reported as a wall; a
+  street corner with a real wall in one of the eight directions a body can walk; and a car bound tighter
+  than the car on the sand it was driving on.
+* Build three: **green -- 206 tests, 0 failures, 0 errors**, and the one that published.
+
+The two compile errors were worth their round trip because both are now gates:
 
 1. **`Math.SQRT2` is not Java.** `java.lang.Math` declares exactly two constants, `E` and `PI`; `SQRT2` is
    JavaScript's. javac said "cannot find symbol" and pointed at the dot. The gate now reads every `Math.`
@@ -559,7 +579,16 @@ panel's numbers, above).
 Both rules were checked against the broken revision before being trusted, and both reproduce the CI errors
 exactly. Eight new tests joined the suite (`WorldSurfaceFootprintTest`, `HelicopterFlightTest`,
 `StreamingWorkTest`, `FlyStickTest`, `HumanCarMovementTest`, `SpawnClearerTest`, `ChunkCullingTest`,
-`VegetationTest`).
+`VegetationTest`), the suite grew from 166 tests to 206, and the flagship of the round is the one that
+walks the real streaming cache for fifteen hundred frames of driving and counts what it builds.
+
+**Verified on this build, not argued**: compile gate `38878207681` (six source gates green), Build APK
+`38878207670` with `tests=206 skipped=0 failures=0 errors=0` (`artifacts/UNIT_TEST_SUMMARY.txt`),
+`validation=PASSED` (`artifacts/APK_VALIDATION.txt`) and `status=PASSED` (`artifacts/QA_STATUS.txt`), APK
+**19,216,978 bytes**, SHA-256 `bfef57c1…`, published as the release's `apk` asset at 09:14:48Z on
+2026-10-16. The APK costs 15,504 bytes more than the eighth install's: the vegetation's index buffers,
+the culling arithmetic and the diagnostics of a round that was mostly spent making the frame cheaper,
+against a country whose bundles did not change at all.
 
 ## Honest limitations
 
@@ -637,7 +666,7 @@ exactly. Eight new tests joined the suite (`WorldSurfaceFootprintTest`, `Helicop
 
 ```bash
 git clone https://github.com/shuvrajeetkamila/temporary5 && cd temporary5
-git checkout 03daa4e            # the commit the published APK was built from
+git checkout 7dcf9f4            # the commit the published APK was built from
 # world data (downloads OSM + SRTM, compiles the country, validates it):
 python3 tools/fetch_sources.py && python3 tools/build_world.py && python3 tools/game_world.py
 python3 tools/validate_game_world.py --world android/assets/world     # 57/57

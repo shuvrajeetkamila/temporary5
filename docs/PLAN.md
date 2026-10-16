@@ -705,8 +705,14 @@ Both were caught by CI before any phone saw them, and the local-name gate caught
 the same new code -- the gates are the compiler here, and they have to be re-run after the *last* edit, not
 after the first one.
 
-Green build: run `38791617660` on `03daa4e` -- 166 tests, 0 failures, 0 errors, `validation=PASSED`,
-`status=PASSED`, APK **19,201,474 bytes**, SHA-256 `09cdf423…`.
+Green build (round eight): run `38791617660` on `03daa4e` -- 166 tests, 0 failures, 0 errors,
+`validation=PASSED`, `status=PASSED`, APK **19,201,474 bytes**, SHA-256 `09cdf423…`.
+
+Green build (round nine): run `38878207670` on `7dcf9f4` -- 206 tests, 0 failures, 0 errors,
+`validation=PASSED`, `status=PASSED`, APK **19,216,978 bytes**, SHA-256 `bfef57c1…`, stamp
+`0.1.0-m0+diag9`. The build took three pushes: the first two were red on the round's own mistakes (two
+compile errors, then eleven failing tests, nine of them real defects), and the third is the one on the
+release.
 
 6. ~~Final report.~~ Written: `docs/FINAL_REPORT.md` — APK link, bytes, SHA-256, run ids, and the honest
    limitations. It has to be re-checked whenever the APK changes, because a rolling release keeps
