@@ -19,7 +19,7 @@ Note: Some messages have been simplified; recompile with -Xdiags:verbose to get 
 > Task :core:compileJava FAILED
 > Task :android:mergeDebugResources
 > Task :android:parseDebugLocalResources
-gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_6-1792173740797.json
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_6-1792174289842.json
 
 FAILURE: Build failed with an exception.
 
@@ -46,5 +46,5 @@ Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Com
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
 
 
-BUILD FAILED in 13s
+BUILD FAILED in 9s
 10 actionable tasks: 10 executed

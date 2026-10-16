@@ -8029,3 +8029,148 @@ drwxr-xr-x 5 runner runner    4096 Oct 16 17:53 ..
 -rw-r--r-- 1 runner runner  876807 Oct 16 17:59 terrain_l1.bin.gz
 -rw-r--r-- 1 runner runner  231814 Oct 16 18:01 water.bin.gz
 16M	android/assets/world/
+=== world bundle self-sufficiency ===
+compiler_hash=11bf95639f4a30b569d82105c1c79104d28f776e5a78e5ddef9dcf7cb1c74e4e
+committed_hash=09033e2a24658469e29911385130199da07d9e681e5a9cb70fcf85e96340aa6b
+committed bundle is stale (compiler changed); rebuilding
+--- static self-test of the compiler ---
+PASS  coastline ribbon rasterises into a barrier ({'barrierCells': 238, 'seedCells': 2, 'stitches': 0, 'longestStitchM': 0.0, 'area_0': np.float64(12.1), 'thickening': 0, 'islandComponents': 0})
+PASS  land seeds land inside the ring ({'barrierCells': 238, 'seedCells': 2, 'stitches': 0, 'longestStitchM': 0.0, 'area_0': np.float64(12.1), 'thickening': 0, 'islandComponents': 0})
+PASS  derived land area 12.06 km2 is within the ring (15.48 km2 analytic)
+PASS  the ring centre is land
+PASS  the far corner (outside the ring) is not land
+PASS  shoreline ends sit on the border, so no long stitch is needed ({'barrierCells': 1063, 'seedCells': 2, 'stitches': 2, 'longestStitchM': 0.4, 'area_0': np.float64(5.6), 'thickening': 0, 'islandComponents': 0})
+PASS  land is confined to the enclosed peninsula (5.63 km2 derived, 7.74 km2 analytic)
+PASS  the Gulf north of the shoreline stays water
+PASS  the strip beyond the maritime boundary is not classified as land
+PASS  terrain bundle magic is QTT1
+PASS  terrain header carries cols/rows/cell/little-endian reserved
+PASS  terrain payload length matches the documented layout
+PASS  terrain heights are int16 little-endian, row 0 first
+PASS  land mask follows the heights as one byte per cell
+PASS  string table magic is QTS1
+PASS  string table counts entries
+PASS  entries are length-prefixed UTF-8 in insertion order
+PASS  string indices are stable and start at 0
+PASS  all five mandated checkpoint groups are declared (['CENTRAL_AND_CAPITAL', 'ISLANDS_AND_WATER', 'NORTH_AND_NORTHEAST', 'SOUTH_AND_BORDER', 'WEST_AND_NORTHWEST'])
+PASS  checkpoint table covers the country (32 entries)
+PASS  road class table is rich enough (23 classes)
+PASS  road classes include the urban and motorway ends of the range
+PASS  road classes map to integer material/geometry ids
+
+WORLD SELF-TEST PASSED
+selftest_exit=0
+--- fetch sources ---
+[1/2] SRTM 1 arc-second elevation tiles (public domain)
+  cached  N24E050.hgt.gz (8.8 MB)
+  cached  N24E051.hgt.gz (4.6 MB)
+  cached  N24E052.hgt.gz (1.3 MB)
+  cached  N25E050.hgt.gz (4.8 MB)
+  cached  N25E051.hgt.gz (3.5 MB)
+  cached  N25E052.hgt.gz (0.5 MB)
+  cached  N26E050.hgt.gz (1.5 MB)
+  cached  N26E051.hgt.gz (0.6 MB)
+  cached  N26E052.hgt.gz (0.4 MB)
+[2/2] OpenStreetMap Qatar extract
+  trying openstreetmap.fr: https://download.openstreetmap.fr/extracts/asia/qatar-latest.osm.pbf
+  probe   http=206 bytes=64 magic=0000000e0a094f53
+  cached  qatar-latest.osm.pbf (24.5 MB)
+  ok      qatar-latest.osm.pbf (24.5 MB)
+wrote /home/runner/work/temporary5/temporary5/data/geodata/SOURCES.json with 10 sources
+fetch_exit=0
+--- compile ---
+[1] OpenStreetMap extraction
+  parsing relations (boundaries)
+  boundary relations: 18 (admin levels 2/4/6)
+  parsing ways/nodes
+  ways visited: 410312
+  national boundary assembled from relation 305095 (Qatar)
+/home/runner/work/temporary5/temporary5/tools/build_world.py:1212: DeprecationWarning: The 'shapely.ops.transform()' function is deprecated. Use 'shapely.transform()' or 'shapely.transform_coordseq()' instead. See https://shapely.readthedocs.io/en/latest/manual.html#shapely.ops.transform for more details.
+  return shapely_transform(lambda x, y, z=None: FWD.transform(x, y), geom)
+  national AOI: MultiPolygon, area 23222.0 km2, valid
+  stats: {"coastline_ways": 378, "roads": 179943, "buildings": 186993, "landuse": 9103, "water_areas": 1170, "places": 159, "islands": 3, "aeroways": 1158, "named_areas": 1678}
+  municipalities: 8
+  coastline ways for the land derivation: 378; 2 tagged island polygons
+  world grid: origin=(431000,2681000) 259x268 km
+  DEM mosaic: 9 tiles, 10801x10801 samples
+  land seeds: roads 179078/179943, buildings 39969 (dropped 31 inside mapped water)
+  land derivation: {'barrierCells': 58156, 'seedCells': 273015, 'stitches': 4, 'longestStitchM': 4284.0, 'area_0': np.float64(11423.1), 'thickening': 0, 'islandComponents': 38}
+  land area total: 11,502 km2 across 68 components (55 islands >= 2 ha, largest island 70.70 km2)
+  land mask: 1,150,250 of 6,941,200 cells (16.6%)
+  island records: 57 (largest 122.0 ha)
+  terrain L1 (100 m): min 0.0 max 103.2 m
+  terrain L0 (300 m): 864x894
+  materials: 9 distinct classes present
+  roads compiled: 179943
+  buildings compiled: 186993
+  checkpoints: 28 found, 4 missing -> SOUTH_AND_BORDER/KHOR_AL_ADAID, SOUTH_AND_BORDER/HAMAD_PORT, CENTRAL_AND_CAPITAL/HAMAD_INTERNATIONAL_AIRPORT, NORTH_AND_NORTHEAST/THE_PEARL
+[2] writing runtime bundles
+  buildings packed: 186993
+  shoreline polylines packed: 320 (skipped 58 degenerate)
+  coast bundle written (320 polylines)
+  strings: 16780 entries
+  compiler fingerprint: 09033e2a24658469
+  wrote QATAR_NATIONAL_AOI.geojson
+  wrote QATAR_MUNICIPALITIES.geojson (8 municipalities)
+  wrote QATAR_BOUNDARY_REPORT.md
+[3] done
+  manifest: /home/runner/work/temporary5/temporary5/android/assets/world/manifest.json
+  bundles: 12.2 MB compressed
+compile_exit=0
+--- compile the game bundles (stage 2) ---
+== game world: stage 2 ==
+  parsing relations (boundaries)
+  boundary relations: 18 (admin levels 2/4/6)
+  parsing ways/nodes
+  ways visited: 410312
+  national boundary assembled from relation 305095 (Qatar)
+  packing buildings (real footprints)
+    buildings: 186,993 rings, 2,137 named
+  packing land use
+    land use: 5,784 polygons
+  packing water
+    water: 1,130 polygons
+  packing barriers
+    barriers: 421 lines
+  packing points of interest and spawn points
+    node features: 531
+    points: 784
+  strings: 17,718 entries after appending game names
+  manifest: android/assets/world/manifest.json (26,159 bytes)
+  checksums: 12 files
+== game world: stage 2 complete ==
+game_compile_exit=0
+--- validate ---
+PASS  checkpoint group packaged: NORTH_AND_NORTHEAST
+PASS  checkpoint group packaged: SOUTH_AND_BORDER
+PASS  checkpoint group packaged: WEST_AND_NORTHWEST
+PASS  road network compiled: 179943 ways (>= 3000)
+PASS  buildings compiled: 186993 (>= 2000)
+PASS  road classes present: 23
+PASS  land cell count recorded
+PASS  OpenStreetMap attribution present in the manifest
+
+WORLD COVERAGE VALIDATION FAILED (2 problem(s)):
+  - manifest format version is 1
+  - checksum matches manifest: buildings.bin.gz
+validate_exit=1
+missing assets/world/manifest.json
+game_validate_exit=2
+=== bundle contents ===
+total 16272
+drwxr-xr-x 2 runner runner    4096 Oct 16 18:11 .
+drwxr-xr-x 5 runner runner    4096 Oct 16 18:05 ..
+-rw-r--r-- 1 runner runner      65 Oct 16 18:09 COMPILER_SHA256
+-rw-r--r-- 1 runner runner   36152 Oct 16 18:11 barriers.bin.gz
+-rw-r--r-- 1 runner runner 5576624 Oct 16 18:11 buildings.bin.gz
+-rw-r--r-- 1 runner runner  125625 Oct 16 18:09 coast.bin.gz
+-rw-r--r-- 1 runner runner  679501 Oct 16 18:11 landuse.bin.gz
+-rw-r--r-- 1 runner runner   26159 Oct 16 18:11 manifest.json
+-rw-r--r-- 1 runner runner   87485 Oct 16 18:09 material_l1.bin.gz
+-rw-r--r-- 1 runner runner    7425 Oct 16 18:11 pois.bin.gz
+-rw-r--r-- 1 runner runner 8764140 Oct 16 18:09 roads.bin.gz
+-rw-r--r-- 1 runner runner  114292 Oct 16 18:11 strings.bin.gz
+-rw-r--r-- 1 runner runner  103521 Oct 16 18:09 terrain_l0.bin.gz
+-rw-r--r-- 1 runner runner  876807 Oct 16 18:09 terrain_l1.bin.gz
+-rw-r--r-- 1 runner runner  231814 Oct 16 18:11 water.bin.gz
+16M	android/assets/world/
