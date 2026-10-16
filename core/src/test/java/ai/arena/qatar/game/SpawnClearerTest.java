@@ -145,6 +145,101 @@ final class SpawnClearerTest {
         assertTrue(SpawnClearer.isClear(shallow, 0.0, 0.0), "wading depth is not swimmable water");
     }
 
+    /** Ground at one height west of a line, at another east of it: a cliff, or a shore. */
+    private static Surface splitAtEast(double lineEastM, double westGroundM, double eastGroundM,
+                                       double eastDepthM) {
+        return new Surface() {
+            @Override
+            public double groundHeightM(double eastM, double northM) {
+                return eastM < lineEastM ? westGroundM : eastGroundM;
+            }
+
+            @Override
+            public int materialId(double eastM, double northM) {
+                return eastM < lineEastM ? SurfaceMaterial.ID_URBAN_PAD : SurfaceMaterial.ID_SHALLOW_WATER;
+            }
+
+            @Override
+            public double waterDepthM(double eastM, double northM) {
+                return eastM < lineEastM ? 20.0 : eastDepthM;
+            }
+
+            @Override
+            public boolean collisionLoaded(double eastM, double northM) {
+                return true;
+            }
+        };
+    }
+
+    @Test
+    @DisplayName("a body in water it cannot cross is stepped to the shore, the shortest way out")
+    void rescueFindsTheShore() {
+        // Twenty metres of sea west of the line, knee-deep water east of it: a walker who is out of their
+        // depth is put on the first ring that reaches the shallows, which is forty metres away.
+        Surface shore = splitAtEast(40.0, 0.0, 0.0, 0.2);
+        SpawnClearer.Spot spot = SpawnClearer.nearestUsable(shore, 0.0, 0.0, 0.0,
+                SpawnClearer.WADE_DEPTH_M, 1.5);
+        assertTrue(spot.moved, "a walker out of their depth was left there");
+        assertEquals(40.0, spot.movedM, 1e-9, "the shortest way to ground that holds them: " + spot.movedM);
+        assertTrue(SpawnClearer.isClear(shore, spot.eastM, spot.northM),
+                "the rescue put the body somewhere a person can stand");
+    }
+
+    @Test
+    @DisplayName("a rescue will not step a body off a cliff")
+    void rescueRefusesADrop() {
+        // The ground is fifty metres lower to the east. Rings go outwards from the body, and the eastern
+        // candidates are the first ones considered -- and refused, because a step of fifty metres is not a
+        // step. The body is moved to the nearest ring of ground at its own height instead.
+        Surface cliff = splitAtEast(0.0, 50.0, 0.0, 0.0);
+        SpawnClearer.Spot spot = SpawnClearer.nearestUsable(cliff, -5.0, 0.0, 0.0,
+                SpawnClearer.WADE_DEPTH_M, 1.5);
+        assertTrue(spot.moved, "the body was wedged and nothing was found for it");
+        assertEquals(50.0, cliff.groundHeightM(spot.eastM, spot.northM), 1e-9,
+                "the rescue stepped the body off the cliff: " + spot.eastM + ", " + spot.northM);
+        assertTrue(spot.eastM <= 0.0, "and it did not land past the edge either: " + spot.eastM);
+    }
+
+    @Test
+    @DisplayName("a boat aground is moved into water deep enough to float it")
+    void rescueFindsWaterForABoat() {
+        Surface shallows = new Surface() {
+            @Override
+            public double groundHeightM(double eastM, double northM) {
+                return -1.0;
+            }
+
+            @Override
+            public int materialId(double eastM, double northM) {
+                return SurfaceMaterial.ID_SHALLOW_WATER;
+            }
+
+            @Override
+            public double waterDepthM(double eastM, double northM) {
+                return northM >= 16.0 ? 5.0 : 0.2;
+            }
+
+            @Override
+            public boolean collisionLoaded(double eastM, double northM) {
+                return true;
+            }
+        };
+        SpawnClearer.Spot spot = SpawnClearer.nearestUsable(shallows, 0.0, 0.0, 0.8, 100.0, 3.0);
+        assertTrue(spot.moved, "a boat with no water under it was left aground");
+        assertTrue(shallows.waterDepthM(spot.eastM, spot.northM) >= 0.8,
+                "the boat was moved to water it still cannot float in");
+    }
+
+    @Test
+    @DisplayName("with nowhere better within reach, the body is left alone")
+    void rescueIsAnHonestFailureToo() {
+        SpawnClearer.Spot spot = SpawnClearer.nearestUsable(openSea(), 0.0, 0.0, 0.0,
+                SpawnClearer.WADE_DEPTH_M, 1.5);
+        assertFalse(spot.moved, "the middle of the sea is not a place to step a walker to");
+        assertEquals(0.0, spot.eastM, 1e-9);
+        assertEquals(0.0, spot.northM, 1e-9);
+    }
+
     @Test
     @DisplayName("the search stays inside its own budget of distance and directions")
     void theSearchIsBounded() {

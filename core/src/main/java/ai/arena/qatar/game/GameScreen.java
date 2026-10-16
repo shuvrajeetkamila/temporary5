@@ -614,6 +614,7 @@ public final class GameScreen extends InputAdapter implements Disposable {
      * report. Two seconds of asking is the threshold: shorter than that is a player still deciding.
      */
     private void reportStuckIfAskedAndNotMoving(float dt) {
+        rescueCooldown = Math.max(0f, rescueCooldown - dt);
         if (controller == null || layout == null || layout.bigMapVisible()) {
             return;
         }
@@ -653,6 +654,86 @@ public final class GameScreen extends InputAdapter implements Disposable {
         messageSeconds = 3.0f;
         ai.arena.qatar.boot.ScreenLog.GLOBAL.warn("asked to move and did not: " + message
                 + " -- " + state.describe());
+        // And then, before settling for the explanation: the game does something about it.
+        if (rescueCooldown <= 0f) {
+            String rescued = rescueStuckBody(state, loaded);
+            if (rescued != null) {
+                message = rescued;
+                messageArabic = "";
+                messageSeconds = 4.0f;
+            }
+        }
+    }
+
+    /** Seconds between rescues: a body that keeps getting stuck is still the player's to steer. */
+    private static final float RESCUE_INTERVAL_S = 6.0f;
+    private float rescueCooldown;
+
+    /**
+     * Steps a body that cannot move to the nearest place it could.
+     *
+     * <p>The tenth install's report was "cant walk, use car", and the game's answer to it used to be
+     * words. Words are not enough when the body has been *placed* badly: inside the footprint of a
+     * building, in water deeper than a person can wade, or on ground whose collision was never compiled.
+     * No amount of pressing will get a body out of any of those, and the player has no way to know that
+     * from the screen. So after two seconds of trying the game looks for the nearest spot a body of this
+     * kind could move from -- a few metres away, at the same height, on ground it can stand on, outside
+     * anything solid -- and puts it there.
+     *
+     * <p>Deliberately narrow. It runs only for the three reasons that are placements rather than physics (a
+     * missing grid, water too deep to cross, something solid where the body is standing); it never lifts a
+     * flying body, because a helicopter that will not move is a different fault and hiding it would be
+     * worse than reporting it; and it will not do it twice within {@link #RESCUE_INTERVAL_S} seconds, so a
+     * player who is deliberately leaning on a wall is not teleported around the map for it.
+     *
+     * @return the message to show, or null when nothing was done
+     */
+    private String rescueStuckBody(ai.arena.qatar.vehicle.VehicleState state, boolean collisionLoaded) {
+        if (worldSurface == null) {
+            return null;
+        }
+        Loco loco = controller.loco();
+        if (loco.flying) {
+            return null;
+        }
+        boolean deepWater = state.wading || worldSurface.waterDepthM(state.eastM, state.northM)
+                > ai.arena.qatar.vehicle.HumanBody.WADE_DEPTH_M;
+        if (collisionLoaded && !deepWater && !state.blocked) {
+            return null;
+        }
+        // What this body can use, by kind: a walker wades, a car does not swim, and a boat needs water.
+        double minDepth = 0.0;
+        double maxDepth = ai.arena.qatar.vehicle.HumanBody.WADE_DEPTH_M;
+        double maxStep = 1.5;
+        if (loco == Loco.CAR) {
+            maxDepth = 0.4;
+            maxStep = 2.0;
+        } else if (loco == Loco.BOAT) {
+            minDepth = 0.8;
+            maxDepth = 100.0;
+            maxStep = 3.0;
+        }
+        SpawnClearer.Spot spot = SpawnClearer.nearestUsable(worldSurface, state.eastM, state.northM,
+                minDepth, maxDepth, maxStep);
+        if (!spot.moved) {
+            // Nowhere within a hundred and sixty metres is any better than here. Say the reason and leave
+            // the body alone: a teleport to a worse place is worse than a wall.
+            ai.arena.qatar.boot.ScreenLog.GLOBAL.warn("no clear place within "
+                    + (int) SpawnClearer.MAX_SEARCH_M + " m to move this body to");
+            return null;
+        }
+        double deltaEast = spot.eastM - state.eastM;
+        double deltaNorth = spot.northM - state.northM;
+        // The bodies are shifted *away* from the delta, which is the same convention the floating origin
+        // rebase uses: see PlayerController.shiftLocal.
+        controller.shiftLocal(-deltaEast, -deltaNorth);
+        lastOdometerM = controller.state().odometerM;
+        rescueCooldown = RESCUE_INTERVAL_S;
+        ai.arena.qatar.boot.ScreenLog.GLOBAL.warn("moved a stuck body "
+                + String.format(java.util.Locale.ROOT, "%.0f m", spot.movedM) + " clear of "
+                + (collisionLoaded ? deepWater ? "water it cannot cross" : "something solid"
+                        : "uncompiled ground"));
+        return String.format(java.util.Locale.ROOT, "Stepped clear (%.0f m): move again", spot.movedM);
     }
 
     /**
