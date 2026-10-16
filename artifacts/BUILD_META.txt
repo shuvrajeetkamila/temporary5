@@ -6,4 +6,4 @@ started_utc=2026-10-16T08:36:23Z
 stage=unit-tests
 gradle_exit=1
 stage=assemble
-assemble_exit=0
+assemble_exit=1
