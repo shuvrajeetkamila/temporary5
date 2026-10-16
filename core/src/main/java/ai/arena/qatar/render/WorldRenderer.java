@@ -37,8 +37,18 @@ public final class WorldRenderer implements Disposable {
     private static final Vector3 SUN_COLOUR = new Vector3(1.05f, 1.0f, 0.92f);
     private static final Vector3 FOG_COLOUR = new Vector3(0.78f, 0.80f, 0.84f);
     private static final Vector3 ZENITH_COLOUR = new Vector3(0.32f, 0.52f, 0.80f);
-    private static final float FOG_START = 900.0f;
-    private static final float FOG_END = 5600.0f;
+    /** The fog the world is built with: the horizon the shader fades into. */
+    public static final float FOG_START = 900.0f;
+    public static final float FOG_END = 5600.0f;
+    /**
+     * The fog actually in force, which follows the draw radius.
+     *
+     * <p>When the renderer shortens how far it draws, the fog has to shorten with it, or the world ends
+     * at a hard line with clear air beyond it. Keeping the two together is what makes the phone's
+     * performance visible as weather rather than as a bug.
+     */
+    private float fogStart = FOG_START;
+    private float fogEnd = FOG_END;
 
     private ShaderProgram worldProgram;
     private ShaderProgram skyProgram;
@@ -140,8 +150,12 @@ public final class WorldRenderer implements Disposable {
         Gdx.gl.glEnable(GL20.GL_CULL_FACE);
         Gdx.gl.glCullFace(GL20.GL_BACK);
         Gdx.gl.glFrontFace(GL20.GL_CCW);
-        Gdx.gl.glEnable(GL20.GL_BLEND);
-        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        // Blending is OFF for the world, and that is a performance decision with a proof attached: all
+        // three of this renderer's shaders end in gl_FragColor = vec4(colour, 1.0), so nothing in the 3D
+        // pass is ever transparent. Leaving blending enabled cost every terrain pixel of the country a
+        // read-modify-write of the frame buffer -- the single most expensive thing a phone GPU does --
+        // for a blend with one. Water is opaque in the shader too (its transparency is a colour mix).
+        Gdx.gl.glDisable(GL20.GL_BLEND);
 
         // Sky first, with depth writes off, so terrain at any distance covers it.
         Gdx.gl.glDepthMask(false);
@@ -163,9 +177,20 @@ public final class WorldRenderer implements Disposable {
         worldProgram.setUniformf("u_sunDirection", SUN_DIRECTION);
         worldProgram.setUniformf("u_sunColour", SUN_COLOUR);
         worldProgram.setUniformf("u_fogColour", FOG_COLOUR);
-        worldProgram.setUniformf("u_fogStart", FOG_START);
-        worldProgram.setUniformf("u_fogEnd", FOG_END);
+        worldProgram.setUniformf("u_fogStart", fogStart);
+        worldProgram.setUniformf("u_fogEnd", fogEnd);
         worldProgram.setUniformf("u_time", time);
+    }
+
+    /**
+     * Sets how far the fog runs, in metres: the caller passes its own draw radius so the two never
+     * disagree. Clamped to something sane, because a fog that starts behind the camera is worse than no
+     * fog at all.
+     */
+    public void setFogRange(float farMetres) {
+        float far = Math.max(600f, Math.min(FOG_END, farMetres));
+        fogEnd = far;
+        fogStart = Math.max(200f, far * 0.26f);
     }
 
     /** Uploads the GPU meshes for one chunk. Re-uploading a resident chunk replaces its meshes. */
@@ -303,8 +328,7 @@ public final class WorldRenderer implements Disposable {
         Gdx.gl.glEnable(GL20.GL_CULL_FACE);
         Gdx.gl.glCullFace(GL20.GL_BACK);
         Gdx.gl.glDepthMask(true);
-        Gdx.gl.glEnable(GL20.GL_BLEND);
-        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        Gdx.gl.glDisable(GL20.GL_BLEND);              // see begin(): no 3D shader here writes alpha < 1
         worldProgram.bind();
         worldProgram.setUniformMatrix("u_model", transform);
         actorMesh.render(worldProgram, GL20.GL_TRIANGLES);

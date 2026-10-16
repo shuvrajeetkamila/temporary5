@@ -147,15 +147,26 @@ public final class CarBody extends VehicleBody {
             double distance = Math.abs(travel);
             double aheadGround = surface.groundHeightM(x + moveE, z + moveN);
             double rise = aheadGround - ground;
-            boolean tooSteep = rise / distance > SLOPE_LIMIT || rise > 0.55;
+            // The grade is what stops a car, and a grade is scale free. The absolute "a kerb taller than
+            // 0.55 m is a wall" test only means something over a *short* step: over a long one -- a fast
+            // car at a clamped 0.1 s frame -- a 0.6 m rise is a fifteen per cent slope, and refusing it
+            // stopped the car dead on any road with a camber, at exactly the speed where it mattered.
+            boolean tooSteep = rise / distance > SLOPE_LIMIT || (distance < 1.0 && rise > 0.55);
             // The nose of the car, not its middle: a car stops at a wall before driving into it.
             double noseE = state.eastM + forwardE * CAR_LENGTH_M * 0.5;
             double noseN = state.northM + forwardN * CAR_LENGTH_M * 0.5;
-            boolean wall = surface.solidAt(noseE, noseN, ground + WHEEL_RADIUS_M + 0.2);
+            // And, as for the walker: a car that is already inside a building's box (spawned there, or
+            // teleported there) must be able to drive out instead of being refused every direction.
+            boolean insideSomething = surface.solidAt(x, z, ground + 1.0);
+            boolean wall = !insideSomething
+                    && surface.solidAt(noseE, noseN, ground + WHEEL_RADIUS_M + 0.2);
             if (tooSteep || wall) {
                 // A wall, a kerb the car cannot take at speed, or a dune face: stop, do not climb it.
+                // Stop means stop: this used to leave two metres a second on the clock while the
+                // position never changed -- a speedometer that lies, and a car whose blocked state was
+                // re-armed by its own motion every frame, so it could never be reversed out.
                 state.blocked = true;
-                state.speedMS = Math.min(Math.abs(state.speedMS), 2.0) * sign(previous);
+                state.speedMS = 0;
                 moveE = 0;
                 moveN = 0;
             } else if (rise > 0.05) {
@@ -205,7 +216,8 @@ public final class CarBody extends VehicleBody {
     @Override
     public String instrument(VehicleState state) {
         double kph = state.speedMS * 3.6;
-        String note = state.stalled ? "  ENGINE STALLED" : (state.slip > 0.25 ? "  TYRES SLIPPING" : "");
+        String note = state.stalled ? "  ENGINE STALLED"
+                : (state.blocked ? "  BLOCKED" : (state.slip > 0.25 ? "  TYRES SLIPPING" : ""));
         return String.format(Locale.ROOT, "%s  %.0f km/h%s", label(), kph, note);
     }
 }

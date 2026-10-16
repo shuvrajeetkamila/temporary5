@@ -88,7 +88,7 @@ public final class HelicopterBody extends VehicleBody {
         state.blocked = false;
 
         double density = airDensity(state.heightM);
-        double densityFactor = Math.max(0.2, density / SEA_LEVEL_DENSITY);
+        double densityRatio = densityFactor(state.heightM);
         double weight = MASS_KG * G;
         double speed = state.speedMS;
         double absSpeed = Math.abs(speed);
@@ -96,9 +96,7 @@ public final class HelicopterBody extends VehicleBody {
         // ---- rotor ---------------------------------------------------------------------------------
         double collective = clamp(input.collective, 0, 1);
         rotorFraction = approach(rotorFraction, collective, dt / COLLECTIVE_TAU_S);
-        // Power and retreating-blade limits: the disc cannot keep its thrust as speed builds.
-        double speedFactor = clamp(1.0 - 0.35 * (absSpeed / SPEED_LIMIT_MS), 0.45, 1.0);
-        double thrust = rotorFraction * THRUST_MAX_N * densityFactor * speedFactor;
+        double thrust = rotorFraction * THRUST_MAX_N * densityRatio * speedFactor(absSpeed);
 
         // ---- cyclic --------------------------------------------------------------------------------
         double targetPitchTilt = clamp(input.pitch, -1, 1) * TILT_MAX_RAD;
@@ -177,6 +175,59 @@ public final class HelicopterBody extends VehicleBody {
         state.wading = false;
     }
 
+    /** How much of sea-level thrust the disc can make at this altitude: thin air lifts less. */
+    public double densityFactor(double heightM) {
+        return Math.max(0.2, airDensity(heightM) / SEA_LEVEL_DENSITY);
+    }
+
+    /**
+     * How much of its thrust the disc keeps at this speed: power and retreating-blade limits bite as the
+     * machine approaches {@link #SPEED_LIMIT_MS}, and the floor of 0.45 is where the book says a
+     * helicopter of this class stops being able to hold its height at all.
+     */
+    public double speedFactor(double absSpeedMS) {
+        return clamp(1.0 - 0.35 * (absSpeedMS / SPEED_LIMIT_MS), 0.45, 1.0);
+    }
+
+    /**
+     * The collective a pilot would be holding to stay level at this instant, given the air and the speed.
+     *
+     * <p>The tilt is part of it, and that is the whole reason this method exists rather than a constant:
+     * a disc tilted twenty degrees puts sin(20) of its thrust into the direction of travel, so the
+     * collective that holds the machine up in a 20 m/s cruise is a fifth higher than the one that holds
+     * it up on the pad. Without that term, tipping the disc forward -- which is how a helicopter is flown
+     * -- makes the machine sink, and the tenth install's report was exactly that: it flies, but not
+     * properly.
+     *
+     * <p>This is the hover trim the controller flies with when the player is not touching the lever, and
+     * it is computed here rather than written down as a number because the number is not a constant of
+     * nature: {@code THRUST_MAX_N = 1.9 MASS g} means level flight is a collective of 0.526 in still air
+     * at sea level, and 0.72 in the thin air at four kilometres up, and 1.0 at the speed where only 45%
+     * of the thrust is left. The ninth install's helicopter used a written-down 0.5, so it sank slowly
+     * whenever the player let go of the lever -- "it flies but not perfectly", from the pilot's seat.
+     */
+    public double hoverCollective(VehicleState state) {
+        return collectiveForAccel(state, 0.0);
+    }
+
+    /**
+     * The collective that gives this machine a vertical acceleration of {@code verticalAccelMS2} right
+     * now: level flight at zero, a climb at anything positive, a descent at anything negative.
+     *
+     * <p>The whole of the machine's aerodynamics is in this one expression -- air density, the speed at
+     * which the rotor loses authority, and how much of the thrust the disc is spilling sideways because
+     * it is tipped -- so the pilot model in {@code PlayerController} can say "climb at 1.4 m/s^2" and
+     * leave the lever setting to the machine that has to produce it.
+     */
+    public double collectiveForAccel(VehicleState state, double verticalAccelMS2) {
+        double factor = densityFactor(state.heightM) * speedFactor(Math.abs(state.speedMS))
+                * Math.cos(tiltPitchRad) * Math.cos(tiltRollRad);
+        if (factor <= 0.0) {
+            return 1.0;
+        }
+        return clamp(MASS_KG * (G + verticalAccelMS2) / (THRUST_MAX_N * factor), 0.0, 1.0);
+    }
+
     @Override
     public String instrument(VehicleState state) {
         double density = airDensity(state.heightM);
@@ -184,6 +235,7 @@ public final class HelicopterBody extends VehicleBody {
                 - MASS_KG * G;
         return String.format(Locale.ROOT, "%s  %.0f km/h  alt %.0f m  v/s %+.1f  thrust %+.0f kN%s",
                 label(), state.speedMS * 3.6, state.heightM, state.verticalMS, margin / 1000.0,
-                state.grounded ? "  ON GROUND" : "");
+                state.grounded ? (rotorFraction < 0.25 ? "  ON GROUND - UP TO LIFT" : "  ON GROUND")
+                        : "");
     }
 }

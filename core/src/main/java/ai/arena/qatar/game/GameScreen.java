@@ -50,6 +50,8 @@ public final class GameScreen extends InputAdapter implements Disposable {
     private CameraRig rig;
     private PlayerController controller;
     private GameWorldRenderer worldRenderer;
+    /** The country as the vehicle bodies see it: heights, materials, solids. Set at startup. */
+    private WorldSurface worldSurface;
     private HudRenderer hud;
     private HudLayout layout;
     private MapRaster raster;
@@ -70,6 +72,9 @@ public final class GameScreen extends InputAdapter implements Disposable {
     private float moveCurrentY;
     private float lookLastX;
     private float lookLastY;
+    /** Where the current look drag started: the flying stick is measured from here, not from last frame. */
+    private float lookAnchorX;
+    private float lookAnchorY;
     private float moveRadius = 90f;
     private float lookSensitivity = LOOK_DEGREES_PER_PX;
 
@@ -100,12 +105,27 @@ public final class GameScreen extends InputAdapter implements Disposable {
     /** How long the launch credit stays in the corner: long enough to be read, short enough to ignore. */
     private static final float LAUNCH_CREDITS_SECONDS = 12f;
 
+    /** Where selecting a helicopter takes it: high enough to fly, low enough to see where it is. */
+    private static final double TAKE_OFF_HOVER_M = 25.0;
+
     /** Raster resolution used when the caller does not supply one. */
     private static final int DEFAULT_MAP_RESOLUTION = 1024;
 
     private float statusRefresh;
     private String statusLine = "";
     private String statusLineArabic = "";
+
+    /**
+     * Seconds left of the launch hint: the one sentence that says how to move. It is on screen for a
+     * while at launch and gone afterwards, because a hint that never leaves is furniture.
+     */
+    private float hintSeconds = LAUNCH_CREDITS_SECONDS;
+    /**
+     * How long the flying hint stays up after a flying machine is selected. A hint that appears the
+     * moment the controls change is the only moment the player is looking for it.
+     */
+    private static final float FLY_HINT_SECONDS = 8f;
+    private float flyHintSeconds;
 
     /** The data credit, printed on the map screen and for the first seconds of a launch. */
     private String creditsEnglish = "";
@@ -159,7 +179,24 @@ public final class GameScreen extends InputAdapter implements Disposable {
             controller = new PlayerController(rig);
             // From here on the vehicles move through the real terrain: heights, materials and depths
             // all come from the compiled country, and a kerb is a step the walker has to be able to take.
-            controller.setSurface(new WorldSurface(sampler, world));
+            //
+            // Setting the surface also re-seats every body on the real ground, which is what stops a
+            // walker from starting the game with its feet twelve metres below the terrain around it.
+            worldSurface = new WorldSurface(sampler, world);
+            controller.setSurface(worldSurface);
+
+            // And if the compiled spawn point is inside a building's box, the player starts the game
+            // unable to move in any direction. Ask for a clear place before handing over the screen: a
+            // player who cannot move is the ninth install's whole report.
+            SpawnClearer.Spot clear = SpawnClearer.nearestClear(worldSurface, rig.east, rig.north);
+            if (clear.moved) {
+                controller.placeAll(clear.eastM, clear.northM, rig.yawDegrees);
+                rig.east = clear.eastM;
+                rig.north = clear.northM;
+                console.log(String.format(java.util.Locale.ROOT,
+                        "the spawn point was inside something solid; the player starts %.0f m away",
+                        clear.movedM));
+            }
             // Start looking north-west across the bay rather than into the sand: a first impression of a
             // capital city is the skyline across the water.
             rig.yawDegrees = 305.0;
@@ -406,10 +443,45 @@ public final class GameScreen extends InputAdapter implements Disposable {
         for (Button button : layout.buttons()) {
             hud.drawButton(button, layout.isHighlighted(button.id));
         }
-        // The move stick, drawn where the thumb actually is.
+        // The movement stick: at rest where a thumb expects it, and where the thumb actually is while it
+        // is being dragged. See HudLayout.stickHome -- a movement control nobody can see is a movement
+        // control that gets reported as "cannot move".
+        if (movePointer < 0) {
+            HudLayout.Rect home = layout.stickHome();
+            if (home.w > 0f) {
+                hud.drawStickHome(home.x + home.w * 0.5f, home.y + home.h * 0.5f, home.w * 0.5f,
+                        HudText.MOVE_LABEL, HudText.MOVE_LABEL_AR);
+            }
+        }
         if (movePointer >= 0) {
             hud.drawStick(moveAnchorX, moveAnchorY, moveCurrentX, moveCurrentY, moveRadius);
         }
+        // And the flying stick, on the right, for the same reason: it is where a pilot's thumb goes, and
+        // a control that has to be discovered is not a control. It is drawn whenever the machine being
+        // flown is one that uses a stick -- which is both of the ones that fly.
+        if (controller.loco().flying) {
+            HudLayout.Rect flyHome = layout.flyStickHome();
+            if (flyHome.w > 0f) {
+                float flyRadius = flyHome.w * 0.5f;
+                float centreX = flyHome.x + flyRadius;
+                float centreY = flyHome.y + flyRadius;
+                if (lookPointer < 0) {
+                    hud.drawStickHome(centreX, centreY, flyRadius, HudText.FLY_LABEL,
+                            HudText.FLY_LABEL_AR);
+                } else {
+                    hud.drawStick(centreX, centreY,
+                            centreX + (float) controller.stickRoll() * flyRadius,
+                            centreY + (float) controller.stickPitch() * flyRadius, flyRadius);
+                }
+            }
+        }
+    }
+
+    /** One line of English and its Arabic twin, along the bottom centre, above the buttons. */
+    private void drawLeftLines(String english, String arabic, int width, int height) {
+        float baseline = height * 0.30f;
+        hud.drawCentredStatus(english, width * 0.5f, baseline);
+        hud.drawCentredStatusArabic(arabic, width * 0.5f, baseline - hud.lineHeight() * 1.15f);
     }
 
     private void drawMapButtons() {
@@ -442,6 +514,19 @@ public final class GameScreen extends InputAdapter implements Disposable {
             lineY -= step;
             hud.drawStatusArabic(HudText.MAP_HINT_AR, margin, lineY);
         }
+        // How to move. It goes at the foot of the screen for the first seconds of a launch: the stick is
+        // drawn at rest now, but nothing else on the screen says which way to drag it, and the ninth
+        // install's report was from a player who had not found it at all.
+        hintSeconds = Math.max(0f, hintSeconds - dt);
+        flyHintSeconds = Math.max(0f, flyHintSeconds - dt);
+        if (!layout.bigMapVisible()) {
+            if (flyHintSeconds > 0f) {
+                drawLeftLines(HudText.FLY_HINT_EN, HudText.FLY_HINT_AR, width, height);
+            } else if (hintSeconds > 0f) {
+                drawLeftLines(HudText.CONTROLS_HINT_EN, HudText.CONTROLS_HINT_AR, width, height);
+            }
+        }
+
         // The data credit, in both languages. On the map screen, which is the picture made from that
         // data, it stays up; after a launch it fades out of the corner by itself. ODbL asks for the
         // attribution to reach the player, and an APK that never prints it does not.
@@ -539,7 +624,7 @@ public final class GameScreen extends InputAdapter implements Disposable {
             fire(hit.id, true);
             return true;
         }
-        if (movePointer < 0 && x < layout.screenWidth() * 0.3f && y < layout.screenHeight() * 0.62f) {
+        if (movePointer < 0 && layout.moveZone().contains(x, y)) {
             movePointer = pointer;
             moveAnchorX = x;
             moveAnchorY = y;
@@ -557,6 +642,8 @@ public final class GameScreen extends InputAdapter implements Disposable {
             lookPointer = pointer;
             lookLastX = x;
             lookLastY = y;
+            lookAnchorX = x;
+            lookAnchorY = y;
             return true;
         }
         return false;
@@ -570,9 +657,25 @@ public final class GameScreen extends InputAdapter implements Disposable {
             return mapTouchDragged(x, y, pointer);
         }
         if (pointer == lookPointer) {
-            float dx = x - lookLastX;
-            float dy = y - lookLastY;
-            controller.look(dx * lookSensitivity, dy * lookSensitivity);
+            if (controller.loco() == Loco.HELICOPTER) {
+                // The cyclic is a stick, so the gesture is a stick: the offset of the thumb from where the
+                // drag started *is* the deflection, and it stays deflected until the finger lets go. This
+                // used to be a delta with a spring, so a still thumb was a machine that flew itself level
+                // again after half a second -- see PlayerController.setStick.
+                float flyRadius = Math.max(1f, layout.flyStickHome().w * 0.5f);
+                float deflectionX = (x - lookAnchorX) / flyRadius;
+                float deflectionY = (y - lookAnchorY) / flyRadius;
+                float magnitude = (float) Math.sqrt(deflectionX * deflectionX + deflectionY * deflectionY);
+                if (magnitude > 1f) {
+                    deflectionX /= magnitude;
+                    deflectionY /= magnitude;
+                }
+                controller.setStick(deflectionY, deflectionX);
+            } else {
+                float dx = x - lookLastX;
+                float dy = y - lookLastY;
+                controller.look(dx * lookSensitivity, dy * lookSensitivity);
+            }
             lookLastX = x;
             lookLastY = y;
             return true;
@@ -609,6 +712,9 @@ public final class GameScreen extends InputAdapter implements Disposable {
         }
         if (pointer == lookPointer) {
             lookPointer = -1;
+            // A stick is let go of, not switched off: the spring in the controller returns it to trim, and
+            // a helicopter that was being flown home keeps its heading while the disc levels.
+            controller.releaseStick();
             return true;
         }
         if (pointer == buttonPointer) {
@@ -671,13 +777,21 @@ public final class GameScreen extends InputAdapter implements Disposable {
                 break;
             case LOCO_PLANE:
                 controller.setLoco(Loco.PLANE);
+                flyHintSeconds = FLY_HINT_SECONDS;
                 worldRenderer.setActor(controller.meshKind());
-                controller.adjustAltitude(220.0);
+                // No altitude hold for the aeroplane: a wing climbs by flying, so the stick is the whole
+                // control. It used to ask for 220 m here, which the aeroplane ignores -- a line that read
+                // as if it did something, which is worse than no line at all.
                 break;
             case LOCO_HELI:
                 controller.setLoco(Loco.HELICOPTER);
+                flyHintSeconds = FLY_HINT_SECONDS;
                 worldRenderer.setActor(controller.meshKind());
-                controller.adjustAltitude(120.0);
+                // A take-off to a low hover, and then it is the player's: the stick flies it, the
+                // altitude buttons climb and descend. It used to command 120 m on selection, whether or
+                // not anyone was flying, which is the tenth install's "it flies but not perfectly" --
+                // a machine that left on its own and then could not be commanded.
+                controller.takeOff(TAKE_OFF_HOVER_M);
                 break;
             case LOCO_BOAT:
                 controller.setLoco(Loco.BOAT);
@@ -855,6 +969,22 @@ public final class GameScreen extends InputAdapter implements Disposable {
         TeleportService.Target target = teleport.fromMapPixel(pixelX, pixelY);
         double localEast = target.east - offsetEastToBundle();
         double localNorth = target.north - offsetNorthToBundle();
+        // Resolved to a place, but a place can still be inside a building's box -- the boxes overlap
+        // roads, and a compound is one box around all of it -- and a body inside a box is refused in
+        // every direction by its own collision rule. Asking for clear ground is what makes a teleport
+        // arrive somewhere the player can drive away from.
+        if (worldSurface != null) {
+            SpawnClearer.Spot clear = SpawnClearer.nearestClear(worldSurface, localEast, localNorth);
+            if (clear.moved) {
+                localEast = clear.eastM;
+                localNorth = clear.northM;
+                if (clear.movedM > 1.0) {
+                    ai.arena.qatar.boot.ScreenLog.GLOBAL.log(String.format(java.util.Locale.ROOT,
+                            "the tapped place was inside something solid; stepped %.0f m aside",
+                            clear.movedM));
+                }
+            }
+        }
         rig.placeAt(localEast, localNorth);
         controller.placePlayer(localEast, localNorth);
         mapView.centreOnWorld(target.east, target.north);
@@ -873,7 +1003,11 @@ public final class GameScreen extends InputAdapter implements Disposable {
         if (layout != null) {
             layout.resize(width, height);
             hud.resize(width, height);
-            moveRadius = Math.min(width, height) * 0.14f;
+            // The radius of the ring on the screen *is* the drag that means full deflection: a stick that
+            // is drawn at one size and responds at another is a stick the player cannot learn. It used to
+            // be a fixed 90 px against a ring drawn at 14% of the screen's short side -- a hundred and
+            // fifty px on a phone -- so full speed was reached at sixty per cent of the ring.
+            moveRadius = layout.stickRadius();
             lookSensitivity = LOOK_DEGREES_PER_PX * (height / 720f);
         }
     }

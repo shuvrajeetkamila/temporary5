@@ -48,6 +48,8 @@ public final class ChunkMesher {
     /** Chunk edge length in metres. 500 m at the finest terrain cell (100 m) is a 5x5 cell patch. */
     public static final double CHUNK_M = 500.0;
 
+    /** Below this detail, nothing is scattered: distance turns plants into pixels and then into fog. */
+    public static final double VEGETATION_DETAIL_CUTOFF = VegetationMesher.MIN_DETAIL;
     /** Buildings smaller than this are only drawn when the chunk is close (square metres). */
     private static final double SMALL_BUILDING_M2 = 45.0;
     /** Below this detail, road ribbons are dropped entirely and only terrain is drawn. */
@@ -57,6 +59,7 @@ public final class ChunkMesher {
     private final TerrainMesher terrainMesher;
     private final BuildingMesher buildingMesher;
     private final RoadMesher roadMesher;
+    private final VegetationMesher vegetationMesher = new VegetationMesher();
 
     private final int[] candidates = new int[8192];
 
@@ -87,6 +90,8 @@ public final class ChunkMesher {
         public final List<MeshData> detail = new ArrayList<>();
         public int buildings;
         public int roads;
+        /** Plants scattered in this chunk: palms and bushes together. */
+        public int vegetation;
         /** True when geometry was left out because every part was full: reported, never fatal. */
         public boolean truncated;
 
@@ -192,6 +197,7 @@ public final class ChunkMesher {
                 detailTriangles += part.triangleCount();
             }
             return triangleCount() + " triangles (" + buildings + " buildings, " + roads + " roads, "
+                    + vegetation + " plants, "
                     + detail.size() + " detail part" + (detail.size() == 1 ? "" : "s")
                     + (truncated ? ", TRUNCATED at the vertex budget" : "") + ")";
         }
@@ -226,6 +232,17 @@ public final class ChunkMesher {
         }
         if (world.barriers != null) {
             meshBarriers(minEast, minNorth, maxEast, maxNorth, detail, mesh);
+        }
+        // Palms and scrub last, and on whatever room is left: the city is what the player is driving
+        // through, and a chunk that cannot hold both should lose its bushes rather than its buildings.
+        // The land use carries the plants -- see VegetationMesher -- and the budget is spent before a
+        // plant is written, so a chunk of dense scrub cannot overrun a detail part.
+        if (world.landuse != null && detail >= VEGETATION_DETAIL_CUTOFF) {
+            VegetationMesher.Stats stats = vegetationMesher.meshInto(world.landuse, world.terrainL1,
+                    world.materials, mesh.detailPartFor(VegetationMesher.MAX_CHUNK_VERTICES),
+                    minEast, minNorth, maxEast, maxNorth, detail,
+                    VegetationMesher.MAX_CHUNK_VERTICES);
+            mesh.vegetation = stats.plants();
         }
         // Everything the meshers wrote is in bundle space -- metres from the compiled grid's origin --
         // because that is the frame the terrain, building and road data are stored in. The renderer

@@ -172,6 +172,19 @@ final class FontCoverageTest {
         lines.add(Credits.ARABIC);
         lines.add(HudText.MAP_HINT_EN);
         lines.add(HudText.MAP_HINT_AR);
+        // Round nine: the movement stick's own word and the launch hint. The hint is the sentence that
+        // tells a player the stick exists at all, so a missing glyph in it is worse than a missing glyph
+        // in a label: the control would be there and unreadable.
+        lines.add(HudText.MOVE_LABEL);
+        lines.add(HudText.MOVE_LABEL_AR);
+        lines.add(HudText.CONTROLS_HINT_EN);
+        lines.add(HudText.CONTROLS_HINT_AR);
+        // And the flying side: the ring on the right, its own word under it, and the sentence that says
+        // which way to drag it. "طيران" was in no shipped string before this round.
+        lines.add(HudText.FLY_LABEL);
+        lines.add(HudText.FLY_LABEL_AR);
+        lines.add(HudText.FLY_HINT_EN);
+        lines.add(HudText.FLY_HINT_AR);
 
         PlayerController controller = new PlayerController(new CameraRig(TerrainSampler.FLAT, 0.0, 0.0));
         for (Loco loco : Loco.values()) {

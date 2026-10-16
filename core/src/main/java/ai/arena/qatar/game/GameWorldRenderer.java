@@ -1,5 +1,6 @@
 package ai.arena.qatar.game;
 
+import ai.arena.qatar.render.ChunkCulling;
 import ai.arena.qatar.render.ChunkMeshCache;
 import ai.arena.qatar.render.ChunkMesher;
 import ai.arena.qatar.render.ChunkMesher.ChunkMesh;
@@ -53,6 +54,18 @@ public final class GameWorldRenderer implements Disposable {
     public static final float WARMUP_SECONDS = 4.0f;
     /** How many chunk failures are reported before the log is left alone (the holes still stay). */
     private static final int MAX_REPORTED_FAILURES = 5;
+
+    /**
+     * How far the renderer will draw when the phone is keeping up, in metres. The terrain is built out to
+     * {@code ChunkMeshCache.TERRAIN_RADIUS_M} (6 km); this is the part of it that is drawn.
+     */
+    public static final double DRAW_RADIUS_M = 6000.0;
+    /** The floor: however slow the phone is, this much of the world is drawn. */
+    public static final double MIN_DRAW_RADIUS_M = 2800.0;
+    /** Frame time above which the draw radius shrinks, in milliseconds: about 48 frames a second. */
+    public static final double SLOW_FRAME_MS = 20.8;
+    /** Frame time below which it grows again: about 62 frames a second. */
+    public static final double FAST_FRAME_MS = 16.1;
     private final WorldData world;
     private final WorldOrigin origin;
     private final ChunkMesher mesher;
@@ -71,6 +84,45 @@ public final class GameWorldRenderer implements Disposable {
     private int reportedFailures;
     private double bundleOffsetEast;
     private double bundleOffsetNorth;
+    /**
+     * The frame time the device actually took, in seconds.
+     *
+     * <p>{@code Gdx.graphics} is absent in a test or a headless tool, so the caller's own delta is the
+     * fallback: a measurement that throws is worse than a measurement that is approximate.
+     */
+    private static double measuredFrameSeconds(float fallbackSeconds) {
+        try {
+            if (com.badlogic.gdx.Gdx.graphics != null) {
+                double measured = com.badlogic.gdx.Gdx.graphics.getDeltaTime();
+                if (measured > 0.0) {
+                    return measured;
+                }
+            }
+        } catch (Throwable ignored) {
+            // No graphics subsystem (a unit test, a tool): use what the caller measured.
+        }
+        return Math.max(0.0, fallbackSeconds);
+    }
+
+    /** The focus the last update was given, in local metres: where the chunk ring is centred. */
+    private double cacheFocusEast;
+    private double cacheFocusNorth;
+
+    /**
+     * How far this frame will draw, in metres. It follows the measured frame time: a phone that is
+     * holding 60 frames a second gets the whole 6 km, and one that is struggling loses horizon until it
+     * can breathe. The fog follows it exactly (see {@code WorldRenderer.setFogRange}), so what the player
+     * sees is weather rather than a shrinking world.
+     *
+     * <p>This is the honest form of a graphics settings menu: the setting nobody has to find, driven by
+     * the number that actually matters on a handset that is getting warm.
+     */
+    private double drawRadiusM = DRAW_RADIUS_M;
+    /** Exponential moving average of the frame time, in milliseconds, over roughly the last second. */
+    private double frameMsEma = 16.0;
+    /** Chunks drawn and chunks skipped in the last frame, for the diagnostics line. */
+    private int drawnChunks;
+    private int culledChunks;
 
     public GameWorldRenderer(WorldData world, WorldOrigin origin, WorldRenderer renderer) {
         this.world = world;
@@ -101,14 +153,35 @@ public final class GameWorldRenderer implements Disposable {
 
     /** Local horizontal position of the camera, in metres, for streaming decisions. */
     public void update(double localEast, double localNorth, float deltaSeconds) {
+        cacheFocusEast = localEast;
+        cacheFocusNorth = localNorth;
         elapsed += deltaSeconds;
         lastDelta = deltaSeconds;
         updateOffsets();
         double bundleEast = localEast + bundleOffsetEast;
         double bundleNorth = localNorth + bundleOffsetNorth;
 
+        // The draw radius follows the frame time, and the cache follows the draw radius: building chunks
+        // the frame will not draw is work for the phone's heat sink.
+        //
+        // The frame time is the *device's*, not the simulation's: the delta the caller passes has already
+        // been clamped to a tenth of a second so that a stalled frame cannot teleport the physics, and a
+        // performance decision made from a clamped number cannot see the stall it exists to react to.
+        double frameMs = measuredFrameSeconds(deltaSeconds) * 1000.0;
+        if (frameMs > 0.0) {
+            frameMsEma += (frameMs - frameMsEma) * 0.05;
+        }
+        if (frameMsEma > SLOW_FRAME_MS) {
+            drawRadiusM = Math.max(MIN_DRAW_RADIUS_M, drawRadiusM - 45.0);
+        } else if (frameMsEma < FAST_FRAME_MS) {
+            drawRadiusM = Math.min(DRAW_RADIUS_M, drawRadiusM + 15.0);
+        }
+
         int budget = elapsed < WARMUP_SECONDS ? WARMUP_BUDGET : STREAM_BUDGET;
-        for (ChunkMeshCache.Entry chosen : cache.update(bundleEast, bundleNorth, budget)) {
+        // Half a kilometre of slack over the draw radius: the cache may hold a ring more than it draws,
+        // which is what keeps chunks resident while the player moves along a chunk boundary.
+        double buildRadius = Math.min(ChunkMeshCache.TERRAIN_RADIUS_M, drawRadiusM + ChunkMesher.CHUNK_M);
+        for (ChunkMeshCache.Entry chosen : cache.update(bundleEast, bundleNorth, budget, buildRadius)) {
             build(chosen, bundleEast, bundleNorth);
         }
         releaseDepartedChunks();
@@ -183,16 +256,40 @@ public final class GameWorldRenderer implements Disposable {
         }
     }
 
-    /** Draws every resident chunk. */
+    /**
+     * Draws the resident chunks that can be seen, and counts what it skipped.
+     *
+     * <p>Everything the resident window holds used to be drawn, in all directions, always: at a 6 km
+     * radius on a 20:9 screen that is more than twice as much geometry as the camera can show, and every
+     * one of those vertices is transformed before the clipper discards it. The count of what was skipped
+     * is on the diagnostics line, because a performance change nobody can measure is a superstition.
+     */
     public void render(Camera camera) {
         renderer.begin(camera, lastDelta);
+        renderer.setFogRange((float) drawRadiusM);
+        drawnChunks = 0;
+        culledChunks = 0;
+        double focusEast = cacheFocusEast;
+        double focusNorth = cacheFocusNorth;
+        double sphere = ChunkCulling.CHUNK_SPHERE_RADIUS_M;
         for (ChunkMeshCache.Entry entry : cache.resident()) {
             if (!entry.uploaded) {
                 continue;                     // failed, or not yet built: an empty chunk, not a hole
             }
             double offsetEast = ChunkMesher.chunkOrigin(entry.chunkX) - bundleOffsetEast;
             double offsetNorth = ChunkMesher.chunkOrigin(entry.chunkZ) - bundleOffsetNorth;
+            // The sphere test is done in local metres, which is where the camera is.
+            double centreEast = offsetEast + ChunkMesher.CHUNK_M * 0.5;
+            double centreNorth = offsetNorth + ChunkMesher.CHUNK_M * 0.5;
+            if (!ChunkCulling.withinDrawRadius(centreEast, centreNorth, focusEast, focusNorth,
+                    drawRadiusM)
+                    || !ChunkCulling.inFrustum(camera == null ? null : camera.frustum, centreEast,
+                            centreNorth, sphere)) {
+                culledChunks++;
+                continue;
+            }
             renderer.draw(entry.key(), offsetEast, offsetNorth);
+            drawnChunks++;
         }
         // No state hand-over here on purpose: the player's body may still be drawn with this pass's
         // state, and WorldRenderer.drawActor ends the 3D frame once the body is on the screen. The HUD
@@ -237,6 +334,26 @@ public final class GameWorldRenderer implements Disposable {
         return cache.residentCount();
     }
 
+    /** Chunks whose geometry was submitted to the GPU in the last frame. */
+    public int drawnChunks() {
+        return drawnChunks;
+    }
+
+    /** Chunks skipped by the distance and frustum tests in the last frame. */
+    public int culledChunks() {
+        return culledChunks;
+    }
+
+    /** How far the renderer is drawing right now, in metres. */
+    public double drawRadiusM() {
+        return drawRadiusM;
+    }
+
+    /** The measured frame time, averaged, in milliseconds. */
+    public double frameMs() {
+        return frameMsEma;
+    }
+
     public int pendingChunks() {
         return cache.pendingCount();
     }
@@ -264,11 +381,20 @@ public final class GameWorldRenderer implements Disposable {
     }
 
     /** One-line streaming status for the debug overlay and the launch trace. */
+    /**
+     * The streaming profile, on one line: what is resident, what is drawn, what was skipped, what it
+     * cost, and how far the fog is. This is the number a phone can report and this laptop cannot -- the
+     * tenth install asked for the phone to stop getting hot, and the only way to know whether it did is
+     * to put the measurement where the player can read it out.
+     */
     public String describe() {
         return "chunks " + residentChunks() + " resident / " + pendingChunks() + " pending, "
+                + drawnChunks + " drawn + " + culledChunks + " culled, "
                 + drawCalls() + " draws, " + (drawnTriangles() / 1000) + "k tris, "
                 + (residentVertices() / 1000) + "k verts of " + (geometryBudgetVertices() / 1000)
-                + "k" + (failedChunks() > 0 ? ", " + failedChunks() + " FAILED" : "");
+                + "k, " + String.format(java.util.Locale.ROOT, "%.1f ms, fog %.1f km",
+                        frameMsEma, drawRadiusM / 1000.0)
+                + (failedChunks() > 0 ? ", " + failedChunks() + " FAILED" : "");
     }
 
     @Override

@@ -108,12 +108,19 @@ public final class HumanBody extends VehicleBody {
         // One rule, because a walker takes a step: the ground ahead may be up to STEP_UP_M above the
         // feet and no more. A kerb is a step; a sea wall is a wall; there is no wall-climbing and no
         // sliding down slopes, which is the honest limit of a walker that has no ragdoll.
+        // Is the player standing inside something they should not be? A spawn point inside a compound,
+        // a teleport into a courtyard, a building's *bounding box* that swallows the road beside it --
+        // in all three, every direction is refused for ever by the solid test below and the person never
+        // moves. Being inside something is not a wall to respect: it is somewhere to walk out of, so
+        // the solid test is skipped while the feet themselves are in a solid.
+        boolean insideSomething = surface.solidAt(x, z, Math.max(ground, state.heightM));
         if (state.grounded && (moveE != 0 || moveN != 0)) {
             double aheadGround = surface.groundHeightM(x + moveE, z + moveN);
             double aheadDepth = surface.waterDepthM(x + moveE, z + moveN);
-            boolean tooTall = aheadGround - state.heightM > STEP_UP_M;
+            boolean tooTall = aheadGround - ground > STEP_UP_M;
             boolean tooDeep = aheadDepth > WADE_DEPTH_M;
-            boolean tooSolid = surface.solidAt(x + moveE, z + moveN, Math.max(aheadGround, state.heightM));
+            boolean tooSolid = !insideSomething
+                    && surface.solidAt(x + moveE, z + moveN, Math.max(aheadGround, state.heightM));
             if (tooTall || tooDeep || tooSolid) {
                 state.blocked = true;
                 state.speedMS = 0;
@@ -169,7 +176,9 @@ public final class HumanBody extends VehicleBody {
     @Override
     public String instrument(VehicleState state) {
         String mode = state.grounded ? "ON FOOT" : "AIRBORNE";
-        return String.format(java.util.Locale.ROOT, "%s  %.1f m/s  %s%s", label(), state.speedMS, mode,
-                state.wading ? "  WADING" : "");
+        // BLOCKED is on the readout because a walker that will not move has to say why: on a phone the
+        // status line is the only debugger there is.
+        return String.format(java.util.Locale.ROOT, "%s  %.1f m/s  %s%s%s", label(), state.speedMS,
+                mode, state.wading ? "  WADING" : "", state.blocked ? "  BLOCKED" : "");
     }
 }

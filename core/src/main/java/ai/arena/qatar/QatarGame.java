@@ -44,7 +44,7 @@ public final class QatarGame extends ApplicationAdapter {
      * that the panel reported, and the person installing the next one needs to see at a glance that it
      * is the next one and not the same file installed twice.
      */
-    public static final String VERSION = "0.1.0-m0+diag8";
+    public static final String VERSION = "0.1.0-m0+diag9";
 
     /**
      * Map raster resolution. 2048 covers the country at 126 m per pixel and cost seconds of blocking
@@ -52,6 +52,17 @@ public final class QatarGame extends ApplicationAdapter {
      * radius needs, and the big map's 16x zoom is still usable.
      */
     private static final int MAP_RESOLUTION = 1024;
+
+    /**
+     * The frame rate the game asks the device for: 60, which is what this game is designed around.
+     *
+     * <p>Nothing in this game moves fast enough for 90 or 120 frames a second to look different, but the
+     * GPU work for each of those frames is identical, so an uncapped render loop on a high-refresh phone
+     * was drawing the whole country twice as often as the player could see -- and the tenth install's
+     * phone got hot within seconds of driving around. libGDX maps this onto the platform's own frame
+     * limiter, so it also stops the app waking up for frames nobody asked for.
+     */
+    public static final int FOREGROUND_FPS = 60;
 
     /** The stages of a launch, in order. One runs per frame while the panel is on the screen. */
     private enum LoadStage {
@@ -176,6 +187,10 @@ public final class QatarGame extends ApplicationAdapter {
         // libGDX exists (see AndroidLauncher): this method is one of the things that can fail, and a
         // recorder that is created here would die with the failure it was meant to record.
         CrashJournal.note("create");
+
+        // Sixteen milliseconds of budget per frame, and not a millisecond more: see FOREGROUND_FPS.
+        Gdx.graphics.setForegroundFPS(FOREGROUND_FPS);
+        Gdx.app.log("QatarGame", "frame rate capped at " + FOREGROUND_FPS + " fps");
 
         boot = new BootSequence();
         boot.begin();

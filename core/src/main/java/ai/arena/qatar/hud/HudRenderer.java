@@ -35,6 +35,17 @@ public final class HudRenderer implements Disposable {
     private static final Color TEXT = new Color(0.96f, 0.97f, 1.0f, 1f);
     private static final Color TEXT_DIM = new Color(0.72f, 0.76f, 0.80f, 1f);
     private static final Color MARKER = new Color(1f, 0.23f, 0.19f, 1f);
+    /**
+     * The stick's own translucent greys. They were built with {@code new Color(...)} at the point of use,
+     * which is three objects per stick per frame -- six a frame with the flying stick up as well, which is
+     * 360 short-lived objects a second of pure garbage on a phone that is already warm.
+     */
+    private static final Color STICK_DISC = new Color(0.95f, 0.97f, 1.0f, 0.14f);
+    private static final Color STICK_EDGE = new Color(0.95f, 0.97f, 1.0f, 0.28f);
+    private static final Color STICK_KNOB = new Color(0.98f, 0.99f, 1.0f, 0.55f);
+    private static final Color STICK_HOME_DISC = new Color(0.95f, 0.97f, 1.0f, 0.10f);
+    private static final Color STICK_HOME_EDGE = new Color(0.95f, 0.97f, 1.0f, 0.26f);
+    private static final Color STICK_HOME_KNOB = new Color(0.98f, 0.99f, 1.0f, 0.42f);
     private static final Color CROSSHAIR = new Color(1f, 0.85f, 0.35f, 0.9f);
 
     private final SpriteBatch batch = new SpriteBatch();
@@ -50,6 +61,8 @@ public final class HudRenderer implements Disposable {
     private MapRaster raster;
     private final TextureRegion mapRegion = new TextureRegion();
     private final TextureRegion crop = new TextureRegion();
+    /** One warning per launch, not one per frame: see drawBigMap. */
+    private boolean warnedNoMapTexture;
     private float scale = 1f;
 
     /** Loads fonts and uploads the map. Safe to call more than once; failures degrade, they do not crash. */
@@ -60,6 +73,12 @@ public final class HudRenderer implements Disposable {
         if (raster != null) {
             mapTexture = uploadRaster(raster);
             mapRegion.setRegion(mapTexture);
+            // The full map is the same texture with a different rectangle, and a TextureRegion is a
+            // texture *and* a rectangle. Setting only the rectangle leaves getTexture() null, and
+            // SpriteBatch.draw then calls texture.getWidth() on it -- the eighth install's
+            // "Failed the controls", NullPointerException in drawBigMap, on every frame the map was
+            // open. The texture is given once, here, where the texture is made.
+            crop.setRegion(mapTexture);
         }
         try {
             small = new BitmapFont(Gdx.files.internal("fonts/hud_small.fnt"));
@@ -198,7 +217,20 @@ public final class HudRenderer implements Disposable {
 
     /** Draws the full map, cropped and scaled by the view, with a marker for the player. */
     public void drawBigMap(MapView view, Rect area, double playerEast, double playerNorth) {
-        if (mapTexture == null || area.w <= 0 || area.h <= 0) {
+        if (mapTexture == null || crop.getTexture() == null || area.w <= 0 || area.h <= 0) {
+            // A map that cannot be drawn is a bug, but an exception here is a game that cannot be
+            // played: this is the path that closed the app on the eighth install. Say it once, on the
+            // panel and in the log, and let the rest of the frame draw.
+            if (!warnedNoMapTexture) {
+                warnedNoMapTexture = true;
+                Gdx.app.error("HudRenderer", "the big map has no texture (mapTexture="
+                        + (mapTexture == null ? "null" : "present") + ", crop="
+                        + (crop.getTexture() == null ? "untextured" : "textured")
+                        + "); drawing nothing rather than throwing");
+                ai.arena.qatar.boot.ScreenLog.GLOBAL.warn("the big map has no texture: the map "
+                        + "raster did not load, so the zoomable map cannot be drawn (the rest of "
+                        + "the game is unaffected)");
+            }
             return;
         }
         float leftU = view.leftU();
@@ -226,18 +258,53 @@ public final class HudRenderer implements Disposable {
 
     /** The move stick: a ring where the thumb landed and a knob where it is now. */
     public void drawStick(float anchorX, float anchorY, float knobX, float knobY, float radius) {
-        batch.setColor(new Color(0.95f, 0.97f, 1.0f, 0.14f));
+        batch.setColor(STICK_DISC);
         batch.draw(white, anchorX - radius, anchorY - radius, radius * 2f, radius * 2f);
-        batch.setColor(new Color(0.95f, 0.97f, 1.0f, 0.28f));
+        batch.setColor(STICK_EDGE);
         float edge = Math.max(2f, radius * 0.04f);
         batch.draw(white, anchorX - radius, anchorY - radius, radius * 2f, edge);
         batch.draw(white, anchorX - radius, anchorY + radius - edge, radius * 2f, edge);
         batch.draw(white, anchorX - radius, anchorY - radius, edge, radius * 2f);
         batch.draw(white, anchorX + radius - edge, anchorY - radius, edge, radius * 2f);
         float knobRadius = radius * 0.3f;
-        batch.setColor(new Color(0.98f, 0.99f, 1.0f, 0.55f));
+        batch.setColor(STICK_KNOB);
         batch.draw(white, knobX - knobRadius, knobY - knobRadius, knobRadius * 2f, knobRadius * 2f);
         batch.setColor(Color.WHITE);
+    }
+
+    /**
+     * The movement stick at rest, with its word underneath.
+     *
+     * <p>This is the fix for the ninth install's "the human and the car cannot move". The stick was
+     * always there and always worked, but it only existed once a thumb had grabbed it, so nothing on the
+     * screen said that dragging the lower left is how a person walks. A control that has to be discovered
+     * by accident is not a control.
+     *
+     * <p>No allocation per frame: it is drawn sixty times a second forever, and a {@code new Color} in
+     * that path is garbage the collector has to carry on a phone that is already warm.
+     */
+    public void drawStickHome(float centreX, float centreY, float radius, String label, String labelAr) {
+        batch.setColor(STICK_HOME_DISC);
+        batch.draw(white, centreX - radius, centreY - radius, radius * 2f, radius * 2f);
+        batch.setColor(STICK_HOME_EDGE);
+        float edge = Math.max(2f, radius * 0.04f);
+        batch.draw(white, centreX - radius, centreY - radius, radius * 2f, edge);
+        batch.draw(white, centreX - radius, centreY + radius - edge, radius * 2f, edge);
+        batch.draw(white, centreX - radius, centreY - radius, edge, radius * 2f);
+        batch.draw(white, centreX + radius - edge, centreY - radius, edge, radius * 2f);
+        // The knob sits in the middle, where it will be grabbed from.
+        float knobRadius = radius * 0.3f;
+        batch.setColor(STICK_HOME_KNOB);
+        batch.draw(white, centreX - knobRadius, centreY - knobRadius, knobRadius * 2f, knobRadius * 2f);
+        batch.setColor(Color.WHITE);
+        if (fontsReady) {
+            float baseline = centreY - radius - small.getLineHeight() * 0.6f;
+            drawCentred(small, label, centreX, baseline, TEXT_DIM);
+            if (labelAr != null && !labelAr.isEmpty()) {
+                drawCentred(small, ArabicReshaper.shapeForDisplay(labelAr), centreX,
+                        baseline - small.getLineHeight() * 1.05f, TEXT_DIM);
+            }
+        }
     }
 
     /** Crosshair for the point a tap would teleport to. */
@@ -254,6 +321,22 @@ public final class HudRenderer implements Disposable {
             return;
         }
         drawLeft(large, arabic ? ArabicReshaper.shapeForDisplay(text) : text, x, y, TEXT);
+    }
+
+    /** A status line centred on a screen point: used by the launch hint, in both languages. */
+    public void drawCentredStatus(String text, float centreX, float baselineY) {
+        if (!fontsReady || text == null || text.isEmpty()) {
+            return;
+        }
+        drawCentred(small, text, centreX, baselineY, TEXT_DIM);
+    }
+
+    /** The Arabic half of the same hint, shaped and centred. */
+    public void drawCentredStatusArabic(String text, float centreX, float baselineY) {
+        if (!fontsReady || text == null || text.isEmpty()) {
+            return;
+        }
+        drawCentred(small, ArabicReshaper.shapeForDisplay(text), centreX, baselineY, TEXT_DIM);
     }
 
     public void drawStatus(String text, float x, float y) {

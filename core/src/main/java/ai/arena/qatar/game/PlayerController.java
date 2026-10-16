@@ -59,6 +59,8 @@ public final class PlayerController {
 
     private final CameraRig rig;
     private final VehicleBody[] bodies;
+    /** Held as its own type: the hover trim needs the machine's aerodynamics, not a written number. */
+    private final HelicopterBody helicopter;
     private final VehicleState[] states;
     private final VehicleInput input = new VehicleInput();
     private final boolean[] placed = new boolean[Loco.values().length];
@@ -99,13 +101,40 @@ public final class PlayerController {
     /** Self-centring stick for the aircraft: commands attitude, springs back to trim. */
     private double stickPitch;
     private double stickRoll;
+    /**
+     * True while a finger is holding the stick deflected. The stick is a position, not a nudge: a player
+     * who holds their thumb a centimetre forward is holding a centimetre of cyclic, and the machine must
+     * keep flying that attitude until they let go. It used to be applied as a drag *delta* with a spring
+     * pulling it back to trim at 1.6 per second, so a held thumb was an impulse: the disc tipped for half
+     * a second and levelled itself while the finger never moved. From the pilot's seat that reads as a
+     * helicopter that will not hold a course -- the tenth install's "it flies but not perfectly".
+     */
+    private boolean stickHeld;
     private double altitudeTarget;
     private boolean altitudeHold;
+
+    /**
+     * The altitude hold is a spring-damper, in units a pilot would recognise: it asks for a vertical
+     * acceleration proportional to how far the machine is from the commanded height, damped by the rate
+     * it is closing on it, and turns that into collective through the machine's own hover trim.
+     *
+     * <p>The gains are a four-second period at critical damping: {@code kp = (2*pi/T)^2 = 2.5},
+     * {@code kd = 2*(2*pi/T) = 3.2}. The ninth install released the hold the moment the machine came
+     * within a metre of the commanded height, with whatever climb rate it had built -- so a take-off to
+     * 25 m coasted to 45 m and stayed there, which is what "it flies but not perfectly" was. The hold
+     * now stays engaged until the pilot takes the lever, and the rate term is what stops the coast.
+     */
+    private static final double ALTITUDE_KP = 2.5;
+    private static final double ALTITUDE_KD = 3.2;
+    /** The assist asks for at most this much of gravity: a helicopter, not a lift-off. */
+    private static final double ALTITUDE_CLIMB_LIMIT_G = 0.6;
+    private static final double ALTITUDE_DESCENT_LIMIT_G = 0.5;
 
     public PlayerController(CameraRig rig) {
         this.rig = rig;
         this.bodies = new VehicleBody[]{new HumanBody(), new CarBody(), new AircraftBody(),
                 new HelicopterBody(), new BoatBody()};
+        this.helicopter = (HelicopterBody) bodies[Loco.HELICOPTER.ordinal()];
         this.states = new VehicleState[Loco.values().length];
         for (int i = 0; i < states.length; i++) {
             states[i] = new VehicleState();
@@ -137,10 +166,30 @@ public final class PlayerController {
         return states[which.ordinal()];
     }
 
-    /** The world the bodies move through. Set once the collision terrain is available. */
+    /**
+     * The world the bodies move through. Set once the collision terrain is available -- and every body
+     * is then re-seated on it.
+     *
+     * <p>The controller is constructed with a flat fallback surface (ground 0), because at that moment
+     * the country has not been handed to it yet. Every body was therefore spawned with its feet at sea
+     * level while the real ground could be twelve metres above that, and a walker in that state is
+     * refused every step by its own step-up rule ("the ground ahead is twelve metres above my feet"):
+     * the person does not move, and the panel says only that the speed is zero. That is half of the
+     * ninth install's "the human and the car cannot move" -- the other half was a control nobody could
+     * see. Re-seating is also what a spawn, a teleport and a vehicle change all end up doing.
+     */
     public void setSurface(Surface surface) {
-        if (surface != null) {
-            this.surface = surface;
+        if (surface == null) {
+            return;
+        }
+        boolean reSeat = surface != this.surface;
+        this.surface = surface;
+        if (reSeat) {
+            for (int i = 0; i < states.length; i++) {
+                bodies[i].spawn(states[i], states[i].eastM, states[i].northM, surface,
+                        states[i].headingDegrees);
+            }
+            syncRig(state());
         }
     }
 
@@ -169,14 +218,30 @@ public final class PlayerController {
         if (!placed[loco.ordinal()]) {
             body().spawn(state, rig.east, rig.north, surface, rig.yawDegrees);
             placed[loco.ordinal()] = true;
+        } else {
+            // The machine the player is moving into was already parked, and the one they are leaving is
+            // standing where it was: re-park the stable around the machine they are now in, so what they
+            // just got out of is behind them rather than directly under their nose. Without this, the
+            // first thing a player does after switching from the car to the aeroplane is taxi into their
+            // own car.
+            placeAll(state.eastM, state.northM, state.headingDegrees);
         }
         syncRig(state);
     }
 
-    /** Places every body at a position, e.g. after a teleport or at start-up. */
+    /**
+     * Places the player at a position and parks the rest of the stable around them, e.g. after a
+     * teleport or at start-up.
+     *
+     * <p>The player's own body goes exactly where it was asked to go. The other four are laid out in a
+     * ring far enough away that no two footprints overlap -- see {@link VehicleContact#parkingSpots} --
+     * because five vehicles on one coordinate is a collision the first fixed step has to resolve, and
+     * resolving it means shoving the player sideways out of their own parked aeroplane on arrival.
+     */
     public void placeAll(double east, double north, double heading) {
+        double[][] spots = VehicleContact.parkingSpots(east, north, heading, loco);
         for (int i = 0; i < states.length; i++) {
-            bodies[i].spawn(states[i], east, north, surface, heading);
+            bodies[i].spawn(states[i], spots[i][0], spots[i][1], surface, heading);
             placed[i] = true;
         }
         syncRig(state());
@@ -208,6 +273,49 @@ public final class PlayerController {
                 stickRoll = clamp(stickRoll + yawDeltaDegrees / 45.0, -1, 1);
                 break;
         }
+    }
+
+    /**
+     * Holds the flying stick at a deflection, in -1..1: {@code pitch} forward, {@code roll} to the right.
+     *
+     * <p>Called while a finger is dragging on the right-hand side of the screen, which is where the stick
+     * is. The controllers of the ground vehicles use {@link #look} instead, because looking around is a
+     * rate -- a held finger means "keep turning" -- and flying is a position -- a held finger means "fly
+     * this attitude". Those are genuinely different gestures and they are on the same part of the screen.
+     */
+    public void setStick(double pitch, double roll) {
+        stickPitch = clamp(pitch, -1, 1);
+        stickRoll = clamp(roll, -1, 1);
+        stickHeld = true;
+    }
+
+    /** Lets go of the stick: it springs back to trim and the machine flies itself level. */
+    public void releaseStick() {
+        stickHeld = false;
+    }
+
+    /** The stick's current deflection, for the HUD to draw: pitch (forward) then roll (right). */
+    public double stickPitch() {
+        return stickPitch;
+    }
+
+    public double stickRoll() {
+        return stickRoll;
+    }
+
+    /**
+     * Asks a flying machine to get airborne, to a height above where it is now.
+     *
+     * <p>Selecting a helicopter is the ask: on the skids with the collective at idle it does nothing at
+     * all, which is correct and reads as a broken machine. This is the difference from
+     * {@link #adjustAltitude(double)}, which nudges a hold the pilot has already established.
+     */
+    public void takeOff(double aboveGroundM) {
+        if (!loco.flying) {
+            return;
+        }
+        altitudeHold = true;
+        altitudeTarget = state().heightM + Math.max(2.0, aboveGroundM);
     }
 
     /** Raises or lowers the target altitude for the flying machines (called by the UP/DOWN buttons). */
@@ -256,26 +364,38 @@ public final class PlayerController {
                 break;
             case CAR:
                 input.throttle = forward;
-                input.steer = -strafe;
+                // The wheel, and the sign of it: the movement stick's horizontal axis is the steering
+                // wheel, and pushing it right turns the car right, as it does in the boat and on foot.
+                input.steer = strafe;
+                // Pulling the stick back is the brake, and then reverse: the throttle goes negative with
+                // it, so the car brakes first and backs up if the player keeps pulling.
                 input.brake = braking || forward < -0.05 ? Math.max(braking ? 1 : 0, -forward) : 0;
                 break;
             case BOAT:
                 input.throttle = forward;
-                input.steer = -strafe;
+                input.steer = strafe;           // stick right turns the bow to starboard
                 input.brake = braking ? 1 : 0;
                 break;
             case PLANE:
                 input.throttle = sprinting ? 1.0 : clamp(forward, 0, 1);
+                // The stick: up is nose up, right is right wing down, and the horizontal axis is the
+                // rudder on the ground and the pedals in the air. It used to negate the rudder, so
+                // pulling the stick right turned the aeroplane left.
                 input.pitch = stickPitch;
                 input.roll = stickRoll;
-                input.yaw = -strafe;
+                input.yaw = strafe;
                 input.brake = braking ? 1 : 0;
                 break;
             case HELICOPTER:
                 input.collective = collective();
-                input.pitch = -stickPitch;                 // stick forward tips the disc forward
+                // The cyclic, and the sign of it matters: dragging the stick forward tips the disc
+                // forward, and a tilted disc pulls the machine the way it is tipped. The ninth install
+                // negated this, so the machine flew backwards -- visibly, at 29 km/h, and refused to go
+                // the way the pilot was pushing. The pedals are the stick's own horizontal axis, right
+                // for right, as they are in the car and the boat.
+                input.pitch = stickPitch;
                 input.roll = stickRoll;
-                input.yaw = -strafe;
+                input.yaw = strafe;
                 break;
             default:
                 break;
@@ -286,10 +406,18 @@ public final class PlayerController {
             jumpBufferSeconds = Math.max(0.0, jumpBufferSeconds - dt);
         }
 
-        // ---- the stick springs back to trim ------------------------------------------------------
-        double decay = 1.6 * dt;
-        stickPitch = approach(stickPitch, 0, decay);
-        stickRoll = approach(stickRoll, 0, decay);
+        // A pilot on the stick is flying the machine: the altitude hold lets go rather than fighting
+        // the lever they are holding.
+        if (loco.flying && (Math.abs(forward) > 0.15 || Math.abs(climb) > 0.05)) {
+            altitudeHold = false;
+        }
+
+        // ---- the stick springs back to trim. While a finger holds it, it is held. ------------------
+        if (!stickHeld) {
+            double decay = 1.6 * dt;
+            stickPitch = approach(stickPitch, 0, decay);
+            stickRoll = approach(stickRoll, 0, decay);
+        }
         if (loco == Loco.CAR || loco == Loco.BOAT) {
             // A chase camera drops back behind the vehicle once the player stops looking around.
             if (Math.abs(state.speedMS) > 1.0) {
@@ -297,7 +425,40 @@ public final class PlayerController {
             }
         }
         spinDegrees = VehicleState.wrap(spinDegrees + spinRateDegPerSec(state) * dt);
+        resolveVehicleContacts(state);
         syncRig(state);
+    }
+
+    /**
+     * Pushes the body the player is driving out of the bodies parked around them.
+     *
+     * <p>Only the player's own body moves: a parked aeroplane is not going to make way for a car, and
+     * simulating the parked ones would be simulating four machines nobody is in. The contact is a push
+     * out to touching plus half the closing speed, and the state records that the player just hit
+     * something -- which is what lets the panel say "blocked" instead of "the car stopped for no
+     * reason", and what the ninth install's report was really about.
+     */
+    private void resolveVehicleContacts(VehicleState state) {
+        double radius = VehicleContact.radiusM(loco);
+        for (Loco other : Loco.values()) {
+            if (other == loco || !placed[other.ordinal()]) {
+                continue;
+            }
+            VehicleState parked = states[other.ordinal()];
+            VehicleContact.Resolved contact = VehicleContact.separate(state.eastM, state.northM,
+                    state.heightM, radius, parked.eastM, parked.northM, parked.heightM,
+                    VehicleContact.radiusM(other));
+            if (contact.pushedM <= 0.0) {
+                continue;
+            }
+            state.eastM = contact.eastM;
+            state.northM = contact.northM;
+            // Touching a parked machine takes the speed out of whatever touched it. Half, not all: a
+            // walker bumps along a car's flank rather than being stopped dead by the paint.
+            state.speedMS *= 0.5;
+            state.blocked = true;
+            state.slip = Math.max(state.slip, Math.min(1.0, contact.pushedM));
+        }
     }
 
     /**
@@ -331,18 +492,35 @@ public final class PlayerController {
     /**
      * Collective from the vertical buttons and the stick: up is more rotor thrust, and the altitude
      * button bias is applied on top so a helicopter can be asked to hold a height.
+     *
+     * <p>On the skids with nothing asked for, the collective is <b>zero</b>: the rotor turns and the
+     * machine stays down. It used to be a standing 0.5 -- hover trim whether or not anybody was flying
+     * -- so the helicopter took itself off the ground the moment it was selected and hovered there,
+     * which is exactly what "it flies but not perfectly" looks like from the pilot's seat: a machine
+     * that leaves on its own and cannot be commanded once it is up.
      */
     private double collective() {
-        double base = 0.5 + 0.45 * clamp(forward, -1, 1);
-        if (altitudeHold) {
-            double error = altitudeTarget - state().heightM;
-            if (Math.abs(error) < 1.0) {
-                altitudeHold = false;
-                return base;
-            }
-            base += clamp(error / 120.0, -0.35, 0.35);
+        VehicleState s = state();
+        double lever = 0.45 * clamp(forward, -1, 1) + climb * 0.25;      // the player's hand on the lever
+        if (s.grounded && !altitudeHold) {
+            // On the skids with nothing asked for: the rotor turns and the machine stays down. This is
+            // the difference between a helicopter and a lift: it used to hold 0.5 of collective whenever
+            // it was airborne, so selecting it was a take-off nobody asked for.
+            return clamp(lever, 0, 1);
         }
-        return clamp(base + climb * 0.25, 0, 1);
+        if (!altitudeHold) {
+            // Airborne, hands off: hover trim, which is the machine's own arithmetic -- level flight at
+            // any altitude, at any speed, with the disc tipped over.
+            return clamp(helicopter.hoverCollective(s) + lever, 0, 1);
+        }
+        // A hold is a spring-damper on the altitude, and the collective that *produces* the acceleration
+        // it asks for is the machine's: see HelicopterBody.collectiveForAccel. The hold stays engaged
+        // until the pilot takes the lever, so the machine sits at the height it was told to sit at
+        // instead of coasting past it.
+        double error = altitudeTarget - s.heightM;
+        double accel = clamp(ALTITUDE_KP * error - ALTITUDE_KD * s.verticalMS,
+                -ALTITUDE_DESCENT_LIMIT_G * VehicleBody.G, ALTITUDE_CLIMB_LIMIT_G * VehicleBody.G);
+        return clamp(helicopter.collectiveForAccel(s, accel) + lever, 0, 1);
     }
 
     /** Puts the camera where this vehicle's driver, pilot or walker would be looking from. */
@@ -424,7 +602,11 @@ public final class PlayerController {
 
     /** Compact HUD line: what the player is, and what it is doing. */
     public String describe() {
-        return body().instrument(state());
+        String line = body().instrument(state());
+        // The third thing a player needs to know after speed and height: that the machine is being
+        // refused. A body that says "0 km/h" with nothing else is what "the car will not move" looked
+        // like from the outside, and it cost two installs to find out why.
+        return state().blocked ? line + "  BLOCKED" : line;
     }
 
     /**

@@ -33,6 +33,16 @@ because a method may do other preparation first — what matters is that it happ
 opens. Anything the checker cannot follow — a batch passed in as a parameter, a call inside a lambda
 whose enclosing method is not visible — is skipped rather than guessed at.
 
+There is a second rule here, from the ninth and tenth installs, and it is the same kind of bug: state
+that a 2D drawing call needs and that no compiler checks. **A `TextureRegion` that is drawn must have
+been given a texture.** libGDX's `SpriteBatch.draw(TextureRegion, ...)` reads `region.getTexture()` and
+then calls `texture.getWidth()` on it; a region built with `new TextureRegion()` and given only a
+rectangle -- `setRegion(u, v, u2, v2)` -- has no texture, so the draw throws
+`NullPointerException: Attempt to invoke virtual method 'int ...Texture.getWidth()' on a null object
+reference` on the GL thread, every frame, in the code that draws the full map. That was the tenth
+install's "opening the minimap crashes": the map raster was fine, and the region the map was cropped
+through never had a texture.
+
 Exit code 0 when nothing is wrong, 1 when something is, naming the file, the line and the method.
 """
 
@@ -187,6 +197,88 @@ def check_file(path: Path, parse) -> list[str]:
             problems.append(f"{path}:{line_of(source, open_call)}: {name}() opens a SpriteBatch without "
                             f"calling {STATE_CLASS}.{STATE_CALL}() first -- the world renderer leaves "
                             f"culling and depth testing on, and a culled HUD draws nothing on a phone")
+    problems.extend(regions_drawn_without_texture(path, parse))
+    return problems
+
+
+REGION_TYPE = "TextureRegion"
+
+
+def region_fields(root, source: bytes) -> dict[str, int]:
+    """Every TextureRegion field in the file, by name, with the line it is declared on."""
+    found: dict[str, int] = {}
+    for node in walk(root):
+        if node.type != "field_declaration":
+            continue
+        type_node = node.child_by_field_name("type")
+        if type_node is None or REGION_TYPE not in text_of(type_node, source):
+            continue
+        for child in node.children:
+            if child.type != "variable_declarator":
+                continue
+            name_node = child.child_by_field_name("name")
+            if name_node is not None:
+                found[text_of(name_node, source)] = line_of(source, node)
+    return found
+
+
+def region_has_texture(name: str, root, source: bytes) -> bool:
+    """True when something in the file gives this region a texture.
+
+    Two legal forms, and both are read from the call rather than guessed at: the one-argument
+    `setRegion(texture)`, which is libGDX's own way of setting the texture *and* the rectangle, and
+    `new TextureRegion(texture)`, which sets it at construction. `setRegion(u, v, u2, v2)` -- four
+    arguments -- sets only the rectangle and is deliberately not counted.
+    """
+    for node in walk(root):
+        if node.type == "object_creation_expression":
+            text = text_of(node, source).replace(" ", "")
+            if text.startswith(f"new{REGION_TYPE}(") and not text.startswith(f"new{REGION_TYPE}()"):
+                continue                                  # a new region, not this field
+        if node.type != "method_invocation":
+            continue
+        receiver = node.child_by_field_name("object")
+        if receiver is None or text_of(receiver, source) != name:
+            continue
+        arguments = [child for child in node.children if child.type == "argument_list"]
+        if not arguments:
+            continue
+        count = sum(1 for _ in walk(arguments[0]) if _.type in ("identifier", "field_access",
+                                                               "method_invocation"))
+        if count != 1:
+            # One argument means a Texture; four means a rectangle with no texture behind it.
+            continue
+        return True
+    return False
+
+
+def regions_drawn_without_texture(path: Path, parse) -> list[str]:
+    source = path.read_bytes()
+    root = parse(source).root_node
+    fields = region_fields(root, source)
+    if not fields:
+        return []
+    problems: list[str] = []
+    for name, line in fields.items():
+        drawn_at = None
+        for node in walk(root):
+            if node.type != "method_invocation":
+                continue
+            call_name = node.child_by_field_name("name")
+            if call_name is None or text_of(call_name, source) not in ("draw", "drawRegion"):
+                continue
+            text = text_of(node, source)
+            if f"({name}," not in text and f"({name})" not in text:
+                continue
+            drawn_at = line_of(source, node)
+            break
+        if drawn_at is None:
+            continue                                       # never drawn: nothing to go wrong
+        if not region_has_texture(name, root, source):
+            problems.append(
+                f"{path}:{drawn_at}: '{name}' is drawn with no texture behind it -- it was given a "
+                f"rectangle and never a Texture, so SpriteBatch.draw calls getWidth() on null; give "
+                f"it the texture where the texture is created (see HudRenderer.init)")
     return problems
 
 
@@ -273,6 +365,52 @@ class A {
 class A {
     void run() {
         GlState2D.beginUi();
+    }
+}
+""", 0),
+        ("a TextureRegion drawn with no texture, which is the tenth install", """
+class A {
+    private final SpriteBatch batch = new SpriteBatch();
+    private final TextureRegion crop = new TextureRegion();
+    void draw() {
+        GlState2D.beginUi();
+        batch.begin();
+        crop.setRegion(0.1f, 0.1f, 0.9f, 0.9f);
+        batch.draw(crop, 0, 0, 100, 100);
+    }
+}
+""", 1),
+        ("the same region given its texture first, which is the fix", """
+class A {
+    private final SpriteBatch batch = new SpriteBatch();
+    private final TextureRegion crop = new TextureRegion();
+    void init(Texture map) {
+        crop.setRegion(map);
+    }
+    void draw() {
+        GlState2D.beginUi();
+        batch.begin();
+        crop.setRegion(0.1f, 0.1f, 0.9f, 0.9f);
+        batch.draw(crop, 0, 0, 100, 100);
+    }
+}
+""", 0),
+        ("a region made straight from a texture is left alone", """
+class A {
+    private final SpriteBatch batch = new SpriteBatch();
+    void draw(Texture map) {
+        TextureRegion region = new TextureRegion(map);
+        GlState2D.beginUi();
+        batch.begin();
+        batch.draw(region, 0, 0, 100, 100);
+    }
+}
+""", 0),
+        ("a region that is never drawn is not a problem yet", """
+class A {
+    private final TextureRegion unused = new TextureRegion();
+    void run() {
+        unused.setRegion(0.0f, 0.0f, 1.0f, 1.0f);
     }
 }
 """, 0),

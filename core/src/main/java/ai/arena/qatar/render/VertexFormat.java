@@ -25,6 +25,16 @@ public final class VertexFormat {
     public static final int SURFACE_MARKING = 5;
     /** The player's own body and vehicles: one surface type, painted per part by the material id. */
     public static final int SURFACE_BODY = 6;
+    /**
+     * Palms and scrub, scattered over the compiled vegetation land use.
+     *
+     * <p>The auxiliary pair means something different for a plant, as it does for a wall and for a roof:
+     * {@code u} is how far up the plant the vertex is (0 at the ground, 1 at the top of the crown),
+     * {@code v} is that plant's own variation, and the tint is the kind -- 0 for a palm, 1 for scrub.
+     * The material id carries the compiled land use, so mangrove scrub can be painted darker than a
+     * farm's palms without another surface type.
+     */
+    public static final int SURFACE_VEGETATION = 7;
 
     public static final int FLOATS_PER_VERTEX = MeshData.FLOATS_PER_VERTEX;
     public static final int BYTES_PER_VERTEX = FLOATS_PER_VERTEX * 4;

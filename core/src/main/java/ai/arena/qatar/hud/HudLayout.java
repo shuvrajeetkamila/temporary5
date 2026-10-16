@@ -84,11 +84,31 @@ public final class HudLayout {
     private final List<Button> buttons = new ArrayList<>();
     private final Rect minimap = new Rect();
     private final Rect minimapTouch = new Rect();
+    /**
+     * Where the movement stick rests when no thumb is on it, and the area that grabs it.
+     *
+     * <p>The stick is the only control that moves a person or a car, and until this round it was
+     * invisible until it had been grabbed: nothing on the screen said that dragging the lower left is
+     * how a person walks. The ninth install reported exactly that -- "human, car: cannot move" -- so the
+     * stick now rests where a thumb expects it, drawn, with a word under it.
+     */
+    private final Rect stickHome = new Rect();
+    /** The lower-left area that grabs the stick: dragging anywhere in it moves the player. */
+    private final Rect moveZone = new Rect();
     /** Area reserved for looking around: everything not covered by a control. */
     private final Rect lookArea = new Rect();
+    /**
+     * Where the flying stick rests: the ring on the right-hand side that the drag of a pilot's thumb is
+     * measured from, at the same size as the movement stick. It sits inside the look area, above the
+     * bottom row of buttons and below the map's tap target, so a thumb flying a helicopter is looking
+     * around, flying, and not opening the map.
+     */
+    private final Rect flyStickHome = new Rect();
 
     private float screenWidth = 1280;
     private float screenHeight = 720;
+    /** The drawn radius of both sticks, in pixels: also the distance that means "full deflection". */
+    private float stickRadius = 64f;
     private boolean bigMapVisible;
 
     public void resize(float width, float height) {
@@ -125,8 +145,28 @@ public final class HudLayout {
         return minimapTouch;
     }
 
+    /** Where the movement stick is drawn when it is not being held. */
+    public Rect stickHome() {
+        return stickHome;
+    }
+
+    /** The lower-left area that grabs the movement stick. */
+    public Rect moveZone() {
+        return moveZone;
+    }
+
     public Rect lookArea() {
         return lookArea;
+    }
+
+    /** The flying stick at rest, in the look area on the right-hand side. */
+    public Rect flyStickHome() {
+        return flyStickHome;
+    }
+
+    /** The drawn radius of a stick: both are the same, and a drag of this far is full deflection. */
+    public float stickRadius() {
+        return stickRadius;
     }
 
     public List<Button> buttons() {
@@ -184,6 +224,18 @@ public final class HudLayout {
             minimapTouch.y = 0;
             minimapTouch.w = 0;
             minimapTouch.h = 0;
+            stickHome.x = 0;
+            stickHome.y = 0;
+            stickHome.w = 0;
+            stickHome.h = 0;
+            flyStickHome.x = 0;
+            flyStickHome.y = 0;
+            flyStickHome.w = 0;
+            flyStickHome.h = 0;
+            moveZone.x = 0;
+            moveZone.y = 0;
+            moveZone.w = 0;
+            moveZone.h = 0;
             lookArea.x = 0;
             lookArea.y = 0;
             lookArea.w = 0;
@@ -218,6 +270,30 @@ public final class HudLayout {
         // Above them: whose eyes the screen is looking through -- the driver's, or behind the body.
         add(Id.VIEW, rightX - bw * 1.2f, pad + bh + gap, bw * 1.2f, bh, "VIEW", "منظر");
 
+        // The movement stick. Its resting place is the lower left, clear of the locomotion column and
+        // the MODE/RUN/JUMP row on one side, clear of the minimap corner and the map's tap target on the
+        // other: a thumb lands here without looking, and the ring on the screen is what tells the player
+        // that there is something here to be dragged.
+        stickRadius = Math.max(64f, Math.min(screenWidth, screenHeight) * 0.14f);
+        stickHome.w = stickRadius * 2f;
+        stickHome.h = stickRadius * 2f;
+        stickHome.x = pad + bw * 1.15f + gap + stickRadius * 0.55f;
+        stickHome.y = screenHeight * 0.19f;
+        // The flying stick: the same ring, mirrored to the right-hand side. A pilot's right thumb rests
+        // here whether or not a flying machine is selected, for the same reason the movement stick is
+        // drawn at rest: a control that only appears once it has been used is not a control.
+        float flyRadius = stickRadius * 0.85f;
+        flyStickHome.w = flyRadius * 2f;
+        flyStickHome.h = flyRadius * 2f;
+        flyStickHome.x = screenWidth * 0.70f;
+        flyStickHome.y = screenHeight * 0.30f;
+        // The zone that grabs it: the lower left third, up to the height where the map's corner begins.
+        // It never reaches the right-hand side, where looking, the minimap and the map corner live.
+        moveZone.x = 0f;
+        moveZone.y = 0f;
+        moveZone.w = screenWidth * 0.34f;
+        moveZone.h = screenHeight * 0.62f;
+
         // The minimap: a square in the top-right corner, with the whole world in it.
         float mapSize = Math.min(screenHeight * 0.30f, screenWidth * 0.22f);
         minimap.w = mapSize;
@@ -230,7 +306,9 @@ public final class HudLayout {
         // whole top-right quarter, down to the middle of the screen -- and the map's own hint text sits
         // in it, so the player sees why the tap worked. It deliberately excludes the left third (the
         // movement stick) and everything below 62% of the height (the stick's arc and the buttons).
-        minimapTouch.x = screenWidth * 0.34f;
+        // Left of this is the movement stick's zone: the two never overlap, so a thumb reaching for one
+        // cannot open the other.
+        minimapTouch.x = moveZone.w;
         minimapTouch.y = screenHeight * 0.62f;
         minimapTouch.w = screenWidth - minimapTouch.x;
         minimapTouch.h = screenHeight - minimapTouch.y;
