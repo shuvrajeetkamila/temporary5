@@ -38,8 +38,13 @@ public final class ChunkCulling {
     /**
      * The bounding sphere of a chunk box, in metres: half the diagonal of the 500 m square footprint,
      * and half the box's height. Exact for the box's corners, which is what "conservative" means here.
+     *
+     * <p>{@code Math.sqrt(2.0)} and not a named root: {@code java.lang.Math} has exactly two constants,
+     * {@code E} and {@code PI}. {@code SQRT2} is JavaScript's, and javac says so in the middle of a CI
+     * run -- see the gate beside this file, which now reads every {@code Math.} member against the list
+     * the JDK actually declares.
      */
-    public static final double CHUNK_SPHERE_RADIUS_M = Math.hypot(HALF_SPAN_M * Math.SQRT2,
+    public static final double CHUNK_SPHERE_RADIUS_M = Math.hypot(HALF_SPAN_M * Math.sqrt(2.0),
             HALF_HEIGHT_M);
 
     /** The height the chunk sphere is centred on, in metres. */

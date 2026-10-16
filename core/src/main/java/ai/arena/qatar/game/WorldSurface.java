@@ -41,7 +41,6 @@ public final class WorldSurface implements Surface {
         return sampler.height(localEastM, localNorthM);
     }
 
-    @Override
     /**
      * True when a point is inside a building's own footprint, by the test every polygon renderer uses: a
      * horizontal ray out to the east, counting the walls it crosses. An odd count is inside.
@@ -77,6 +76,7 @@ public final class WorldSurface implements Surface {
         return inside;
     }
 
+    @Override
     public int materialId(double localEastM, double localNorthM) {
         return sampler.materialId(localEastM, localNorthM);
     }

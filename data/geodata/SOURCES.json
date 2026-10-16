@@ -129,8 +129,8 @@
       "attribution": "(c) OpenStreetMap contributors",
       "geographic_scope": "State of Qatar, WGS84",
       "path": "data/raw/qatar-latest.osm.pbf",
-      "bytes": 24490035,
-      "sha256": "b5ebcc27611f9094b78367f64d95d46788d862395e395bb45d9176970f511e16"
+      "bytes": 24499334,
+      "sha256": "daa907d428e7c7d7e1afc00853aad6f0410038586daa86b4b8b2f4986a5ef359"
     }
   ]
 }
