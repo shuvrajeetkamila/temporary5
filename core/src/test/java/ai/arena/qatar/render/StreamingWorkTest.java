@@ -6,9 +6,6 @@ import ai.arena.qatar.game.GameWorldRenderer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -49,7 +46,6 @@ final class StreamingWorkTest {
     private static int[] stream(int frames, double startEast, double startNorth, double speedEast,
                                 double speedNorth, int perChunkVertices) {
         ChunkMeshCache cache = new ChunkMeshCache();
-        Map<Long, ChunkMeshCache.Entry> built = new HashMap<>();
         int totalBuilt = 0;
         int idleFrames = 0;
         for (int frame = 0; frame < frames; frame++) {
@@ -61,10 +57,13 @@ final class StreamingWorkTest {
             int builtThisFrame = 0;
             for (ChunkMeshCache.Entry candidate : cache.update(east, north, budget,
                     GameWorldRenderer.DRAW_RADIUS_M)) {
+                // Build it, hand it to the GPU, drop the CPU copy: what the renderer does with the list
+                // the cache returned. Nothing here holds a reference to what it built -- a test that kept
+                // two hundred megabyte-scale meshes would be measuring the JVM's heap, not the cache's
+                // work.
                 ChunkMeshCache.Entry entry = cache.put(candidate.chunkX, candidate.chunkZ,
                         meshOf(perChunkVertices));
                 cache.markUploaded(entry);
-                built.put(candidate.key(), entry);
                 builtThisFrame++;
             }
             totalBuilt += builtThisFrame;
