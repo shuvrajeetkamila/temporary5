@@ -1155,18 +1155,24 @@ public final class GameScreen extends InputAdapter implements Disposable {
         double beforeNorth = rig.north;
         double pixelX = mapView.uAt(screenX) * raster.width;
         double pixelY = mapView.vAt(screenY) * raster.height;
-        TeleportService.Target target = teleport.fromMapPixel(pixelX, pixelY);
+        // The resolver is given the world to check against, in the frame it works in: bundle metres.
+        // Without it, a tap could resolve to a spawn point the compiler put in the sea, or to a road
+        // vertex inside a compound, and the player would be sent there -- which is what "the teleport
+        // happens abnormally" describes. With it, every candidate is checked before it is chosen.
+        TeleportService.Target target = teleport.fromMapPixel(pixelX, pixelY, this::standableInBundle);
         double localEast = target.east - offsetEastToBundle();
         double localNorth = target.north - offsetNorthToBundle();
         // Resolved to a place, but a place can still be inside a building's box -- the boxes overlap
         // roads, and a compound is one box around all of it -- and a body inside a box is refused in
         // every direction by its own collision rule. Asking for clear ground is what makes a teleport
         // arrive somewhere the player can drive away from.
+        double clearedM = 0;
         if (worldSurface != null) {
             SpawnClearer.Spot clear = SpawnClearer.nearestClear(worldSurface, localEast, localNorth);
             if (clear.moved) {
                 localEast = clear.eastM;
                 localNorth = clear.northM;
+                clearedM = clear.movedM;
                 if (clear.movedM > 1.0) {
                     ai.arena.qatar.boot.ScreenLog.GLOBAL.log(String.format(java.util.Locale.ROOT,
                             "the tapped place was inside something solid; stepped %.0f m aside",
@@ -1193,18 +1199,50 @@ public final class GameScreen extends InputAdapter implements Disposable {
             // distance eviction drops the old window on the next update; this pays for the new one.
             worldRenderer.onPlayerJumped();
         }
-        mapView.centreOnWorld(target.east, target.north);
-        teleportMarkEast = target.east;
-        teleportMarkNorth = target.north;
+        // The mark goes on the place the player actually ended up, not on the place they asked for: a
+        // marker that sits a hundred metres from where the body is standing is a map that lies about
+        // where the player is, and the mark is the only thing on the screen that can be checked against
+        // the ground under their feet.
+        double arrivalEast = localEast + offsetEastToBundle();
+        double arrivalNorth = localNorth + offsetNorthToBundle();
+        mapView.centreOnWorld(arrivalEast, arrivalNorth);
+        teleportMarkEast = arrivalEast;
+        teleportMarkNorth = arrivalNorth;
         teleportMarkSet = true;
         teleportMarkSeconds = 3.0f;
         String where = target.label == null || target.label.isEmpty() ? "unnamed place" : target.label;
-        String how = target.snappedToSpawn ? "spawn" : (target.snappedToRoad ? "road" : "open ground");
-        message = String.format(java.util.Locale.ROOT, "Travelled to %s (%s), %.0f m away, facing %.0f",
-                where, how, travelledM, heading);
+        String how = target.snappedToSpawn ? "spawn" : (target.snappedToRoad ? "road"
+                : (target.snappedToShore ? "shore" : "open ground"));
+        // How far the arrival is from the finger, when that is worth saying. A teleport that has been
+        // moved is a fact about the map -- a tap in the sea is answered with the shore -- and the panel
+        // says so rather than letting the player discover it by looking around.
+        double offTarget = Math.max(target.snapM, clearedM);
+        String honesty = offTarget >= 15.0
+                ? String.format(java.util.Locale.ROOT, ", %.0f m from the tap", offTarget) : "";
+        message = String.format(java.util.Locale.ROOT, "Travelled to %s (%s)%s, %.0f m away, facing %.0f",
+                where, how, honesty, travelledM, heading);
         messageArabic = "";
         messageSeconds = 4.5f;
-        Gdx.app.log("GameScreen", "Teleport -> " + where + " as " + how + " " + target);
+        Gdx.app.log("GameScreen", "Teleport -> " + where + " as " + how + " " + target
+                + " arrived (" + Math.round(arrivalEast) + ", " + Math.round(arrivalNorth) + ")");
+    }
+
+    /**
+     * Whether a bundle coordinate is somewhere a person could be put: the check the teleport resolver is
+     * given, in the frame it works in.
+     *
+     * <p>The floating origin means the world's own surface object speaks local metres while the compiled
+     * country speaks bundle metres, so the conversion happens here, once, at the boundary -- the same
+     * discipline the renderer uses.
+     */
+    private boolean standableInBundle(double bundleEast, double bundleNorth) {
+        if (worldSurface == null) {
+            // No compiled surface yet: nothing to check against, and refusing every tap would be worse
+            // than accepting one that the clearer then moves.
+            return true;
+        }
+        return SpawnClearer.isClear(worldSurface, bundleEast - offsetEastToBundle(),
+                bundleNorth - offsetNorthToBundle());
     }
 
     public void resize(int width, int height) {

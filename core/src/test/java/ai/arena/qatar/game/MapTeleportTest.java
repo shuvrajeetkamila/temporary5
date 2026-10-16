@@ -128,6 +128,158 @@ final class MapTeleportTest {
                 "a tap beside a road snapped to nothing: " + target);
     }
 
+    /**
+     * The world a destination is checked against, as the game supplies it: not water, and not inside a
+     * building's footprint box.
+     *
+     * <p>This is the fixture's version of the check {@code GameScreen} builds from the compiled country.
+     * It matters because it is the thing that was missing: the resolver used to pick a destination and
+     * hand it over without ever asking whether a person could be put on it, so a tap near a car spawn the
+     * compiler had placed in water -- or on a road vertex inside a compound -- was answered with that
+     * point.
+     */
+    private static final TeleportService.Placement DRY_AND_CLEAR = (east, north) -> {
+        if (raster != null && raster.isWaterAt(east, north)) {
+            return false;
+        }
+        for (int ring = 0; ring < world.buildings.ringCount; ring++) {
+            if (east >= world.buildings.bounds[ring * 4] && east <= world.buildings.bounds[ring * 4 + 2]
+                    && north >= world.buildings.bounds[ring * 4 + 1]
+                    && north <= world.buildings.bounds[ring * 4 + 3]) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    /** The nearest spawn point to a place, in metres: used to find ground with no spawn on it. */
+    private static double nearestSpawnM(double east, double north) {
+        double best = Double.MAX_VALUE;
+        for (int i = 0; i < world.points.count; i++) {
+            best = Math.min(best, Math.hypot(world.points.xz[i * 2] - east, world.points.xz[i * 2 + 1] - north));
+        }
+        return best;
+    }
+
+    /**
+     * The nearest point on a road the player can be placed on, in metres: the fixture has two ways.
+     *
+     * <p>Measured to the segments, not to the vertices, because that is what the resolver does now --
+     * see {@code TeleportService.nearestRoadPoint}. A helper that measured to vertices would call ground
+     * beside the middle of a straight way "open", and the test would fail for the right reason at the
+     * wrong time.
+     */
+    private static double nearestRoadPointM(double east, double north) {
+        double best = Double.MAX_VALUE;
+        for (int line = 0; line < world.roads.count; line++) {
+            if (world.roads.roadClass[line] > 10) {
+                continue;
+            }
+            int start = world.roads.lineStart[line];
+            int count = world.roads.lineLength[line];
+            for (int i = 0; i + 1 < count; i++) {
+                double ax = world.roads.xz[(start + i) * 2];
+                double az = world.roads.xz[(start + i) * 2 + 1];
+                double bx = world.roads.xz[(start + i + 1) * 2];
+                double bz = world.roads.xz[(start + i + 1) * 2 + 1];
+                double dx = bx - ax;
+                double dz = bz - az;
+                double length2 = dx * dx + dz * dz;
+                double t = length2 > 1e-9
+                        ? Math.max(0.0, Math.min(1.0, ((east - ax) * dx + (north - az) * dz) / length2))
+                        : 0.0;
+                best = Math.min(best, Math.hypot(ax + dx * t - east, az + dz * t - north));
+            }
+            if (count == 1) {
+                best = Math.min(best, Math.hypot(world.roads.xz[start * 2] - east,
+                        world.roads.xz[start * 2 + 1] - north));
+            }
+        }
+        return best;
+    }
+
+    /** Open ground in the fixture: standable, and far enough from every road and spawn to be a tap of
+     * its own. Found rather than written down, so the test cannot rot when the fixture moves. */
+    private static double[] findOpenGround() {
+        for (double east = 25.0; east < 1600.0; east += 25.0) {
+            for (double north = 25.0; north < 1600.0; north += 25.0) {
+                if (!DRY_AND_CLEAR.standable(east, north)) {
+                    continue;
+                }
+                if (nearestRoadPointM(east, north) <= TeleportService.ROAD_SNAP_M + 5.0) {
+                    continue;
+                }
+                if (nearestSpawnM(east, north) <= TeleportService.SPAWN_PREFERENCE_M + 5.0) {
+                    continue;
+                }
+                return new double[]{east, north};
+            }
+        }
+        return null;
+    }
+
+    @Test
+    @DisplayName("a tap on clear ground is honoured exactly, not moved to the nearest road")
+    void aTapOnClearGroundIsHonoured() {
+        // The fault this holds: the resolver always snapped a tap to the nearest road within 900 m, so
+        // pointing at the empty ground between two roads answered with one of the roads -- hundreds of
+        // metres from the finger, and by far the most common thing a player does on the map.
+        double[] open = findOpenGround();
+        assertNotNull(open, "the fixture has no open ground for this test to tap");
+        TeleportService.Target target = teleport.resolve(open[0], open[1], DRY_AND_CLEAR);
+        assertTrue(DRY_AND_CLEAR.standable(target.east, target.north),
+                "the tap was answered with somewhere unusable: " + target);
+        assertEquals(0.0, target.snapM, 1e-9,
+                "a standable tap was moved " + target.snapM + " m for no reason: " + target);
+        assertEquals(open[0], target.east, 1e-9, "the arrival is not where the finger went");
+        assertEquals(open[1], target.north, 1e-9, "the arrival is not where the finger went");
+        assertFalse(target.snappedToRoad, "nothing was snapped, so nothing should say it was");
+        assertFalse(target.snappedToSpawn, "nothing was snapped, so nothing should say it was");
+    }
+
+    @Test
+    @DisplayName("a destination the world refuses is never handed to the player")
+    void aRefusedDestinationIsPassedOver() {
+        // The boat spawn in the fixture is in water, and the mosque's box is solid ground: a tap on each
+        // has to be answered with somewhere else entirely, or the player arrives swimming or wedged.
+        for (int i = 0; i < world.points.count; i++) {
+            double east = world.points.xz[i * 2];
+            double north = world.points.xz[i * 2 + 1];
+            boolean tapOk = DRY_AND_CLEAR.standable(east, north);
+            TeleportService.Target target = teleport.resolve(east, north, DRY_AND_CLEAR);
+            assertTrue(DRY_AND_CLEAR.standable(target.east, target.north) || target.onWater,
+                    "a tap at (" + east + ", " + north + ") landed somewhere unusable, tap ok=" + tapOk
+                            + ": " + target);
+        }
+    }
+
+    @Test
+    @DisplayName("every tap on the map resolves to somewhere the world accepts")
+    void everyTapResolvesToAStandablePlace() {
+        int checked = 0;
+        for (int py = 1; py < raster.height; py += raster.height / 12) {
+            for (int px = 1; px < raster.width; px += raster.width / 12) {
+                TeleportService.Target target = teleport.fromMapPixel(px, py, DRY_AND_CLEAR);
+                assertTrue(DRY_AND_CLEAR.standable(target.east, target.north) || target.onWater,
+                        "the tap at pixel (" + px + ", " + py + ") resolved to " + target);
+                checked++;
+            }
+        }
+        assertTrue(checked >= 100, "the sweep was too small to mean anything: " + checked);
+    }
+
+    @Test
+    @DisplayName("a tap that had to be moved says so, in metres")
+    void aMovedTapReportsTheDistance() {
+        // A tap on the middle of a building cannot be honoured, so it is moved -- and the distance is
+        // reported rather than hidden, because the one thing a teleport must not do is pretend it went
+        // where it was asked to.
+        TeleportService.Target target = teleport.resolve(260.0, 300.0, DRY_AND_CLEAR);
+        assertTrue(target.snapM > 1.0, "the tap inside a mosque was not moved at all: " + target);
+        assertTrue(DRY_AND_CLEAR.standable(target.east, target.north), "and it was not moved somewhere "
+                + "usable: " + target);
+    }
+
     @Test
     @DisplayName("every tap on the map lands inside the country")
     void everyTapLandsInsideTheCountry() {

@@ -44,6 +44,8 @@ public final class AircraftBody extends VehicleBody {
     /** How fast the elevator can raise the nose on the ground, degrees per second. */
     public static final double ROTATION_RATE_DEG_S = 10.0;
     public static final double GEAR_HEIGHT_M = 0.9;
+    /** Seconds for a speed to halve when the wheels are in water too deep to taxi through. */
+    public static final double WADING_HALVING_S = 0.6;
     public static final double GROUND_WHEELBASE_M = 1.65;
     public static final double ROLLING_COEFFICIENT = 0.03;
     public static final double BRAKE_FORCE_N = 4000.0;
@@ -257,7 +259,12 @@ public final class AircraftBody extends VehicleBody {
         boolean overWater = Surface.isWater(surface.materialId(x, z));
         if (state.grounded && depth > 0.5 && overWater) {
             state.wading = true;
-            state.speedMS *= 0.9;           // taxiing into the sea is not a thing
+            // Taxiing into the sea is not a thing: the wheels are in half a metre of water and the
+            // machine is going nowhere. Expressed as a rate rather than as a per-frame factor -- the
+            // old line was `speed *= 0.9`, which is a different physics at 30 frames a second and at
+            // 120, and this project's own contract is that the simulation does not depend on the frame
+            // rate (see FixedStepClock). Six tenths of a second per halving.
+            state.speedMS *= Math.pow(0.5, dt / WADING_HALVING_S);
         }
     }
 

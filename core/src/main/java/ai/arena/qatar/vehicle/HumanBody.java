@@ -79,6 +79,7 @@ public final class HumanBody extends VehicleBody {
         double signed = forward < 0 && side == 0 ? -1.0 : 1.0;
         double targetSpeed = nominal * alongHeading * signed;
         double rate = (magnitude > 0.02 ? ACCEL_MS2 : BRAKE_MS2) * (state.grounded ? 1.0 : AIR_CONTROL);
+        double speedBefore = state.speedMS;
         state.speedMS = approach(state.speedMS, targetSpeed, rate * dt);
 
         double heading = Math.toRadians(state.headingDegrees);
@@ -167,7 +168,11 @@ public final class HumanBody extends VehicleBody {
                 : approach(state.pitchDegrees, clamp(-state.verticalMS * 1.5, -35, 35), 60 * dt);
         state.slip = state.wading ? 0.3 : 0.0;
         state.sinkage = surface.materialAt(x, z).sinkage * 0.5;
-        state.accelMS2 = 0;
+        // The real acceleration, not a zero: it is what the walker's own lean and the panel's readout
+        // are computed from, and a body that always reports 0 m/s^2 is a body that leans never and
+        // reports nothing. Measured from the speed the step actually produced, so it includes the
+        // blocking below rather than contradicting it.
+        state.accelMS2 = dt > 1e-6 ? (state.speedMS - speedBefore) / dt : 0.0;
         state.stalled = false;
         state.floating = false;
         state.rotorClimb = false;

@@ -450,7 +450,7 @@ public final class PlayerController {
             }
         }
         spinDegrees = VehicleState.wrap(spinDegrees + spinRateDegPerSec(state) * dt);
-        resolveVehicleContacts(state);
+        resolveVehicleContacts(state, dt);
         syncRig(state);
     }
 
@@ -463,7 +463,10 @@ public final class PlayerController {
      * something -- which is what lets the panel say "blocked" instead of "the car stopped for no
      * reason", and what the ninth install's report was really about.
      */
-    private void resolveVehicleContacts(VehicleState state) {
+    /** Seconds for a body's speed to fall by nine tenths when it is pushing against a parked machine. */
+    public static final double CONTACT_SLOWING_S = 0.05;
+
+    private void resolveVehicleContacts(VehicleState state, double dt) {
         double radius = VehicleContact.radiusM(loco);
         for (Loco other : Loco.values()) {
             if (other == loco || !placed[other.ordinal()]) {
@@ -479,8 +482,10 @@ public final class PlayerController {
             state.eastM = contact.eastM;
             state.northM = contact.northM;
             // Touching a parked machine takes the speed out of whatever touched it. Half, not all: a
-            // walker bumps along a car's flank rather than being stopped dead by the paint.
-            state.speedMS *= 0.5;
+            // walker bumps along a car's flank rather than being stopped dead by the paint. Written as
+            // a rate -- `*= 0.5` per frame is twice the damping at 120 frames a second as at 60, and
+            // the physics is supposed to be the same on both phones.
+            state.speedMS *= Math.pow(0.1, dt / CONTACT_SLOWING_S);
             state.blocked = true;
             state.slip = Math.max(state.slip, Math.min(1.0, contact.pushedM));
         }

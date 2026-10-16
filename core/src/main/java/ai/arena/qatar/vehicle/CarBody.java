@@ -38,6 +38,14 @@ public final class CarBody extends VehicleBody {
     public static final double CAR_LENGTH_M = 4.6;
     /** Water deeper than this stops the engine rather than slowing the car. */
     public static final double STALL_DEPTH_M = 0.7;
+    /**
+     * The fastest the car will reverse, in metres per second: 8 m/s is 29 km/h.
+     *
+     * <p>A car's reverse gear is short -- one ratio below first -- which is why nobody reverses at
+     * motorway speed. The model had no limit at all: with the same traction and power limits as first
+     * gear it would run backwards at 44 km/h given three seconds and an empty road.
+     */
+    public static final double REVERSE_SPEED_MS = 8.0;
 
     @Override
     public String label() {
@@ -82,7 +90,12 @@ public final class CarBody extends VehicleBody {
         if (absSpeed > 0.3) {
             double yawRate = absSpeed * Math.tan(steerAngle) / WHEELBASE_M;
             // The tyres, not the steering rack, decide how hard the car can turn.
-            double gripCap = LATERAL_GRIP_FRACTION * grip * G * Math.max(1.0, 1.0 - 0.3 * sinkage);
+            // Loose ground takes lateral grip away as well as longitudinal: a car on sand does not
+            // corner as hard as a car on asphalt, which is the whole reason sinkage is in the model.
+            // The floor used to be written Math.max(1.0, 1.0 - 0.3 * sinkage), which is 1.0 for every
+            // surface that exists -- sinkage is never negative -- so this term did nothing at all, and
+            // a car cornered at full asphalt grip on sabkha.
+            double gripCap = LATERAL_GRIP_FRACTION * grip * G * Math.max(0.45, 1.0 - 0.3 * sinkage);
             double maxYawRate = gripCap / Math.max(1.0, absSpeed);
             if (Math.abs(yawRate) > maxYawRate) {
                 slipAngle = 1.0 - maxYawRate / Math.abs(yawRate);
@@ -108,6 +121,12 @@ public final class CarBody extends VehicleBody {
                 }
                 thrust = demanded;
             }
+        }
+
+        // Reverse is a gear, not a sign: past its limit the drive is gone, and the car coasts back to
+        // whatever the surface and the brakes allow.
+        if (state.speedMS <= -REVERSE_SPEED_MS) {
+            thrust = Math.max(thrust, 0.0);
         }
 
         double drag = 0.5 * airDensity(state.heightM) * DRAG_AREA_M2 * speed * speed;
