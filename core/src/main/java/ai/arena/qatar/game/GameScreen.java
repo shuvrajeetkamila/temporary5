@@ -266,6 +266,13 @@ public final class GameScreen extends InputAdapter implements Disposable {
             }
         });
 
+        // The sound, in its own step: no audio at all must leave a game that plays silently and says so,
+        // not a screen that fails to build.
+        step("the sound", () -> {
+            sound = new ai.arena.qatar.audio.Sound();
+            sound.start();
+        });
+
         step("the camera", () -> {
             camera = new PerspectiveCamera(72f, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
             camera.near = 0.25f;
@@ -367,6 +374,7 @@ public final class GameScreen extends InputAdapter implements Disposable {
         // than the shove being applied a frame late.
         controller.resolveTrafficContacts(worldRenderer.trafficContacts(), worldRenderer.trafficContactCount(),
                 dt);
+        updateSound();
         updateCamera();
 
         // The world and the controls are drawn under separate guards: whichever of them is broken, the
@@ -517,6 +525,60 @@ public final class GameScreen extends InputAdapter implements Disposable {
         hud.drawCentredStatusArabic(arabic, width * 0.5f, baseline - hud.lineHeight() * 1.15f);
     }
 
+    /**
+     * Tells the sound what the player can hear: four fractions, from what they are in and what it is doing.
+     *
+     * <p>Derived from the state the physics has already produced rather than from the controls, so the
+     * sound cannot disagree with the machine: the engine note follows the speed the car is actually
+     * making, on the ground the tyres are actually on. A car idles rather than being silent -- an engine
+     * that is only audible while accelerating is the sound of a game, not of a machine -- and a person is
+     * audible only in water, which is what waves are.
+     */
+    private void updateSound() {
+        if (sound == null) {
+            return;
+        }
+        ai.arena.qatar.vehicle.VehicleState state = controller.state();
+        double speed = Math.abs(state.speedMS);
+        double engine = 0.0;
+        double rotor = 0.0;
+        double wind = 0.0;
+        double water = 0.0;
+        switch (controller.loco()) {
+            case HUMAN:
+                water = state.floating ? 0.35 : state.wading ? 0.2 : 0.0;
+                wind = state.grounded ? 0.0 : Math.min(0.4, speed / 20.0);
+                break;
+            case CAR:
+                engine = 0.18 + 0.82 * Math.min(1.0, speed / 45.0);
+                break;
+            case PLANE:
+                engine = 0.40 + 0.60 * Math.min(1.0, speed / 90.0);
+                wind = Math.min(1.0, speed / 110.0);
+                break;
+            case HELICOPTER:
+                // A rotor head is governed: it turns at the same speed on the ground and in the air, and
+                // what changes is the blade angle, which is the note rather than the pitch.
+                engine = 0.35 + 0.40 * Math.min(1.0, speed / 60.0);
+                rotor = state.grounded && speed < 1.0 ? 0.55 : 0.90;
+                wind = Math.min(1.0, speed / 70.0);
+                break;
+            case BOAT:
+                engine = 0.15 + 0.85 * Math.min(1.0, speed / 16.0);
+                water = Math.min(1.0, speed / 10.0);
+                break;
+            default:
+                break;
+        }
+        sound.update(engine, rotor, wind, water);
+    }
+
+    /** The world's report plus the subsystems that are the screen's own, in one line for the panel. */
+    private String worldReport() {
+        String report = worldRenderer == null ? "no world" : worldRenderer.describe();
+        return sound == null ? report : report + ", " + sound.describe();
+    }
+
     private void drawMapButtons() {
         for (Button button : layout.buttons()) {
             hud.drawButton(button, false);
@@ -529,11 +591,11 @@ public final class GameScreen extends InputAdapter implements Disposable {
             statusRefresh = 0.25f;
             statusLines = StatusText.englishLines(controller.describe(),
                     rig.east + offsetEastToBundle(), rig.north + offsetNorthToBundle(),
-                    worldRenderer.describe(), Gdx.graphics.getFramesPerSecond());
+                    worldReport(), Gdx.graphics.getFramesPerSecond());
             // One line, for the tests and the crash report: the same text the panel shows, un-wrapped.
             statusLine = StatusText.english(controller.describe(),
                     rig.east + offsetEastToBundle(), rig.north + offsetNorthToBundle(),
-                    worldRenderer.describe(), Gdx.graphics.getFramesPerSecond());
+                    worldReport(), Gdx.graphics.getFramesPerSecond());
             statusLineArabic = controller.describeArabic();
         }
         // The status block stacks downwards from the top-left: English, then the same thing in Arabic,
@@ -687,6 +749,14 @@ public final class GameScreen extends InputAdapter implements Disposable {
             }
         }
     }
+
+    /**
+     * The sound of whatever the player is in: synthesised, no assets, and allowed to fail.
+     *
+     * <p>Built in its own guarded step like every other subsystem, because a phone with no audio at all
+     * is a phone that must still play the game -- and the panel prints why there is none.
+     */
+    private ai.arena.qatar.audio.Sound sound;
 
     /** Seconds between rescues: a body that keeps getting stuck is still the player's to steer. */
     private static final float RESCUE_INTERVAL_S = 6.0f;
@@ -1316,10 +1386,19 @@ public final class GameScreen extends InputAdapter implements Disposable {
 
     public void pause() {
         clock.reset();
+        // The device keeps running and the blocks are silent: reopening an audio device on the frame the
+        // player comes back is a stutter at the worst possible moment, and a backgrounded app that keeps
+        // making engine noises is a phone that gets muted.
+        if (sound != null) {
+            sound.setActive(false);
+        }
     }
 
     public void resume() {
         clock.reset();
+        if (sound != null) {
+            sound.setActive(true);
+        }
     }
 
     public String statusLine() {
@@ -1368,6 +1447,11 @@ public final class GameScreen extends InputAdapter implements Disposable {
         }
         if (hud != null) {
             hud.dispose(glReady);
+        }
+        // The sound has no context and no GL: it is stopped whichever way this was called, because its
+        // thread outlives the screen otherwise.
+        if (sound != null) {
+            sound.stop();
         }
     }
 
