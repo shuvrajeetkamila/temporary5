@@ -241,7 +241,9 @@ public final class QatarGame extends ApplicationAdapter {
         sceneRenderer = new SkyAndGroundRenderer();
 
         startup = new StartupReport(VERSION, "pending");
-        Gdx.input.setInputProcessor(cameraController);
+        // The demo's camera is behind the same guard as the game's own controls: it is still an input
+        // processor on the GL thread, and an exception in it would close the app just as silently.
+        ai.arena.qatar.boot.GuardedInput.install(cameraController, null);
     }
 
     @Override
@@ -541,30 +543,42 @@ public final class QatarGame extends ApplicationAdapter {
 
     @Override
     public void resize(int width, int height) {
-        log.resize(width, height);
-        if (gameScreen != null) {
-            gameScreen.resize(width, height);
-            return;
+        try {
+            log.resize(width, height);
+            if (gameScreen != null) {
+                gameScreen.resize(width, height);
+                return;
+            }
+            camera.viewportWidth = width;
+            camera.viewportHeight = height;
+            camera.update();
+        } catch (Throwable t) {
+            lifecycleFailure("resize", t);
         }
-        camera.viewportWidth = width;
-        camera.viewportHeight = height;
-        camera.update();
     }
 
     @Override
     public void pause() {
-        // Physics timing is reset on resume: a backgrounded process must not replay catch-up steps.
-        boot.clock().reset();
-        if (gameScreen != null) {
-            gameScreen.pause();
+        try {
+            // Physics timing is reset on resume: a backgrounded process must not replay catch-up steps.
+            boot.clock().reset();
+            if (gameScreen != null) {
+                gameScreen.pause();
+            }
+        } catch (Throwable t) {
+            lifecycleFailure("pause", t);
         }
     }
 
     @Override
     public void resume() {
-        boot.clock().reset();
-        if (gameScreen != null) {
-            gameScreen.resume();
+        try {
+            boot.clock().reset();
+            if (gameScreen != null) {
+                gameScreen.resume();
+            }
+        } catch (Throwable t) {
+            lifecycleFailure("resume", t);
         }
     }
 
@@ -574,11 +588,32 @@ public final class QatarGame extends ApplicationAdapter {
             return;
         }
         disposed = true;
-        disposeScreen(glAvailable());
-        if (sceneRenderer != null) {
-            sceneRenderer.dispose();
+        try {
+            disposeScreen(glAvailable());
+            if (sceneRenderer != null) {
+                sceneRenderer.dispose();
+            }
+            log.dispose();
+        } catch (Throwable t) {
+            lifecycleFailure("dispose", t);
         }
-        log.dispose();
+    }
+
+    /**
+     * Reports a failure from one of the four callbacks the platform calls <em>besides</em> the frame.
+     *
+     * <p>{@code resize}, {@code pause}, {@code resume} and {@code dispose} are invoked by libGDX from
+     * outside the render loop -- see the same two lines in {@code AndroidGraphics.onDrawFrame} that
+     * {@link ai.arena.qatar.boot.GuardedInput} quotes -- so the frame guard in {@link #render()} does not
+     * wrap them, and an exception in any of them is a silent close of the whole app. Rotating a phone
+     * calls {@code resize}; switching away from the game calls {@code pause}. Neither is an exotic path,
+     * and both are now survivable.
+     */
+    private void lifecycleFailure(String where, Throwable t) {
+        frameFailures++;
+        CrashJournal.record("lifecycle " + where, t);
+        ScreenLog.GLOBAL.error("the platform called " + where + " and it threw; the game carried on", t);
+        echoToPanel("Failed in " + where, frameFailures == 1 ? t : null);
     }
 
     public BootSequence boot() {

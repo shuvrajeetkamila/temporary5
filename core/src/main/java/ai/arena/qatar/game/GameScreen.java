@@ -266,7 +266,17 @@ public final class GameScreen extends InputAdapter implements Disposable {
 
         try {
             resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-            Gdx.input.setInputProcessor(this);
+            // Guarded, and the guard is the whole reason a tap that throws is survivable: the handlers run
+            // on the GL thread from inside the platform's own event loop, which no frame guard of ours
+            // wraps. See GuardedInput for the two lines of libGDX that prove it.
+            ai.arena.qatar.boot.GuardedInput.install(this, (where, t) -> {
+                // Straight onto the message line the player already reads: the failure is described to
+                // them, not swallowed. Deliberately no Arabic twin -- the message is a diagnostic, and the
+                // panels are English; the Arabic line stays for the game's own messages.
+                message = "Control failed: " + where;
+                messageArabic = "";
+                messageSeconds = 4.0f;
+            });
         } catch (Throwable t) {
             report("could not attach the touch controls", t);
         }
