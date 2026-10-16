@@ -1,0 +1,179 @@
+
+HumanCarMovementTest > a parked vehicle is solid: the car cannot be driven through the aeroplane PASSED
+
+HumanCarMovementTest > a car drives, and the wall stops it instead of the world stopping it FAILED
+    org.opentest4j.AssertionFailedError: the car travelled 3.933030674437848 m in two seconds: this is the ninth install's 'the car cannot move' ==> expected: <true> but was: <false>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+        at app//ai.arena.qatar.game.HumanCarMovementTest.aCarDrivesAndIsStoppedByAWall(HumanCarMovementTest.java:111)
+
+MapTeleportTest > a map pixel and a world position are the same thing to within one pixel PASSED
+
+--
+
+WorldSurfaceFootprintTest > a building is solid where its walls are and open where its rectangle is not PASSED
+
+WorldSurfaceFootprintTest > every car spawn point in the country is somewhere a walker could stand FAILED
+    org.opentest4j.AssertionFailedError: a car spawn point is inside a wall and no clear place was found within 160.0 m of it ==> expected: <true> but was: <false>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+        at app//ai.arena.qatar.game.WorldSurfaceFootprintTest.everyCarSpawnPointIsClear(WorldSurfaceFootprintTest.java:138)
+
+WorldSurfaceFootprintTest > the terrain under a spawn point is loaded, so the body is not waiting on the streaming PASSED
+
+WorldSurfaceFootprintTest > the spawn point the game uses is clear, and a walker standing on it walks FAILED
+    org.opentest4j.AssertionFailedError: the walker travelled 1.258055555575993 m in five seconds from the real spawn point: this is the tenth install's report ==> expected: <true> but was: <false>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+        at app//ai.arena.qatar.game.WorldSurfaceFootprintTest.theRealSpawnIsSomewhereAWalkerCanMove(WorldSurfaceFootprintTest.java:181)
+
+WorldSurfaceFootprintTest > a car reaches its own spawn point's road and drives along it FAILED
+    org.opentest4j.AssertionFailedError: the car travelled 2.5307725121674594 m in five seconds from the real spawn point: this is the tenth install's report ==> expected: <true> but was: <false>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+        at app//ai.arena.qatar.game.WorldSurfaceFootprintTest.theRealSpawnIsSomewhereACarCanDrive(WorldSurfaceFootprintTest.java:203)
+
+GeoMathTest > projected distances and bearings match known national geometry PASSED
+
+--
+
+FlyStickTest > the flying stick is not under a button, the map's corner, or the map itself PASSED
+
+FlyStickTest > the frames are not garbage: the HUD's colours are built once, not once a frame FAILED
+    org.opentest4j.AssertionFailedError: the HUD builds 1 colours per frame: every one of them is an object the phone has to collect sixty times a second ==> expected: <0> but was: <1>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:150)
+        at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:563)
+        at app//ai.arena.qatar.hud.FlyStickTest.theHudDoesNotAllocatePerFrame(FlyStickTest.java:149)
+
+FlyStickTest > the flying stick has a ring on the world screen, at the size the drag is measured in PASSED
+
+--
+
+BuildingRoofTest > every roof faces the sky, for every shape, whichever way the ring came in PASSED
+
+ChunkCullingTest > a chunk in front of the camera is drawn, and the same chunk behind it is not FAILED
+    java.lang.UnsatisfiedLinkError: 'void com.badlogic.gdx.math.Matrix4.prj(float[], float[], int, int, int)'
+        at com.badlogic.gdx.math.Matrix4.prj(Native Method)
+        at com.badlogic.gdx.math.Frustum.update(Frustum.java:64)
+        at com.badlogic.gdx.graphics.PerspectiveCamera.update(PerspectiveCamera.java:64)
+        at com.badlogic.gdx.graphics.PerspectiveCamera.update(PerspectiveCamera.java:50)
+        at com.badlogic.gdx.graphics.PerspectiveCamera.<init>(PerspectiveCamera.java:43)
+        at ai.arena.qatar.render.ChunkCullingTest.lookingNorth(ChunkCullingTest.java:27)
+        at ai.arena.qatar.render.ChunkCullingTest.frustumCullsBehindTheCamera(ChunkCullingTest.java:39)
+
+ChunkCullingTest > the bounding sphere encloses the whole chunk box, corners and all PASSED
+--
+
+ShaderSourcesTest > the country's shaders are 300 es and hold no 1.00 syntax PASSED
+
+StreamingWorkTest > driving across the country builds its ground once, not once per frame FAILED
+    org.opentest4j.AssertionFailedError: the frame 27 left the cache over its memory budget: 1008000 vertices ==> expected: <true> but was: <false>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+        at app//ai.arena.qatar.render.StreamingWorkTest.stream(StreamingWorkTest.java:73)
+        at app//ai.arena.qatar.render.StreamingWorkTest.drivingBuildsEachChunkOnce(StreamingWorkTest.java:105)
+
+StreamingWorkTest > standing still costs almost nothing: the cache fills its window and then stops FAILED
+    org.opentest4j.AssertionFailedError: the frame 27 left the cache over its memory budget: 1008000 vertices ==> expected: <true> but was: <false>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+        at app//ai.arena.qatar.render.StreamingWorkTest.stream(StreamingWorkTest.java:73)
+        at app//ai.arena.qatar.render.StreamingWorkTest.standingStillStopsBuilding(StreamingWorkTest.java:86)
+
+StreamingWorkTest > the frame rate is capped, and the renderer's budgets are the ones the camera assumes PASSED
+--
+
+VegetationTest > the reported cost is what was written, plant for plant PASSED
+
+VegetationTest > every triangle faces away from its plant: the roof bug's check, on new geometry FAILED
+    org.opentest4j.AssertionFailedError: no triangles were written ==> expected: <true> but was: <false>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+        at app//ai.arena.qatar.render.VegetationTest.everyTriangleFacesOutwards(VegetationTest.java:126)
+
+VegetationTest > every plant stands on the ground, inside its own polygon, and is painted as foliage FAILED
+    org.opentest4j.AssertionFailedError: a plant grew outside its polygon at 75.5958, 400.193 ==> expected: <true> but was: <false>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertTrue.failNotTrue(AssertTrue.java:63)
+        at app//org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:36)
+        at app//org.junit.jupiter.api.Assertions.assertTrue(Assertions.java:214)
+        at app//ai.arena.qatar.render.VegetationTest.plantsAreWhereTheyShouldBe(VegetationTest.java:107)
+
+VegetationTest > nothing grows in water, and nothing grows so far away that it is fog PASSED
+
+--
+
+HelicopterFlightTest > the cyclic flies it forward, and the disc's tilt does not cost it its height PASSED
+
+HelicopterFlightTest > a helicopter on the skids with nothing asked of it stays on the skids FAILED
+    org.opentest4j.AssertionFailedError: the helicopter rose without being asked ==> expected: <0.4> but was: <0.6>
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+        at app//org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+        at app//org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+        at app//org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:86)
+        at app//org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1024)
+        at app//ai.arena.qatar.vehicle.HelicopterFlightTest.itDoesNotTakeItselfOff(HelicopterFlightTest.java:66)
+
+HelicopterFlightTest > a held stick stays held, and letting go lets the machine fly itself level PASSED
+
+--
+
+205 tests completed, 11 failed
+
+> Task :core:test FAILED
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1792139934642.json
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':core:test'.
+> There were failing tests. See the report at: file:///home/runner/work/temporary5/temporary5/core/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to get full insights.
+--
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
+Caused by: org.gradle.api.internal.exceptions.MarkedVerificationException: There were failing tests. See the report at: file:///home/runner/work/temporary5/temporary5/core/build/reports/tests/test/index.html
+	at org.gradle.api.tasks.testing.AbstractTestTask.handleTestFailures(AbstractTestTask.java:691)
+	at org.gradle.api.tasks.testing.AbstractTestTask.handleCollectedResults(AbstractTestTask.java:533)
+	at org.gradle.api.tasks.testing.AbstractTestTask.executeTests(AbstractTestTask.java:528)
+	at org.gradle.api.tasks.testing.Test.executeTests(Test.java:715)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at org.gradle.internal.reflect.JavaMethod.invoke(JavaMethod.java:125)
+	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.doExecute(StandardTaskAction.java:58)
+	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.execute(StandardTaskAction.java:51)
+--
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
+
+
+BUILD FAILED in 27s
+4 actionable tasks: 4 executed
