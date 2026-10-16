@@ -123,6 +123,8 @@ public final class GameWorldRenderer implements Disposable {
     /** Chunks drawn and chunks skipped in the last frame, for the diagnostics line. */
     private int drawnChunks;
     private int culledChunks;
+    /** Scratch space for the camera's frustum planes: reused every frame, allocated once. */
+    private final float[] frustumPlanes = new float[ChunkCulling.PLANE_FLOATS];
 
     public GameWorldRenderer(WorldData world, WorldOrigin origin, WorldRenderer renderer) {
         this.world = world;
@@ -272,6 +274,13 @@ public final class GameWorldRenderer implements Disposable {
         double focusEast = cacheFocusEast;
         double focusNorth = cacheFocusNorth;
         double sphere = ChunkCulling.CHUNK_SPHERE_RADIUS_M;
+        // The camera's frustum as six planes, extracted once for the whole pass: libGDX's own Frustum
+        // would do the same work, but reading it is a native call away from being untestable (see
+        // ChunkCulling). `combined` is the projection-view matrix the camera itself draws with.
+        float[] planes = camera == null ? null : frustumPlanes;
+        if (planes != null) {
+            ChunkCulling.planesOf(camera.combined, planes);
+        }
         for (ChunkMeshCache.Entry entry : cache.resident()) {
             if (!entry.uploaded) {
                 continue;                     // failed, or not yet built: an empty chunk, not a hole
@@ -283,8 +292,7 @@ public final class GameWorldRenderer implements Disposable {
             double centreNorth = offsetNorth + ChunkMesher.CHUNK_M * 0.5;
             if (!ChunkCulling.withinDrawRadius(centreEast, centreNorth, focusEast, focusNorth,
                     drawRadiusM)
-                    || !ChunkCulling.inFrustum(camera == null ? null : camera.frustum, centreEast,
-                            centreNorth, sphere)) {
+                    || !ChunkCulling.sphereInPlanes(planes, centreEast, centreNorth, sphere)) {
                 culledChunks++;
                 continue;
             }

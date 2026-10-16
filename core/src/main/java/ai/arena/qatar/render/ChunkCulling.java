@@ -1,6 +1,6 @@
 package ai.arena.qatar.render;
 
-import com.badlogic.gdx.math.Frustum;
+import com.badlogic.gdx.math.Matrix4;
 
 /**
  * Decides whether a chunk is worth drawing at all, before any GL call is made for it.
@@ -17,8 +17,12 @@ import com.badlogic.gdx.math.Frustum;
  *       the largest saving available to this renderer, and it costs one sphere test each.</li>
  * </ol>
  *
- * <p>Pure arithmetic on libGDX's own {@link Frustum}, so it is testable without a device: the maths is
- * the part that can be wrong, and it is the part a phone cannot explain to us afterwards.
+ * <p>The frustum planes are taken from the camera's own projection-view matrix by the arithmetic in
+ * {@link #planesOf}. That is not a preference: {@code Frustum.update} calls {@code Matrix4.prj}, which
+ * is native, so a {@code PerspectiveCamera} cannot even be constructed on a JVM -- a culling test that
+ * reads {@code camera.frustum} throws {@code UnsatisfiedLinkError} before it asserts anything, which is
+ * how this class was first written and how it first failed. The maths is the part that can be wrong and
+ * the part a phone cannot explain afterwards, so the maths is what is tested.
  *
  * <p>The sphere is deliberately generous. A chunk wrongly drawn costs some pixels; a chunk wrongly
  * culled is a hole in the world that the player can walk into and through. So the sphere encloses the
@@ -52,14 +56,69 @@ public final class ChunkCulling {
         return CENTRE_Y_M;
     }
 
-    /** True when a chunk-sphere at this local position could be inside the camera frustum. */
-    public static boolean inFrustum(Frustum frustum, double localEastM, double localNorthM,
-                                   double radiusM) {
-        if (frustum == null) {
-            return true;                       // no frustum to test against: draw it rather than lose it
+    /** How many floats a set of six planes takes: four each, (a, b, c, d). */
+    public static final int PLANE_FLOATS = 24;
+
+    /**
+     * Writes a camera's six frustum planes into {@code out} -- four floats a plane, in the order left,
+     * right, bottom, top, near, far -- from its projection-view matrix.
+     *
+     * <p>Each plane is one addition or subtraction of two rows of the matrix, which is the textbook
+     * extraction: a point is inside the frustum when it is on the inner side of all six. The planes are
+     * normalised here, once, so {@link #sphereInPlanes} needs no divide per chunk.
+     *
+     * <p>libGDX stores a matrix column major in {@code val}: {@code val[col * 4 + row]}, so row 0 is
+     * {@code val[0], val[4], val[8], val[12]}.
+     */
+    public static void planesOf(Matrix4 projectionView, float[] out) {
+        if (projectionView == null || out == null || out.length < PLANE_FLOATS) {
+            return;
         }
-        return frustum.sphereInFrustum((float) localEastM, (float) CENTRE_Y_M, (float) localNorthM,
-                (float) radiusM);
+        float[] m = projectionView.val;
+        plane(out, 0, m[3] + m[0], m[7] + m[4], m[11] + m[8], m[15] + m[12]);
+        plane(out, 4, m[3] - m[0], m[7] - m[4], m[11] - m[8], m[15] - m[12]);
+        plane(out, 8, m[3] + m[1], m[7] + m[5], m[11] + m[9], m[15] + m[13]);
+        plane(out, 12, m[3] - m[1], m[7] - m[5], m[11] - m[9], m[15] - m[13]);
+        plane(out, 16, m[3] + m[2], m[7] + m[6], m[11] + m[10], m[15] + m[14]);
+        plane(out, 20, m[3] - m[2], m[7] - m[6], m[11] - m[10], m[15] - m[14]);
+    }
+
+    /** One normalised plane; a degenerate one is written as "culls nothing" rather than as zeroes. */
+    private static void plane(float[] out, int at, float a, float b, float c, float d) {
+        double length = Math.sqrt((double) a * a + (double) b * b + (double) c * c);
+        if (length < 1e-9) {
+            out[at] = 0f;
+            out[at + 1] = 0f;
+            out[at + 2] = 0f;
+            out[at + 3] = Float.MAX_VALUE;
+            return;
+        }
+        out[at] = (float) (a / length);
+        out[at + 1] = (float) (b / length);
+        out[at + 2] = (float) (c / length);
+        out[at + 3] = (float) (d / length);
+    }
+
+    /**
+     * True when a chunk-sphere at this local position could be inside the camera's frustum.
+     *
+     * <p>A null plane set means there is no camera to test against: draw the chunk rather than lose it.
+     * The sphere's centre is the middle of the chunk's box, {@link #MAX_CHUNK_TOP_M} to
+     * {@link #MIN_CHUNK_BOTTOM_M}, which is why the caller only passes the two ground coordinates.
+     */
+    public static boolean sphereInPlanes(float[] planes, double localEastM, double localNorthM,
+                                        double radiusM) {
+        if (planes == null || planes.length < PLANE_FLOATS) {
+            return true;
+        }
+        for (int at = 0; at < PLANE_FLOATS; at += 4) {
+            double distance = planes[at] * localEastM + planes[at + 1] * CENTRE_Y_M
+                    + planes[at + 2] * localNorthM + planes[at + 3];
+            if (distance < -radiusM) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

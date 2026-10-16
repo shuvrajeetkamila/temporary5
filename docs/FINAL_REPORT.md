@@ -454,9 +454,116 @@ was built for: javac is not available here, so the gates are the compiler.
 **19,201,474 bytes**, SHA-256 `09cdf423…`, which is the digest the release API computes for the uploaded
 asset and the contents of the 110-byte sidecar. The APK pays 948 bytes over the previous one.
 
+### Ninth install: the phone got hot, and the human and the car would not move
+
+The report, word for word: **"problem with human car physics, cant move"**, **"heliopter flies but not
+perfectly"**, **"most importantly mobile becomes very hot after playing for a few seconds"**, **"also
+minmap crashes now also"**, and a request to keep building. Four faults, and the heat was the one that had
+been making the game unplayable on a phone.
+
+**The phone got hot in seconds, and there was no single expensive thing to find.** There were four:
+
+* **Nothing capped the frame rate.** libGDX renders as fast as the device allows, and every frame here
+  meshes, culls, draws a country and updates a HUD, so an idle phone was working at 120 frames a second on
+  a game designed for 60. `QatarGame` now calls `setForegroundFPS(FOREGROUND_FPS)` with `FOREGROUND_FPS =
+  60`: sixteen milliseconds of work a frame, and not a millisecond more.
+* **Every resident chunk was drawn, including the ones behind the camera.** `ChunkCulling` tests a chunk's
+  bounding sphere against the camera's own `Frustum`, and against the top of the chunk's box. A chunk
+  behind the camera is still transformed and set up by the GPU before the clipper discards it, and with a
+  72-degree vertical field of view on a 20:9 phone screen most of a six-kilometre disc is outside the
+  frustum. This is the largest single saving in the renderer, and it costs one sphere test per chunk.
+* **The streaming cache rebuilt the country for ever.** It meshed up to three chunks a frame and then
+  evicted the farthest chunks to stay inside its memory budget -- and the chunks it had just evicted were
+  still near the player, so they returned to the build list on the next frame. Build, evict, rebuild: three
+  chunk meshes a frame, sixty frames a second, six hundred country meshes a minute on the GL thread, for
+  geometry the frame never kept. The cache now **stops building while its window is full** (the ground
+  under the player's feet is the one exception, because a hole where the player is standing is not a
+  performance trade), keeps its candidates in parallel arrays instead of allocating a few hundred objects a
+  frame, and evicts the chunk **farthest from the player** rather than the one inserted first -- which was
+  wherever the player came from, not what they cannot see.
+* **The geometry budget was already there; the work that filled it was not bounded.** With the window full,
+  the steady state is a few hundred distance checks a frame and no meshing at all, which is what makes
+  standing still cheap. A test walks the real cache for fifteen hundred frames of driving and ten seconds
+  of standing still and counts the meshes (`StreamingWorkTest`).
+
+And the phone can now say so itself: the diagnostics panel prints the measured frame time in milliseconds
+(next to chunks resident, drawn and culled, draw calls, triangles, vertices against the budget, and the fog
+distance), and the renderer **shrinks its draw distance** when frames run long -- 45 m a frame above
+20.8 ms, recovering 15 m a frame below 16.1 ms, down to a floor of 2.8 km.
+
+**"The human and the car cannot move" was two faults, and neither was in a body.** The bodies were fine;
+the *points* were wrong:
+
+* `WorldSurface.solidAt` asked "am I inside a building?" with the axis-aligned rectangle around each
+  footprint. A rectangle is not a building: OSM buildings are rotated, L-shaped and clustered, so the box
+  around a tower turned thirty degrees covers a square of plaza, pavement, courtyard and road that no wall
+  passes through -- and a body inside it is refused in every direction by its own collision rule, with a
+  panel that reports a speed of zero and no reason. On the compiled country this was not a corner case:
+  **52 of the 279 car spawn points (18.6%)** are inside a building's box and outside every wall, and of
+  43,287 sampled road vertices **1,029 (2.4%)** are the same. `solidAt` now ray-casts the building's own
+  ring -- the polygon that is drawn is the polygon that is solid -- and keeps the rectangle only as a cheap
+  reject. `WorldSurfaceFootprintTest` holds it against the real bundles, and it is written so that it
+  *fails* if the rectangle rule comes back.
+* A compiled spawn point can still be inside a real wall (14 of those 279), and a teleport can land in a
+  courtyard. `SpawnClearer` searches outward in rings for ground a person can stand on and is asked at
+  every spawn, every teleport and every vehicle change, reporting how far it had to move the player. The
+  controller also **re-seats every body** when the real terrain arrives (`setSurface`), which is the state
+  the game starts in and the one place a body could be spawned on a flat fallback twelve metres below the
+  ground it was standing on.
+
+**The minimap's tap did not crash the app; the map did not have a texture.** `HudRenderer.drawBigMap`
+cropped a `TextureRegion` that had never been given a texture and drew it, which is
+`NullPointerException: Texture.getWidth()` on a null at the top of the draw call -- the stack in the
+report. The region is textured when it is built, the draw is guarded (a map that cannot be drawn draws
+nothing, and says so once, on the panel, in both languages), and `tools/check_ui_state.py` fails on that
+shape of line, so it cannot return quietly.
+
+**"The helicopter flies but not perfectly" was four faults:**
+
+* The hover trim ignored the disc's tilt and the air's density, so a machine asked to hold 25 m coasted to
+  43 m. The trim is now the machine's own arithmetic -- `collectiveForAccel(state, accel)` answers "what
+  collective produces this vertical acceleration on *this* machine, at *this* height, speed and
+  attitude?" -- which is the same number derived from the same thrust model that flies it.
+* The altitude hold **released itself** within a metre of the commanded height, carrying whatever climb
+  rate it had built: that is what the coasting was. It is a critically damped spring-damper now (a
+  four-second period: kp 2.5, kd 3.2), it stays engaged until the pilot takes the lever, and the machine
+  settles on the commanded height instead of sailing past it.
+* The cyclic's sign was inverted, so pulling the stick forward flew the machine **backwards** at 29 km/h.
+* The flying stick was a *nudge*, not a stick: the deflection decayed back to trim at 1.6 a second, so a
+  thumb held still for two seconds flew a machine that had already levelled itself out. It is a held stick
+  now -- a drag on the right-hand ring *is* the deflection, and it stays deflected until the finger lets go
+  -- drawn at rest with its own word under it, for the same reason the movement stick is. And the ring the
+  player sees is the ring the touch handler measures: the drag of one radius is full deflection, which it
+  was not (the movement stick drew a 150-pixel ring on a phone and reached full speed at sixty pixels).
+
+**Also delivered in this round**, the three items the last one carried forward: **palms and vegetation**
+(a palm is 96 vertices, scrub is 24, scattered over the landuse areas that say they are vegetation, with
+their own surface type and their own branch in the terrain shader); **vehicle-to-vehicle contact** (the
+machines you are not in are solid -- a walker bumps off a car's flank, a car is stopped by a parked
+aeroplane, and the panel says `BLOCKED` rather than showing a speed of zero -- and the five machines are
+parked in a line behind you at a spawn, a teleport or a vehicle change, because an arc cannot hold an
+11-metre aeroplane and a 9-metre helicopter without overlapping them); and **streaming profiling** (the
+panel's numbers, above).
+
+**What this round cost.** Two compile errors, both worth the round trip because both are now gates:
+
+1. **`Math.SQRT2` is not Java.** `java.lang.Math` declares exactly two constants, `E` and `PI`; `SQRT2` is
+   JavaScript's. javac said "cannot find symbol" and pointed at the dot. The gate now reads every `Math.`
+   member in the tree against the members the JDK actually declares and names the JavaScript roots
+   (`SQRT2`, `SQRT1_2`, `LN2`, `LN10`, `LOG2E`, `LOG10E`) with what to write instead.
+2. **An `@Override` had drifted off its method.** `WorldSurface.insideFootprint` was inserted between the
+   annotation and `materialId`, so the annotation landed on a private method. The gate fails on an
+   annotation whose next line is a comment, an annotation whose method has no parameter list, and an
+   annotation on a `private` method -- which can never override anything.
+
+Both rules were checked against the broken revision before being trusted, and both reproduce the CI errors
+exactly. Eight new tests joined the suite (`WorldSurfaceFootprintTest`, `HelicopterFlightTest`,
+`StreamingWorkTest`, `FlyStickTest`, `HumanCarMovementTest`, `SpawnClearerTest`, `ChunkCullingTest`,
+`VegetationTest`).
+
 ## Honest limitations
 
-1. **This build has been on a phone eight times, and every report found something real** — nineteen
+1. **This build has been on a phone nine times, and every report found something real** — twenty-three
    faults
    in all, listed in the sections above, each one now fixed and, where a test can hold it, held. Two
    reports arrived with no symptom in them at all, so an audit was the diagnosis; one arrived as a stack
@@ -473,12 +580,28 @@ asset and the contents of the 110-byte sidecar. The APK pays 948 bytes over the 
    compiles for the first time on a phone. Nothing here can compile GLSL; what stands in for a GPU is the
    shader lint, the on-screen diagnostics, and the fact that the panel has so far named its failures
    precisely enough to fix them — including the one it named with no words from the phone at all.
+   **The ninth install's heat has not been measured on a phone by anyone here.** What can be said is what
+   changed and how much of the work it removes: the frame rate is capped at 60, most of the disc is culled
+   before it is drawn, the streaming cache stops meshing when its window is full rather than rebuilding the
+   far ring every frame, and the draw distance shrinks when frames run long. The panel now prints the frame
+   time, so the next report can say what the phone is actually doing instead of how warm it is.
 2. No sound.
-3. Buildings collide as their bounding box, not as their drawn ring: a courtyard is walkable through.
+3. ~~Buildings collide as their bounding box, not as their drawn ring: a courtyard is walkable through.~~
+   **Fixed this round**: the walls decide, the box is only a cheap reject, and a test over the real country
+   fails if the box comes back. What remains is that barriers (fences, walls, hedges) collide as lines of a
+   fixed half-width and a single height, so a gap in a fence that is not mapped as a gate is not a way
+   through.
 4. The world is drawn only within the streaming radius: beyond roughly 6 km it fades into fog and stops.
-5. Vehicles do not collide with each other.
-6. Performance has never been profiled. Dense urban chunks are the heaviest, the warm-up builds up to
-   24 chunks per frame in the first seconds, and the resident window is sized for a 6 km view.
+5. ~~Vehicles do not collide with each other.~~ **Partly fixed this round**: the machines the player is
+   not in are solid to the one they are, and are parked in a line behind them at a spawn, a teleport or a
+   vehicle change. The parked machines themselves are not simulated -- an aeroplane parked in the sea stays
+   in the sea -- and two of them do not push each other, because nothing is driving them.
+6. ~~Performance has never been profiled.~~ **Partly addressed this round**: the panel reports chunks
+   resident, drawn and culled, draw calls, triangles, vertices against the budget, the frame time in
+   milliseconds and the fog distance, and the renderer acts on the frame time by shrinking the draw
+   distance. What is still missing is a profile taken *on a phone*: the numbers here come from the code's
+   own counters and from tests that walk the streaming cache, not from a thermal measurement of a
+   handset.
 7. Terrain is SRTM-derived and smoothed at 100 m: the shapes of dunes are right, individual dune crests
    are not. Building heights are OSM's, which are sometimes a floor count converted to metres.
 8. The bodies are still boxes with a paint table rather than modelled assets, though they now have

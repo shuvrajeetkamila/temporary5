@@ -108,9 +108,16 @@ final class HumanCarMovementTest {
             controller.update(DT);
         }
         double afterTwoSeconds = controller.state().northM;
-        assertTrue(afterTwoSeconds > 5.0,
-                "the car travelled " + afterTwoSeconds + " m in two seconds: this is the ninth "
-                        + "install's 'the car cannot move'");
+        // The ground under this test is compact sand, which is what the country's own spawn point
+        // stands on: the wheels dig in (`surfaceDrag` and sinkage in CarBody) and a 1,620 kg car on it
+        // accelerates at about 2 m/s^2, so two seconds is a little under four metres. On asphalt the
+        // same car does twice that (`VehicleDynamicsTest` has 0-100 km/h). The bound is the measured
+        // sand figure, and the point of the assertion is that the car is moving at all -- which is what
+        // the ninth install said it was not.
+        assertTrue(afterTwoSeconds > 3.5, "the car travelled " + afterTwoSeconds + " m in two seconds "
+                + "on compact sand: this is the ninth install's 'the car cannot move'");
+        assertTrue(controller.state().speedMS * 3.6 > 10.0, "the car was doing "
+                + controller.state().speedMS * 3.6 + " km/h after two seconds of full throttle");
 
         // And now into the wall, which stands across the road at 30 m: the car must not be on the far
         // side of it, and it must not be inside it either.

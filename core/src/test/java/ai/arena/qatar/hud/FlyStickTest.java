@@ -127,10 +127,69 @@ final class FlyStickTest {
         assertEquals(0f, layout.minimapTouch().w, "the map's own tap target is on the map screen");
     }
 
+    /**
+     * The source with its comments removed.
+     *
+     * <p>The first version of this test read the file as text and counted every {@code new Color(} in it
+     * -- including the one in the comment above the colour constants that says the colours *used to be*
+     * built there, which is how a test fails because of a sentence. The code is what matters, so the
+     * comments go before the scan.
+     */
+    private static String withoutComments(String text) {
+        StringBuilder out = new StringBuilder(text.length());
+        boolean block = false;
+        boolean line = false;
+        boolean quoted = false;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            char next = i + 1 < text.length() ? text.charAt(i + 1) : '\0';
+            if (block) {
+                if (c == '*' && next == '/') {
+                    block = false;
+                    i++;
+                }
+                continue;
+            }
+            if (line) {
+                if (c == '\n') {
+                    line = false;
+                    out.append(c);
+                }
+                continue;
+            }
+            if (quoted) {
+                out.append(c);
+                if (c == '\\') {
+                    out.append(next);
+                    i++;
+                } else if (c == '"') {
+                    quoted = false;
+                }
+                continue;
+            }
+            if (c == '/' && next == '/') {
+                line = true;
+                i++;
+                continue;
+            }
+            if (c == '/' && next == '*') {
+                block = true;
+                i++;
+                continue;
+            }
+            if (c == '"') {
+                quoted = true;
+            }
+            out.append(c);
+        }
+        return out.toString();
+    }
+
     @Test
     @DisplayName("the frames are not garbage: the HUD's colours are built once, not once a frame")
     void theHudDoesNotAllocatePerFrame() throws IOException {
-        String text = new String(Files.readAllBytes(source("HudRenderer.java")), StandardCharsets.UTF_8);
+        String text = withoutComments(
+                new String(Files.readAllBytes(source("HudRenderer.java")), StandardCharsets.UTF_8));
         Matcher colours = Pattern.compile("new\\s+Color\\s*\\(").matcher(text);
         int perFrame = 0;
         int constants = 0;
@@ -152,7 +211,8 @@ final class FlyStickTest {
                 + " are declared, and the sticks alone need six");
         // The flying stick's own colours, by name, so that a rewrite that copies the old code back
         // cannot pass by keeping the count.
-        assertTrue(text.contains("STICK_HOME_DISC") && text.contains("STICK_KNOB"),
+        String raw = new String(Files.readAllBytes(source("HudRenderer.java")), StandardCharsets.UTF_8);
+        assertTrue(raw.contains("STICK_HOME_DISC") && raw.contains("STICK_KNOB"),
                 "the stick's colours are not the named constants");
     }
 

@@ -582,6 +582,108 @@ travelled.
   with no button inside it, and never reaching the movement stick, which is checked at six resolutions.
 * `VERSION` is `0.1.0-m0+diag8`.
 
+### The ninth report: heat, immobility, the map, and a helicopter
+
+Four complaints, and for once none of them were about the country: **"problem with human car physics,
+cant move"**, **"heliopter flies but not perfectly"**, **"also minmap crashes now also"**, and the one
+that reframed the whole round -- **"most importantly mobile becomes very hot after playing for a few
+seconds"**.
+
+**The heat first, because it was the one that made the game unplayable on a phone.** Four causes, all of
+them in the frame loop:
+
+* **No frame cap anywhere.** libGDX renders as fast as the device will let it, and every frame here
+  meshes, culls, draws a country and updates a HUD. `QatarGame` now asks for `setForegroundFPS(60)`:
+  16.6 ms a frame is the budget a screen can actually show.
+* **Every resident chunk was drawn.** `ChunkCulling` now tests the chunk's bounding sphere against the
+  camera's own `Frustum` (and against a top-of-box height), because a chunk behind the camera is still
+  transformed and set up before the clipper throws it away, and with a 72-degree field of view on a phone
+  most of a six-kilometre disc is behind the camera or off the side.
+* **The streaming cache rebuilt the country for ever.** It meshed up to three chunks a frame, then evicted
+  the farthest chunks to stay inside its memory budget -- and the chunks it had just evicted were, of
+  course, still near the player, so they came straight back onto the build list. Build, evict, rebuild:
+  three chunk meshes a frame, sixty times a second, six hundred country meshes a minute on the GL thread,
+  for geometry the frame never got to keep. The cache now stops building while its window is full (the
+  ground under the player's feet is the one exception), works on parallel arrays instead of allocating a
+  few hundred candidate objects a frame, and evicts the chunk *farthest from the player* rather than the
+  one inserted first -- which was wherever they came from.
+* **The draw distance adapts.** `GameWorldRenderer` watches the measured frame time and shrinks the draw
+  radius by 45 m a frame when frames run past 20.8 ms, recovering by 15 m when they run under 16.1 ms, and
+  the diagnostics panel prints the millisecond figure the decision was made from. A phone that is
+  struggling is now visible on the screen, in numbers, instead of only in the temperature of the handset.
+
+**"The human and the car cannot move."** Two causes, and the first one is the one no test had asked about:
+`WorldSurface.solidAt` decided *"am I inside a building?"* with the rectangle around each footprint, and a
+rectangle is not a building. Measured against the compiled country: of 279 car spawn points, **52 (18.6%)
+are inside some building's box and outside every wall**; of a sample of 43,287 road vertices, **1,029
+(2.4%)** are the same. A walker or a car in one of those places is refused in every direction by its own
+collision rule, with a panel that reports a speed of zero and no reason. `solidAt` now ray-casts the
+building's own ring -- the polygon that is drawn is the polygon that is solid -- keeping the rectangle only
+as a cheap reject. The second cause is that a spawn can still land inside a real wall (14 of the 279), so
+`SpawnClearer` searches outward for clear ground before the player is placed, and a teleport goes through
+the same search: a tap is a hope, not a coordinate.
+
+**"The minimap crashes."** The big map's crop region had never been given a texture: `HudRenderer.drawBigMap`
+called `setRegion(...)` on an empty `TextureRegion` and then drew it, which is a `Texture.getWidth()` on a
+null. It is textured at construction now, guarded (a map that cannot be drawn draws nothing and says so
+once, on the panel, in both languages), and `tools/check_ui_state.py` fails on that exact line shape, so
+the bug cannot come back quietly.
+
+**"The helicopter flies but not perfectly."** Also not one bug:
+
+* the hover trim ignored the disc's tilt and the air's density, so a machine asked to hold 25 m coasted to
+  43 m and stayed there -- the trim is now the machine's own arithmetic (`collectiveForAccel`), which
+  answers "what collective holds *this* machine up at *this* height, speed and attitude?";
+* the altitude hold *released itself* within a metre of the commanded height, with whatever climb rate it
+  had built, which is what the coasting was -- it is a critically damped spring-damper now (a four-second
+  period), and it stays engaged until the pilot takes the lever;
+* the cyclic's sign was inverted, so pulling the stick forward flew the machine backwards at 29 km/h;
+* and the flying stick was a *nudge*, not a stick: the deflection decayed back to trim at 1.6 a second, so
+  a thumb held still for two seconds flew a machine that had already levelled itself out. It is a held
+  stick now (`setStick`/`releaseStick`), drawn at rest on the right-hand side with its own word under it,
+  for the same reason the movement stick is: a control that has to be discovered is not a control.
+
+**Also in this round**, the three items carried from the last one:
+
+* **Palms and vegetation.** `VegetationMesher` scatters palms (96 vertices) and scrub (24) in the
+  landuse areas that say they are vegetation, with their own surface type (7) and their own branch in the
+  terrain shader: the trunk is a tapered prism, the crown is a ring of fronds, and the whole thing fades
+  out with the chunk's detail so that nothing is drawn at 500 m that reads as a smudge.
+* **Vehicle-to-vehicle contact.** `VehicleContact` treats the machines the player is not in as solid: a
+  walker bumps off a car's flank, a car is stopped by a parked aeroplane, and the panel says `BLOCKED`
+  instead of "the speed is zero". The five machines are parked in a line behind the player at a spawn, a
+  teleport or a vehicle change, each one nose to tail with the next: an arc cannot hold an 11-metre
+  aeroplane and a 9-metre helicopter without overlapping them, and a line never crosses the direction the
+  player is about to drive.
+* **Streaming profiling.** The panel prints chunks resident, drawn, culled, draw calls, triangles,
+  vertices against the budget, the frame time in milliseconds and the fog distance, all from counters the
+  renderer keeps anyway.
+
+`VERSION` is `0.1.0-m0+diag9`.
+
+### What this round cost, and what it taught
+
+The compile errors the gate caught are the most useful thing the round produced:
+
+1. **`Math.SQRT2` does not exist in Java.** `java.lang.Math` declares exactly two constants, `E` and
+   `PI`; `SQRT2` is JavaScript's, and it was written into `ChunkCulling` from memory. The symbol gate now
+   reads every `Math.` member in the tree against the members the JDK actually declares, names the six
+   JavaScript roots people reach for (`SQRT2`, `SQRT1_2`, `LN2`, `LN10`, `LOG2E`, `LOG10E`) and says what
+   to write instead: `Math.sqrt(2.0)`. The failure mode is worth remembering -- *it does not type-check to
+   remember a library, and the local gates cannot tell a wrong member from a right one*.
+2. **An `@Override` drifted off its method.** The new `insideFootprint` was inserted between the annotation
+   and `materialId`, so the annotation landed on a private method and javac refused it. The gate now fails
+   on three shapes of that mistake: an annotation whose next line is a comment (a Javadoc between an
+   annotation and its method documents nothing and moves the annotation), an annotation followed by
+   anything with no parameter list, and an annotation on a `private` method, which can never override
+   anything.
+
+Both rules were run against the broken revision before they were trusted (`git show <commit>:<path>` into
+a temporary file, then through the gate), and both reproduce the CI errors exactly. The round's other
+lesson is smaller and older: *a test that keeps what it builds is measuring the heap*. The streaming test
+walked fifteen hundred frames and pinned every chunk mesh it built in a map nothing read; the meshes are
+released now, as the renderer releases them.
+
 ### What this round cost, and what it taught
 
 Three pushes, two of them red, and both failures were the project's own rather than the phone's:

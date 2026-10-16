@@ -152,7 +152,15 @@ public final class HelicopterBody extends VehicleBody {
 
         double ground = surface.groundHeightM(state.eastM, state.northM);
         double waterSurface = surface.waterSurfaceM(state.eastM, state.northM);
-        double floor = Math.max(ground + SKID_HEIGHT_M, waterSurface + 0.6);
+        // The skids rest on the ground and the water clearance is the water's own: written as one max()
+        // the second term applied on dry land too, where waterSurface is the ground itself, so every
+        // machine sat 0.2 m above its own skids (0.6 against 0.4) and the tenth install's helicopter
+        // floated before it was asked to. See HelicopterFlightTest."a helicopter on the skids with
+        // nothing asked of it stays on the skids".
+        double floor = ground + SKID_HEIGHT_M;
+        if (waterSurface > ground) {
+            floor = Math.max(floor, waterSurface + 0.6);
+        }
         state.heightM += state.verticalMS * dt;
         if (state.heightM <= floor) {
             state.heightM = floor;
