@@ -98,6 +98,19 @@ public final class WorldRenderer implements Disposable {
     private int farLayerTriangles;
     /** One matrix per moving part, reused every frame: a car has four wheels, so this never grows. */
     private Matrix4[] partScratch = new Matrix4[8];
+    /**
+     * The traffic's own body, and one matrix per car.
+     *
+     * <p>A second copy of the player's body machinery rather than a share of it, and that is deliberate:
+     * the player's body is uploaded when the locomotion changes, traffic is uploaded once and drawn many
+     * times a frame, and the two have different lifetimes. Fourteen cars at a draw call each is nothing
+     * next to the hundred chunks behind them, and it is the difference between a country with roads on a
+     * map and a country with traffic on its roads.
+     */
+    private Mesh trafficMesh;
+    private Mesh[] trafficParts = new Mesh[0];
+    private Matrix4[] trafficScratch = new Matrix4[8];
+    private int trafficCars;
 
     private final LongMap<GpuChunk> chunks = new LongMap<>();
     private final Matrix4 identity = new Matrix4();
@@ -467,6 +480,71 @@ public final class WorldRenderer implements Disposable {
             farLayer = null;
         }
         farLayerTriangles = 0;
+    }
+
+    /** Uploads the body every traffic car shares, with the parts of it that turn. Called once. */
+    public void setTrafficMesh(MeshData body, java.util.List<BodyMesher.Part> parts) {
+        trafficMesh = upload(trafficMesh, body);
+        for (Mesh existing : trafficParts) {
+            if (existing != null) {
+                existing.dispose();
+            }
+        }
+        if (trafficScratch.length < parts.size()) {
+            trafficScratch = new Matrix4[parts.size()];
+        }
+        trafficParts = new Mesh[parts.size()];
+        for (int i = 0; i < parts.size(); i++) {
+            BodyMesher.Part part = parts.get(i);
+            // Parts are uploaded from their own geometry, positioned at the origin: the pivot is applied by
+            // the matrix at draw time, which is what lets one mesh be turned about its own axle.
+            MeshData centred = part.mesh;
+            trafficParts[i] = upload(null, centred);
+            if (trafficScratch[i] == null) {
+                trafficScratch[i] = new Matrix4();
+            }
+        }
+    }
+
+    /** How many traffic cars were drawn in the last frame, for the panel. */
+    public int trafficCarsDrawn() {
+        return trafficCars;
+    }
+
+    /**
+     * Draws one traffic car and its wheels at a local position and heading.
+     *
+     * <p>Called with the world program bound and the fog set, inside the world's own pass and before the
+     * player's body: traffic that were drawn after the body would be drawn after {@code endFrame}, which
+     * turns depth testing and back-face culling off for the two-dimensional layer that follows.
+     */
+    public void drawTrafficCar(Matrix4 bodyTransform, java.util.List<BodyMesher.Part> parts, double eastM,
+                               double heightM, double northM, double headingDegrees, double spinDegrees) {
+        if (trafficMesh == null || !isReady()) {
+            return;
+        }
+        worldProgram.setUniformMatrix("u_model", bodyTransform);
+        trafficMesh.render(worldProgram, GL20.GL_TRIANGLES);
+        drawCalls++;
+        drawnTriangles += trafficMesh.getNumIndices() / 3;
+        trafficCars++;
+        for (int i = 0; i < trafficParts.length && i < parts.size(); i++) {
+            Mesh part = trafficParts[i];
+            if (part == null || trafficScratch[i] == null) {
+                continue;
+            }
+            BodyMesher.transform(trafficScratch[i], parts.get(i), eastM, heightM, northM, headingDegrees,
+                    spinDegrees);
+            worldProgram.setUniformMatrix("u_model", trafficScratch[i]);
+            part.render(worldProgram, GL20.GL_TRIANGLES);
+            drawCalls++;
+            drawnTriangles += part.getNumIndices() / 3;
+        }
+    }
+
+    /** Resets the per-frame traffic count: the caller calls this at the start of every frame. */
+    public void beginTraffic() {
+        trafficCars = 0;
     }
 
     /**

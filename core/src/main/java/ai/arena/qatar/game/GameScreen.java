@@ -362,6 +362,11 @@ public final class GameScreen extends InputAdapter implements Disposable {
         rebaseIfNeeded();
         controller.update(dt);
         worldRenderer.update(rig.east, rig.north, dt);
+        // After the world has moved the traffic, and before the camera follows the body: a car that has
+        // just reached the player's lane pushes them out of it, and the camera then follows them rather
+        // than the shove being applied a frame late.
+        controller.resolveTrafficContacts(worldRenderer.trafficContacts(), worldRenderer.trafficContactCount(),
+                dt);
         updateCamera();
 
         // The world and the controls are drawn under separate guards: whichever of them is broken, the
