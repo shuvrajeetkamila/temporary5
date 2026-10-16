@@ -9,14 +9,14 @@ repository, a CI run, or a byte count that can be re-derived.
 | | |
 |---|---|
 | **APK** | [`Qatar-The-Peninsula-v0.1.0-m0.apk`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk) |
-| **Bytes** | 19,216,978 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below, and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset. Android builds are not bit-reproducible, so two builds of the same commit differ by a few bytes and by their digest; the bytes and the digest here are the ones in the release as published by the run named below |
-| **SHA-256** | `bfef57c18e95a097538f0c5659ec195f45769ff31ef012667d2733b7ceb1c56c` — the digest in the run's `artifacts/APK_VALIDATION.txt`, in the release notes, and in the 110-byte `.sha256` sidecar the same step wrote |
+| **Bytes** | 19,226,838 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below, and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset. Android builds are not bit-reproducible, so two builds of the same commit differ by a few bytes and by their digest; the bytes and the digest here are the ones in the release as published by the run named below |
+| **SHA-256** | `8efb1d0b81ebd341104359dd2a19cdfc55517193df0d12c3acbd7c26fdb61871` — the digest in the run's `artifacts/APK_VALIDATION.txt`, in the release notes, and in the 110-byte `.sha256` sidecar the same step wrote |
 | **Sidecar** | [`…apk.sha256`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256) |
 | **Release** | https://github.com/shuvrajeetkamila/temporary5/releases/tag/v0.1.0-m0 (rolling: each green run republishes it) |
-| **Built from** | commit `7dcf9f4`, branch `arena/4eb37624-temporary5` |
-| **CI runs for that commit** | Build APK [`38878207670`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38878207670) success (including publish) · Compile gate [`38878207681`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38878207681) success · Protect the project [`38878207723`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38878207723) success. No world-data run this time: the country was not recompiled, so the build compiled the bundle inside its own job |
-| **Tests at that commit** | 206 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_SUMMARY.txt`) |
-| **Build stamp on screen** | `0.1.0-m0+diag9` — the release asset keeps its name, so this is how two builds are told apart on a phone: the diagnostics panel prints the stamp on its first line |
+| **Built from** | commit `ebfa20b`, branch `arena/4eb37624-temporary5` |
+| **CI runs for that commit** | Build APK [`38894342258`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38894342258) success (including publish) · Compile gate [`38894342296`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38894342296) success · Protect the project [`38894342292`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38894342292) success. No world-data run this time: the country was not recompiled, so the build compiled the bundle inside its own job |
+| **Tests at that commit** | 225 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_SUMMARY.txt`) |
+| **Build stamp on screen** | `0.1.0-m0+diag11` — the release asset keeps its name, so this is how two builds are told apart on a phone: the diagnostics panel prints the stamp on its first line |
 | **Package** | `ai.arena.qatar.peninsula`, versionName `0.1.0-m0`, debug-signed, `minSdk 26`, `targetSdk 34` |
 | **ABIs** | `arm64-v8a`, `armeabi-v7a`, `x86_64` |
 | **Permissions** | none: no `INTERNET`, nothing to phone home to. The country is inside the APK. |
@@ -590,9 +590,127 @@ walks the real streaming cache for fifteen hundred frames of driving and counts 
 the culling arithmetic and the diagnostics of a round that was mostly spent making the frame cheaper,
 against a country whose bundles did not change at all.
 
+### Tenth install: the map teleported, and the frame went with it
+
+The report, word for word: **"minimap teleport may be broken, teelport happens abnormmally or crashes ,
+fix that and jkeep building . helicopter worked , but cant walk , use car . fix them"**. Note what is
+*not* in it: the helicopter. The ninth install's flight work landed, and the machine that had been at the
+centre of two rounds now worked -- which turned out to be the clue to everything else.
+
+**Same fingers, same stick, different result: the fault had to be in what the ground does.** The frame
+that a player moves in is not global: the world is drawn around a floating origin, and every entity
+stores its position relative to it (see `WorldOrigin`). When the player travels far enough, the origin
+moves and *every local transform moves with it*. A map tap is the worst case -- a hundred kilometres in
+one frame -- so the teleport path found the fault first: the rebase moved the origin and the camera rig,
+and nothing else. The player's own body kept its old local coordinate, and since the rig is re-derived
+from the body every frame (`PlayerController.syncRig`) the rig was put straight back where it had
+been: the origin rebased again on the next frame, and the next. One rebase per frame, tens of kilometres
+at a time, for as long as the app was running.
+
+What that looked like from a phone is the whole report. A tap that arrived somewhere else, or nowhere: the
+player was placed where they tapped and then carried away from it, frame by frame. A country streaming
+past at an absurd speed. Ground that was no longer theirs -- under a different building, or under the sea.
+And a walker and a car that would not move a metre: their step is refused when the ground under them moves
+like that, while a helicopter simply flies. Four faults, one cause, and the cause was invisible from
+inside the game because everything still *looked* like the world.
+
+The fixes, all in the tenth install's build:
+
+* **A rebase now shifts the bodies** (`PlayerController.shiftLocal`), not only the rig -- and
+  `OriginRebaseTest` holds the invariant from both sides, including a control that shows the same tap
+  arriving more than ten kilometres away when the shift is left out.
+* **A tap that is not on the map is refused.** `MapView.containsPoint` says whether the finger landed on
+  the raster itself -- the drawn rectangle inside the HUD region, which changes with the zoom and the
+  letterbox -- and a tap in the margin answers "Tap on the map to travel" instead of resolving to a place
+  nobody asked for.
+* **An arrival says where it arrived**, in which form (a spawn, a road, open ground), how far it was and
+  which way the body now faces: `TeleportService.Target.headingDegrees` (a runway's threshold heading, a
+  road's own tangent) and a marker drawn on the map at the destination.
+* **The streaming warms up after a jump** (`GameWorldRenderer.onPlayerJumped`), so a teleport does not land
+  on an empty world waiting for three chunks a frame.
+* **The chunk cache honours the radius it is asked for** (`ChunkMeshCache.update` evicts at the radius it
+  was given, not at a constant), which was making a slow phone thrash.
+* **And the game now says why a body will not move.** "Cant walk" is four words; the body's own state
+  names the rule that refused it -- solid at the feet, water too deep, ground not compiled, not on the
+  ground -- and the message is printed in English over the Arabic twin, on the panel and in the log, with
+  the body's own numbers.
+
+### Eleventh install: a horizon where the fog was, and three holes
+
+The report asked for the teleport fault to be fixed, the walker and the car to work, and for the building
+to continue. The eleventh install answers with three faults of one shape -- geometry, or a code path, that
+nothing owned -- and the first piece of the country the player could not previously see.
+
+**The coastline of the streamed world was a hole.** The land pass drew a cell only when all four of its
+corners were land, and the water pass drew one only when all four were water, so every cell straddling the
+shore was drawn by neither: a band up to two cells wide -- two hundred metres at the detailed resolution --
+of nothing at all along every coast in the country, with the sky behind it. Out in a boat, looking back at
+the beach, the beach was missing. A cell now belongs to the layer its own flag names, and both layers take
+a lattice point's height from one rule, so the beach and the sea meet at a shared edge instead of nearly
+touching.
+
+**The world ended in fog five kilometres out.** Not a bug -- the streamed chunks end there and the fog was
+pulled in to hide the edge -- but the complaint behind it is real: stand on the Corniche and Doha had no
+far side, and the sea stopped. The country was already in the bundle at 300 m a cell (`terrain_l0`, 2.3 MB
+of it), and at five to eleven kilometres that is a couple of pixels tall. `HorizonMesh` builds it into one
+polar ring from 2.4 km to 11.4 km -- 48 rings, 128 divisions, 6,144 cells, about twelve thousand triangles,
+two draw calls, resolution following distance for free -- and the fog now runs to the ring's own far edge,
+where it is exactly the colour of the sky's haze. The streamed chunks overlap its inner rings, so on a slow
+phone (where the chunk window shrinks to 2.8 km) there is still no gap to see through. It is rebuilt only
+after the player has travelled a kilometre and a half, and dropped on a teleport, because a horizon of the
+country a hundred kilometres away is worse than none.
+
+**A tap could close the app, and the crash reporter had nothing to say about it.** This one is worth the
+two lines of library source it was found in. In libGDX 1.12.1, `AndroidGraphics.onDrawFrame` reads:
+
+    app.getInput().processEvents();                     // every touch and key handler runs here
+    app.getApplicationListener().render();              // ... and this game's frame guard is in here
+
+Only the second line is inside a guard. The handlers run on the GL thread, outside any try/catch this game
+controls, so an exception from a touch handler killed the GL thread and the process with it -- silently,
+with the game's own "a frame failed" reporter never reached. Every report of a tap closing the app,
+"opening the minimap crashes it" and "teleport crashes" included, was that hole. `GuardedInput` wraps the
+processor: a failed event is discarded, the panel names the handler, the crash record gets the stack, and
+the game carries on. `resize`, `pause`, `resume` and `dispose` are wrapped for the same reason -- they are
+outside the frame guard too, and rotating the phone calls one of them.
+
+**And a body that cannot move is now moved.** Words were the tenth install's answer to "cant walk"; words
+are not enough when the body has been *placed* badly -- inside the footprint of a building, in water deeper
+than it can cross, or on ground whose collision was never compiled. After two seconds of asking and going
+nowhere, the game searches outwards in 8 m rings for the nearest spot this kind of body could move from --
+standable ground at the same height, outside anything solid, no more than a step away -- and steps it
+there, with the distance in the message. `SpawnClearer.nearestUsable` carries the rules per kind: a walker
+wades, a car does not swim, a boat needs water under its keel. Flying bodies are never moved (a helicopter
+that will not fly is a different fault, and hiding it would be worse), and a rescue will not run twice in
+six seconds, so leaning on a wall does not teleport the player anywhere.
+
+**What the round taught about its own gates.** The compile gate caught the eleventh install's only compile
+error -- `GameWorldRenderer` used `HorizonMesh` from another package without importing it, six javac errors
+from one missing line -- and every local gate had passed, because every local gate checked *names* and this
+was an *import*. `tools/check_java_symbols.py` now indexes every type the project declares and the package
+that declares it, and fails on a capitalised name used in a file that is neither in that package, nor
+imports it, nor declares it itself. Run against the broken revision it reproduces all six javac errors,
+line for line, in under a second, which is the only reason to trust a new gate.
+
+**The build that shipped was the second attempt, and both failures were in the tests.** The first run of
+the round (commit `13b8eb7`) compiled, built the country, and ran 225 tests to two failures -- and neither
+failure was the game. The horizon test checked every triangle's winding by reading an index out of the
+mesh's `short[]` buffer, on a mesh the test had deliberately filled to 71,500 vertices: past vertex 32,767
+the index reads back negative, so the check indexed the vertex array *backwards* and threw
+`ArrayIndexOutOfBoundsException: Index -360437`. The index buffer is unsigned 16-bit -- which is exactly
+why a mesh holds at most 65,000 vertices, the limit the compile gate's third rule came from -- so the check
+now masks to `0xFFFF` before it looks anything up, which is the read a GPU does. The other failure was a
+fixture that could never have passed: the cliff case was built from the shore helper, whose land side is
+`depth 0.2`, so the body was wedged in deep water *and* a step from a cliff, and the rescue was right to
+refuse every direction -- east was a fifty-metre drop, west was drowning. The case now builds its own
+surface, dry on both sides of the line, with the body inside a compound's bounding box, so the step rule is
+the only thing refusing the drop; it asserts the landing is one ring out, at the body's own height, outside
+the box. `ebfa20b` is that fix and the build the release now carries: **225 tests, 0 skipped, 0 failures,
+0 errors**, APK **19,226,838 bytes**, SHA-256 `8efb1d0b…`, `validation=PASSED`, stamp `0.1.0-m0+diag11`.
+
 ## Honest limitations
 
-1. **This build has been on a phone nine times, and every report found something real** — twenty-three
+1. **This build has been on a phone eleven times, and every report found something real** — thirty
    faults
    in all, listed in the sections above, each one now fixed and, where a test can hold it, held. Two
    reports arrived with no symptom in them at all, so an audit was the diagnosis; one arrived as a stack
@@ -609,7 +727,11 @@ against a country whose bundles did not change at all.
    compiles for the first time on a phone. Nothing here can compile GLSL; what stands in for a GPU is the
    shader lint, the on-screen diagnostics, and the fact that the panel has so far named its failures
    precisely enough to fix them — including the one it named with no words from the phone at all.
-   **The ninth install's heat has not been measured on a phone by anyone here.** What can be said is what
+   **The tenth install's teleport fault and the eleventh's horizon have not been measured on a phone by
+   anyone here either**: what can be said is what changed, and that the two faults the tenth and eleventh
+   reports describe now have tests that fail without the fixes -- one rebase per frame is asserted against,
+   and so is every cell of the ring and every cell of the coastline. **The ninth install's heat has not
+   been measured on a phone by anyone here.** What can be said is what
    changed and how much of the work it removes: the frame rate is capped at 60, most of the disc is culled
    before it is drawn, the streaming cache stops meshing when its window is full rather than rebuilding the
    far ring every frame, and the draw distance shrinks when frames run long. The panel now prints the frame
@@ -620,7 +742,12 @@ against a country whose bundles did not change at all.
    fails if the box comes back. What remains is that barriers (fences, walls, hedges) collide as lines of a
    fixed half-width and a single height, so a gap in a fence that is not mapped as a gate is not a way
    through.
-4. The world is drawn only within the streaming radius: beyond roughly 6 km it fades into fog and stops.
+4. ~~The world is drawn only within the streaming radius: beyond roughly 6 km it fades into fog and
+   stops.~~ **Fixed in the eleventh install**: the streamed chunks still end at roughly 6 km, but the
+   country's own terrain at 300 m a cell carries the view on to 11.4 km, which is inside the camera's far
+   plane, and the fog now ends there rather than hiding the boundary. What is still not drawn at distance
+   is anything the detail radius owns -- buildings, roads and palms beyond 2.5 km -- so a skyline appears
+   as the player approaches it rather than being there from the start.
 5. ~~Vehicles do not collide with each other.~~ **Partly fixed this round**: the machines the player is
    not in are solid to the one they are, and are parked in a line behind them at a spawn, a teleport or a
    vehicle change. The parked machines themselves are not simulated -- an aeroplane parked in the sea stays
@@ -666,7 +793,7 @@ against a country whose bundles did not change at all.
 
 ```bash
 git clone https://github.com/shuvrajeetkamila/temporary5 && cd temporary5
-git checkout 7dcf9f4            # the commit the published APK was built from
+git checkout ebfa20b            # the commit the published APK was built from
 # world data (downloads OSM + SRTM, compiles the country, validates it):
 python3 tools/fetch_sources.py && python3 tools/build_world.py && python3 tools/game_world.py
 python3 tools/validate_game_world.py --world android/assets/world     # 57/57

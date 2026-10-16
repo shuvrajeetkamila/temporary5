@@ -717,3 +717,95 @@ release.
 6. ~~Final report.~~ Written: `docs/FINAL_REPORT.md` — APK link, bytes, SHA-256, run ids, and the honest
    limitations. It has to be re-checked whenever the APK changes, because a rolling release keeps
    only the newest artefact and the report names one.
+
+### The tenth report: a teleport that arrived somewhere else, and two bodies that would not move
+
+**The report:** "minimap teleport may be broken, teelport happens abnormmally or crashes , fix that and
+jkeep building . helicopter worked , but cant walk , use car . fix them" — with the helicopter no longer in
+the list of things that were wrong.
+
+**The diagnosis, and it is the one thing about a floating origin that is easy to get half right.** The
+world is drawn around an origin that moves with the player; when it moves, *every* local transform has to
+move with it in the same frame. `GameScreen.rebaseIfNeeded` moved the origin and the camera rig, and the rig
+is re-derived from the player's body every frame (`PlayerController.syncRig`), so the rig went straight
+back to the body's stale local coordinate and the origin rebased again -- once per frame, tens of kilometres
+at a time, for as long as the app ran. A map tap is the worst case and found it first, which is why the
+report is about the map; but the same runaway explains "cant walk, use car", because a walker's and a car's
+step is refused when the ground under them is moved every frame, and a helicopter simply flies. Four
+symptoms, one cause, and it was invisible from inside the game because everything still looked like the
+world.
+
+**Fixed in this round, and the round kept building as asked:**
+
+* `PlayerController.shiftLocal` shifts all five bodies and the rig by the same delta, and
+  `OriginRebaseTest` holds the invariant in both directions -- including a control that shows the tap
+  arriving more than ten kilometres away when the shift is left out.
+* A tap that is not on the map is refused (`MapView.containsPoint`) with a message instead of resolving to
+  a place nobody asked for; an arrival now reports where, in which form, how far and facing which way
+  (`TeleportService.Target.headingDegrees`), and marks the destination on the map.
+* The streaming warms up after a jump (`onPlayerJumped`), the chunk cache evicts at the radius it is given
+  rather than at a constant, and a body that will not move now says *why* on the screen, in English and
+  Arabic, from its own state.
+
+### The eleventh report: keep building — a horizon where the fog was, and three holes
+
+**Three faults of the same shape: geometry, or a code path, that nothing owned.**
+
+1. **The coastline of the streamed world was a hole.** The land pass drew a cell only when all four of its
+   corners were land and the water pass only when all four were water, so every cell straddling the shore
+   was drawn by neither -- a band up to two cells wide, two hundred metres at 100 m cells, of nothing at
+   all along every coast, with the sky behind it. A cell now belongs to the layer its own flag names, and
+   both layers take a lattice point's height from one rule, so the beach and the sea share an edge.
+   `MeshersTest.coastlineHasNoGap` counts the cells across both layers and checks the shared column.
+2. **The world ended in fog at five kilometres.** `HorizonMesh` builds the national terrain at 300 m a cell
+   (`terrain_l0`, already in the bundle) into one polar ring from 2.4 km to 11.4 km: 48 rings by 128
+   divisions, 6,144 cells, about twelve thousand triangles in two draw calls, resolution following distance
+   for free, rebuilt only after a kilometre and a half of travel and dropped on a teleport. The fog now
+   runs to the ring's far edge, which is inside the camera's far plane and exactly the colour of the sky's
+   haze. `HorizonMeshTest` asserts the ring covers every cell, faces up, carries the country's heights and
+   can never overflow a 16-bit index buffer.
+3. **A tap could close the app and the crash reporter never heard about it.** In libGDX 1.12.1,
+   `AndroidGraphics.onDrawFrame` runs `app.getInput().processEvents()` on the line *above*
+   `app.getApplicationListener().render()` — and only the second is inside this game's frame guard. Every
+   touch and key handler therefore ran outside it, so an exception from one killed the GL thread and the
+   process, silently. `GuardedInput` wraps the processor (and `resize`/`pause`/`resume`/`dispose` are
+   wrapped too, because they are outside the guard as well): a failed event is discarded, the panel names
+   the handler, and the game carries on.
+
+**And a new kind of answer to "cant walk":** after two seconds of asking and going nowhere, a body that is
+stuck for one of the three *placement* reasons -- inside a footprint, in water too deep to cross, on ground
+with no collision -- is stepped to the nearest place it could move from (`SpawnClearer.nearestUsable`),
+with the distance in the message. Flying bodies are never moved and a rescue never runs twice in six
+seconds.
+
+**The gate this round added.** The compile gate caught the round's only compile error -- a type used from
+another package with no import (`HorizonMesh` in `GameWorldRenderer`) -- which every local gate had missed,
+because every local gate checked names and this was an import. `check_java_symbols.py` now indexes the
+whole tree's types and their packages and fails on a cross-package name that is not imported; run against
+the broken revision it reproduces all six javac errors line for line.
+
+**Green build (round ten):** run `38891070679` on `4648f55` -- 214 tests, 0 failures, 0 errors,
+`validation=PASSED`, `status=PASSED`, APK **19,219,494 bytes**, SHA-256 `5ec7a3c2…`, stamp
+`0.1.0-m0+diag10`.
+
+**Green build (round eleven):** the round's first run (`13b8eb7`) compiled, built the country and ran 225
+tests to two failures, both of them in the tests rather than the game: a winding check that read a 16-bit
+index buffer as signed on a mesh deliberately filled past vertex 32,767, and a cliff fixture built from the
+shore helper so the body was wedged in deep water as well as a step from the drop -- a case no rescue could
+ever satisfy. Fixed in `ebfa20b`; run `38894342258` on that commit: **225 tests, 0 skipped, 0 failures, 0
+errors**, `gradle_exit=0`, `assemble_exit=0`, `validation=PASSED`, `status=PASSED`, APK **19,226,838
+bytes**, SHA-256 `8efb1d0b…`, stamp `0.1.0-m0+diag11`.
+
+### Next up, in order
+
+1. **Detail at distance.** The horizon is terrain only: buildings, roads and palms end at the 2.5 km detail
+   radius, so a skyline arrives as the player approaches it. The next step is a coarse building layer --
+   the largest footprints extruded at low detail out to 6-8 km -- which is a second detail radius rather
+   than a new system.
+2. **A profile on a phone.** The panel reports frame time, chunks, triangles and draws; nobody has read it
+   on a handset yet, and the horizon's own cost (twelve thousand triangles) should be visible in it.
+3. **The rescue's inverse.** A body that has been *driven* into a compound can be rescued out; a body that
+   has been driven into water cannot be rescued anywhere if the shore is more than 160 m away, and the
+   message says so. Swimming, or a "call the boat" button, is the honest fix.
+4. **Barrier gaps.** Barriers collide as lines of a fixed half-width and one height, so a mapped gap is not
+   a way through unless it is a gate.
