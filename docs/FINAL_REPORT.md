@@ -9,12 +9,12 @@ repository, a CI run, or a byte count that can be re-derived.
 | | |
 |---|---|
 | **APK** | [`Qatar-The-Peninsula-v0.1.0-m0.apk`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk) |
-| **Bytes** | 19,232,514 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below, and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset. Android builds are not bit-reproducible, so two builds of the same commit differ by a few bytes and by their digest; the bytes and the digest here are the ones in the release as published by the run named below |
-| **SHA-256** | `d0e7975eda8ade9460d89b809fe716c3a65370b00001b061eabdd92058178ad2` — the digest in the run's `artifacts/APK_VALIDATION.txt`, in the release notes, and in the 110-byte `.sha256` sidecar the same step wrote |
+| **Bytes** | 19,232,606 — and the release is rolling: every green build replaces the file, so these numbers hold for the run named below, and `artifacts/APK_VALIDATION.txt` in that run's evidence commit is the authority for the current asset. Android builds are not bit-reproducible, so two builds of the same commit differ by a few bytes and by their digest; the bytes and the digest here are the ones in the release as published by the run named below |
+| **SHA-256** | `1241cbf0e8b51c56341032027f6d7c28b0adfedf7f9dac4d88a509bf45b26cfd` — the digest in the run's `artifacts/APK_VALIDATION.txt`, in the release notes, and in the 110-byte `.sha256` sidecar the same step wrote |
 | **Sidecar** | [`…apk.sha256`](https://github.com/shuvrajeetkamila/temporary5/releases/download/v0.1.0-m0/Qatar-The-Peninsula-v0.1.0-m0.apk.sha256) |
 | **Release** | https://github.com/shuvrajeetkamila/temporary5/releases/tag/v0.1.0-m0 (rolling: each green run republishes it) |
-| **Built from** | commit `4442728`, branch `arena/4eb37624-temporary5` |
-| **CI runs for that commit** | Build APK [`38900539049`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38900539049) success (including publish) · Compile gate [`38900539066`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38900539066) success · Protect the project [`38900539595`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38900539095) success. No world-data run this time: the country was not recompiled, so the build compiled the bundle inside its own job |
+| **Built from** | commit `1ff3192`, branch `arena/4eb37624-temporary5` |
+| **CI runs for that commit** | Build APK [`38902085846`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38902085846) success (including publish) · Compile gate [`38902085859`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38902085859) success · Protect the project [`38902085886`](https://github.com/shuvrajeetkamila/temporary5/actions/runs/38902085886) success. No world-data run this time: the country was not recompiled, so the build compiled the bundle inside its own job |
 | **Tests at that commit** | 239 tests, 0 skipped, 0 failures, 0 errors (`artifacts/UNIT_TEST_SUMMARY.txt`) |
 | **Build stamp on screen** | `0.1.0-m0+diag12` — the release asset keeps its name, so this is how two builds are told apart on a phone: the diagnostics panel prints the stamp on its first line |
 | **Package** | `ai.arena.qatar.peninsula`, versionName `0.1.0-m0`, debug-signed, `minSdk 26`, `targetSdk 34` |
@@ -749,10 +749,10 @@ separator in it is split rather than dropped, and the last measurement -- the on
 which is where the new numbers always go -- lands on a line the player can read. `StatusTextTest` holds it
 against the exact two-hundred-character line this build draws.
 
-**Green build (round twelve):** run `38900539049` on `4442728` -- 239 tests, 0 skipped, 0 failures, 0
-errors, `gradle_exit=0`, `assemble_exit=0`, `validation=PASSED`, `status=PASSED`, APK **19,232,514 bytes**,
-SHA-256 `d0e7975e…`, release asset updated at 12:36:10Z, stamp `0.1.0-m0+diag12`. The two features cost
-5,676 bytes over the previous install, which is the whole of their cost: no new assets, no new fonts, no
+**Green build (round twelve):** run `38902085846` on `1ff3192` -- 239 tests, 0 skipped, 0 failures, 0
+errors, `gradle_exit=0`, `assemble_exit=0`, `validation=PASSED`, `status=PASSED`, APK **19,232,606 bytes**,
+SHA-256 `1241cbf0…`, release asset updated at 12:46:37Z, stamp `0.1.0-m0+diag12`. The two features cost
+5,768 bytes over the previous install, which is the whole of their cost: no new assets, no new fonts, no
 new permissions.
 
 ## Honest limitations
@@ -853,7 +853,7 @@ new permissions.
 
 ```bash
 git clone https://github.com/shuvrajeetkamila/temporary5 && cd temporary5
-git checkout 4442728            # the commit the published APK was built from
+git checkout 1ff3192            # the commit the published APK was built from
 # world data (downloads OSM + SRTM, compiles the country, validates it):
 python3 tools/fetch_sources.py && python3 tools/build_world.py && python3 tools/game_world.py
 python3 tools/validate_game_world.py --world android/assets/world     # 57/57

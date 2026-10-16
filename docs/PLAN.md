@@ -818,9 +818,9 @@ panel now wraps to the width of a phone, and the wrap loses nothing: every chara
 on some line, and the last measurement -- where new numbers always go -- lands on a line the player can
 read.
 
-**Green build (round twelve):** run `38900539049` on `4442728` -- 239 tests, 0 skipped, 0 failures, 0
-errors, `gradle_exit=0`, `assemble_exit=0`, `validation=PASSED`, `status=PASSED`, APK **19,232,514 bytes**,
-SHA-256 `d0e7975e…`, stamp `0.1.0-m0+diag12`.
+**Green build (round twelve):** run `38902085846` on `1ff3192` -- 239 tests, 0 skipped, 0 failures, 0
+errors, `gradle_exit=0`, `assemble_exit=0`, `validation=PASSED`, `status=PASSED`, APK **19,232,606 bytes**,
+SHA-256 `1241cbf0…`, stamp `0.1.0-m0+diag12`.
 
 ### Next up, in order
 
