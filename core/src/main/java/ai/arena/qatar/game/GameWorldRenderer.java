@@ -4,6 +4,7 @@ import ai.arena.qatar.render.ChunkCulling;
 import ai.arena.qatar.render.ChunkMeshCache;
 import ai.arena.qatar.render.ChunkMesher;
 import ai.arena.qatar.render.ChunkMesher.ChunkMesh;
+import ai.arena.qatar.render.FarLayerMesh;
 import ai.arena.qatar.render.HorizonMesh;
 import ai.arena.qatar.render.SkylineMesh;
 import ai.arena.qatar.render.WorldRenderer;
@@ -175,6 +176,23 @@ public final class GameWorldRenderer implements Disposable {
     /** The block count last written to the launch trace: see the logging rule in {@link #updateSkyline}. */
     private int skylineLoggedBlocks = -1;
 
+    /**
+     * The roads and the vegetation of the band between the detail radius and the horizon.
+     *
+     * <p>A third ring of the same shape as the other two, and the last one the world is missing: the
+     * skyline put the buildings back into the distance and left the country between them bare, so the road
+     * a player is driving on stopped being drawn two and a half kilometres ahead of them.
+     */
+    private FarLayerMesh.FarLayer farLayer;
+    private double farLayerCentreEast;
+    private double farLayerCentreNorth;
+    /** True when the layer belongs to a place the player has left: see {@link #horizonStale}. */
+    private boolean farLayerStale;
+    private int farLayerRebuilds;
+    private boolean farLayerFailed;
+    /** The road segment count last written to the launch trace, by the same rule as the skyline's. */
+    private int farLayerLoggedSegments = -1;
+
     public GameWorldRenderer(WorldData world, WorldOrigin origin, WorldRenderer renderer) {
         this.world = world;
         this.origin = origin;
@@ -214,6 +232,9 @@ public final class GameWorldRenderer implements Disposable {
         // with the same fix -- a city of the wrong country, pasted over the one the player arrived in.
         horizonStale = true;
         skylineStale = true;
+        // And the far layer with them: the roads around the old position drawn over the new one is the
+        // same fault a third time, and the fix is the same -- rebuild before drawing rather than after.
+        farLayerStale = true;
     }
 
     /** Recomputes bundle<->local translation; call after the floating origin rebases. */
@@ -261,7 +282,8 @@ public final class GameWorldRenderer implements Disposable {
         // same trigger, so without this a teleport into Doha would spend two of them in one frame. The
         // second one follows a frame later, which nobody can see and a slow phone can feel.
         boolean horizonBuilt = updateHorizon(bundleEast, bundleNorth);
-        updateSkyline(bundleEast, bundleNorth, horizonBuilt);
+        boolean skylineBuilt = updateSkyline(bundleEast, bundleNorth, horizonBuilt);
+        updateFarLayer(bundleEast, bundleNorth, horizonBuilt || skylineBuilt);
     }
 
     /**
@@ -307,6 +329,32 @@ public final class GameWorldRenderer implements Disposable {
         }
     }
 
+    /** True when a far layer is on the GPU and belongs where the player is now. */
+    public boolean farLayerReady() {
+        return farLayer != null && !farLayerStale && !farLayerFailed;
+    }
+
+    /** Road segments in the layer the panel is describing, or 0 when there is none. */
+    public int farLayerRoadSegments() {
+        return farLayer == null ? 0 : farLayer.roadSegments;
+    }
+
+    public int farLayerRebuilds() {
+        return farLayerRebuilds;
+    }
+
+    public int farLayerTriangles() {
+        return renderer.farLayerTriangles();
+    }
+
+    /** The layer in words for the panel: the roads and the plants, or why there are neither. */
+    public String farLayerDescription() {
+        if (farLayer == null) {
+            return farLayerFailed ? "roads FAILED" : "roads pending";
+        }
+        return farLayer.describe();
+    }
+
     /**
      * Builds the skyline of the city beyond the detail radius, if it is missing, stale, or no longer
      * centred near the player.
@@ -315,16 +363,16 @@ public final class GameWorldRenderer implements Disposable {
      * skipped while another ring is being built this frame, and one failure is enough to stop trying --
      * a phone that cannot afford it keeps the world it already had, and the panel says so.
      */
-    private void updateSkyline(double bundleEast, double bundleNorth, boolean builtSomethingElse) {
+    private boolean updateSkyline(double bundleEast, double bundleNorth, boolean builtSomethingElse) {
         if (skylineFailed || builtSomethingElse || renderer == null || !renderer.isReady()) {
-            return;
+            return false;
         }
         if (skyline != null && !skylineStale) {
             double movedEast = bundleEast - skylineCentreEast;
             double movedNorth = bundleNorth - skylineCentreNorth;
             if (movedEast * movedEast + movedNorth * movedNorth
                     < SkylineMesh.REBUILD_MOVE_M * SkylineMesh.REBUILD_MOVE_M) {
-                return;
+                return false;
             }
         }
         try {
@@ -345,10 +393,57 @@ public final class GameWorldRenderer implements Disposable {
                 skylineLoggedBlocks = built.blockCount;
                 ai.arena.qatar.boot.ScreenLog.GLOBAL.log("World: " + built.describe());
             }
+            return true;
         } catch (Throwable t) {
             skylineFailed = true;
             ai.arena.qatar.boot.ScreenLog.GLOBAL.error("the distant city could not be built; the world "
                     + "beyond the detail radius stays as bare as it was", t);
+            return false;
+        }
+    }
+
+    /**
+     * Builds the far layer around the player, if it is missing, stale, or no longer centred near them.
+     *
+     * <p>The third and last of the rings, and the same shape as the other two: built on the frame after
+     * whichever of the two was built, skipped while one of them is being built, and one failure is enough
+     * to stop trying -- a phone that cannot afford it keeps the country it already had, and the panel says
+     * so rather than the world going quiet about it.
+     */
+    private void updateFarLayer(double bundleEast, double bundleNorth, boolean builtSomethingElse) {
+        if (farLayerFailed || builtSomethingElse || renderer == null || !renderer.isReady()) {
+            return;
+        }
+        if (farLayer != null && !farLayerStale) {
+            double movedEast = bundleEast - farLayerCentreEast;
+            double movedNorth = bundleNorth - farLayerCentreNorth;
+            if (movedEast * movedEast + movedNorth * movedNorth
+                    < FarLayerMesh.REBUILD_MOVE_M * FarLayerMesh.REBUILD_MOVE_M) {
+                return;
+            }
+        }
+        try {
+            FarLayerMesh.FarLayer built = FarLayerMesh.build(world, bundleEast, bundleNorth);
+            renderer.uploadFarLayer(built.mesh);
+            // The GPU has its copy; the CPU one is half a megabyte the phone can spend on chunks.
+            built.mesh.releaseArrays();
+            farLayer = built;
+            farLayerCentreEast = bundleEast;
+            farLayerCentreNorth = bundleNorth;
+            farLayerStale = false;
+            farLayerRebuilds++;
+            // The trace gets the layer in words, once when the world arrives and once again whenever the
+            // road count moves by a quarter -- driving out of Doha and into the desert, or back. Every
+            // rebuild at a log line apiece would bury the trace it is there to explain.
+            if (farLayerRebuilds == 1 || Math.abs(built.roadSegments - farLayerLoggedSegments) * 4
+                    > Math.max(4, farLayerLoggedSegments)) {
+                farLayerLoggedSegments = built.roadSegments;
+                ai.arena.qatar.boot.ScreenLog.GLOBAL.log("World: " + built.describe());
+            }
+        } catch (Throwable t) {
+            farLayerFailed = true;
+            ai.arena.qatar.boot.ScreenLog.GLOBAL.error("the roads and palms beyond the detail radius "
+                    + "could not be built; the distance stays as bare as it was", t);
         }
     }
 
@@ -516,6 +611,13 @@ public final class GameWorldRenderer implements Disposable {
             // is standing in.
             renderer.drawSkyline(skylineCentreEast - bundleOffsetEast, skylineCentreNorth - bundleOffsetNorth);
         }
+        if (farLayerReady()) {
+            // Last of the three, and drawn with a polygon offset that pulls it a depth-buffer step towards
+            // the viewer: at eight kilometres that step is fifteen metres, so a road draped on the ground
+            // has no other way to win the depth test. See WorldRenderer.farLayer.
+            renderer.drawFarLayer(farLayerCentreEast - bundleOffsetEast,
+                    farLayerCentreNorth - bundleOffsetNorth);
+        }
         // No state hand-over here on purpose: the player's body may still be drawn with this pass's
         // state, and WorldRenderer.drawActor ends the 3D frame once the body is on the screen. The HUD
         // does not depend on either of them: HudRenderer.begin() sets its own state (see GlState2D).
@@ -634,6 +736,12 @@ public final class GameWorldRenderer implements Disposable {
                         + (skylineTriangles() / 1000) + "k tris"
                         + (skylineRebuilds > 1 ? " x" + skylineRebuilds : "")
                         : skylineFailed ? "FAILED" : "pending")
+                // And the roads and palms of the same band, in two numbers that would both be zero if the
+                // layer had quietly not been built: a country whose highways stop at the horizon again.
+                + ", roads " + (farLayerReady() ? farLayerRoadSegments() + " segs, "
+                        + (farLayerTriangles() / 1000) + "k tris"
+                        + (farLayerRebuilds > 1 ? " x" + farLayerRebuilds : "")
+                        : farLayerFailed ? "FAILED" : "pending")
                 + (failedChunks() > 0 ? ", " + failedChunks() + " FAILED" : "");
     }
 

@@ -81,6 +81,21 @@ public final class WorldRenderer implements Disposable {
      */
     private Mesh skyline;
     private int skylineTriangles;
+    /**
+     * The far layer: the roads and the vegetation of the band between the detail radius and the horizon.
+     *
+     * <p>One mesh for both, because they are the same kind of thing -- a painting of the country at three
+     * to eight kilometres -- and because splitting them would cost a second draw call to say the same.
+     *
+     * <p>It is drawn with a polygon offset, and that is not a preference. The camera's near plane is 0.25 m
+     * and its far plane is 12 km, so at eight kilometres one step of a 24-bit depth buffer is about fifteen
+     * metres: a road six tenths of a metre above the ground it was draped on is a difference the depth
+     * buffer cannot represent, and without the offset it wins some pixels and loses others as the camera
+     * moves. The offset tells the rasteriser to pull the whole layer one resolution step towards the
+     * viewer, which is exactly the guarantee needed and costs nothing.
+     */
+    private Mesh farLayer;
+    private int farLayerTriangles;
     /** One matrix per moving part, reused every frame: a car has four wheels, so this never grows. */
     private Matrix4[] partScratch = new Matrix4[8];
 
@@ -423,6 +438,55 @@ public final class WorldRenderer implements Disposable {
             skyline = null;
         }
         skylineTriangles = 0;
+    }
+
+    /**
+     * Uploads the far layer: the roads and the vegetation of the band past the detail radius.
+     *
+     * <p>One mesh, like the skyline and the horizon, and for the same reason: it is a painting of a band,
+     * not a stream of chunks. An empty mesh means there is nothing within reach -- the middle of the
+     * southern desert, where the only road is behind the player -- and that is not a failure.
+     */
+    public void uploadFarLayer(MeshData data) {
+        if (!isReady()) {
+            return;
+        }
+        farLayer = upload(farLayer, data);
+        farLayerTriangles = data == null ? 0 : data.triangleCount();
+    }
+
+    /** The far layer's own triangle count, which the panel reports alongside the chunks'. */
+    public int farLayerTriangles() {
+        return farLayerTriangles;
+    }
+
+    /** Drops the far layer: after a teleport it is the roads around the place the player left. */
+    public void releaseFarLayer() {
+        if (farLayer != null) {
+            farLayer.dispose();
+            farLayer = null;
+        }
+        farLayerTriangles = 0;
+    }
+
+    /**
+     * Draws the far layer, translated from the centre it was built around. Called with the world program
+     * bound and the fog set, after the horizon and the skyline so that its own depth wins the last
+     * resolution step: see {@link #farLayer}.
+     */
+    public void drawFarLayer(double offsetEast, double offsetNorth) {
+        if (!isReady() || farLayer == null) {
+            return;
+        }
+        identity.setToTranslation((float) offsetEast, 0f, (float) offsetNorth);
+        worldProgram.setUniformMatrix("u_model", identity);
+        Gdx.gl.glEnable(GL20.GL_POLYGON_OFFSET_FILL);
+        Gdx.gl.glPolygonOffset(-1f, -2f);
+        farLayer.render(worldProgram, GL20.GL_TRIANGLES);
+        Gdx.gl.glPolygonOffset(0f, 0f);
+        Gdx.gl.glDisable(GL20.GL_POLYGON_OFFSET_FILL);
+        drawCalls++;
+        drawnTriangles += farLayer.getNumIndices() / 3;
     }
 
     /**
