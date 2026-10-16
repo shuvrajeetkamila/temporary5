@@ -464,6 +464,9 @@ public final class GameScreen extends InputAdapter implements Disposable {
         // are being driven, rather than sitting there looking available.
         layout.setEnabled(Id.JUMP, controller.loco() == Loco.HUMAN);
         layout.setHighlighted(Id.JUMP, controller.jumpPending());
+        // A boat cannot be called from a hundred metres up: the machines that fly have their own buttons
+        // and a call made in the air would put the player in a hull that is on the water without them.
+        layout.setEnabled(Id.CALL_BOAT, !flying);
         layout.button(Id.MODE).label = controller.loco() == Loco.CAR ? "WALK" : "DRIVE";
         for (Button button : layout.buttons()) {
             hud.drawButton(button, layout.isHighlighted(button.id));
@@ -711,20 +714,27 @@ public final class GameScreen extends InputAdapter implements Disposable {
         if (loco.flying) {
             return null;
         }
-        boolean deepWater = state.wading || worldSurface.waterDepthM(state.eastM, state.northM)
-                > ai.arena.qatar.vehicle.HumanBody.WADE_DEPTH_M;
+        // Deep water is a placement fault for the machines and not for the person. A walker in water over
+        // their head is swimming, which is a thing they asked for and can stop doing; a car in deep water
+        // and a boat on dry sand are both somewhere they cannot get out of, and the rescue exists for those.
+        boolean deepWater = loco != Loco.HUMAN
+                && worldSurface.waterDepthM(state.eastM, state.northM)
+                        > ai.arena.qatar.vehicle.HumanBody.WADE_DEPTH_M;
         if (collisionLoaded && !deepWater && !state.blocked) {
             return null;
         }
-        // What this body can use, by kind: a walker wades, a car does not swim, and a boat needs water.
+        // What this body can use, by kind: a walker swims anywhere and a car does not swim at all, while a
+        // boat needs water under its keel. The walker's ceiling used to be wading depth, which meant a
+        // rescue triggered by a wall could drag a swimmer fifty metres ashore; now the walker's rescue only
+        // ever fixes solidity or uncompiled ground, and leaves them in the water they chose.
         double minDepth = 0.0;
-        double maxDepth = ai.arena.qatar.vehicle.HumanBody.WADE_DEPTH_M;
+        double maxDepth = 100.0;
         double maxStep = 1.5;
         if (loco == Loco.CAR) {
             maxDepth = 0.4;
             maxStep = 2.0;
         } else if (loco == Loco.BOAT) {
-            minDepth = 0.8;
+            minDepth = BoatCall.MIN_DEPTH_M;
             maxDepth = 100.0;
             maxStep = 3.0;
         }
@@ -749,6 +759,41 @@ public final class GameScreen extends InputAdapter implements Disposable {
                 + (collisionLoaded ? deepWater ? "water it cannot cross" : "something solid"
                         : "uncompiled ground"));
         return String.format(java.util.Locale.ROOT, "Stepped clear (%.0f m): move again", spot.movedM);
+    }
+
+    /**
+     * Calls the boat: works out where a boat can float near the player, and puts them in it there.
+     *
+     * <p>What it replaces is the boat arriving on the sand. Every locomotion button in this game places a
+     * body at the player's feet, which is right for a car on a road and useless for a boat on a beach: a
+     * hull placed on dry sand is aground, its propeller has nothing to push against, and the player who
+     * asked for a boat is left sitting in one that will not move. A boat is therefore placed in the
+     * nearest water it can float in, up to {@link BoatCall#SEARCH_M} metres away, and the message says how
+     * far that was -- because a boat that appears two hundred metres offshore is a boat the player then has
+     * to look at the minimap to understand.
+     *
+     * @return the message to show, or null
+     */
+    private String callTheBoat() {
+        if (worldSurface == null) {
+            return null;
+        }
+        ai.arena.qatar.vehicle.VehicleState player = controller.state();
+        BoatCall.Result call = BoatCall.plan(worldSurface, player.eastM, player.northM,
+                player.headingDegrees);
+        if (!call.found) {
+            ai.arena.qatar.boot.ScreenLog.GLOBAL.warn("a boat was called with nowhere to put it: "
+                    + call.reason);
+            return "No boat: " + call.reason;
+        }
+        controller.callBoat(call.eastM, call.northM, call.headingDegrees);
+        lastOdometerM = controller.state().odometerM;
+        worldRenderer.setActor(controller.meshKind());
+        ai.arena.qatar.boot.ScreenLog.GLOBAL.log(String.format(java.util.Locale.ROOT,
+                "Boat called %.0f m away, heading %.0f", call.distanceM, call.headingDegrees));
+        return call.distanceM < 15.0
+                ? "Boat called: you are in it"
+                : String.format(java.util.Locale.ROOT, "Boat called: %.0f m away", call.distanceM);
     }
 
     /**
@@ -972,6 +1017,12 @@ public final class GameScreen extends InputAdapter implements Disposable {
             case LOCO_BOAT:
                 controller.setLoco(Loco.BOAT);
                 worldRenderer.setActor(controller.meshKind());
+                break;
+            case CALL_BOAT:
+                if (pressed) {
+                    message = callTheBoat();
+                    worldRenderer.setActor(controller.meshKind());
+                }
                 break;
             case MAP:
                 openBigMap();

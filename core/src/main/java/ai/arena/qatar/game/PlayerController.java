@@ -255,6 +255,23 @@ public final class PlayerController {
     }
 
     /**
+     * Answers a call for the boat: the player ends up in it, and the boat ends up in water.
+     *
+     * <p>Two steps, in this order and for a reason. First the player is put in the boat where they are, so
+     * that the seat, the camera and the body mesh all change through the one path every other vehicle uses.
+     * Then the boat alone is floated to the water the call found -- {@code spawn} and not {@code placeAll},
+     * because {@code placeAll} would lay the whole stable out around the boat and teleport the person
+     * standing on the beach along with it.
+     */
+    public void callBoat(double eastM, double northM, double headingDegrees) {
+        setLoco(Loco.BOAT);
+        VehicleState boat = states[Loco.BOAT.ordinal()];
+        bodies[Loco.BOAT.ordinal()].spawn(boat, eastM, northM, surface, headingDegrees);
+        placed[Loco.BOAT.ordinal()] = true;
+        syncRig(boat);
+    }
+
+    /**
      * Places the player at a position and parks the rest of the stable around them, e.g. after a
      * teleport or at start-up.
      *

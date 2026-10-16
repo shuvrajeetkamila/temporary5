@@ -8,8 +8,16 @@ package ai.arena.qatar.vehicle;
  * 0.42 m step. A step higher than that is a wall, and the body refuses it rather than climbing it,
  * which is what makes kerbs feel like kerbs.
  *
- * <p>Deep water is refused rather than swum: the plan lists a body for the human, not a swimming
- * model, and an honest stop at wading depth is better than pretending to swim.
+ * <p>Deep water is swum. It used to be refused -- the body stopped dead at wading depth and the only way
+ * out was the rescue that walks a stuck body clear of water it cannot cross -- which made the coast a
+ * wall: a player who waded out to their chest on the west side of Doha could not reach the island they
+ * could see, could not cross the creek at Al Khor, and was teleported back to the sand with a message
+ * about a step after two seconds of pressing the stick. A person swims. The model here is deliberately
+ * the smallest one that is honest: the body floats with its shoulders at the water's surface and its feet
+ * trailing under it, it moves at a swimmer's speed and not a runner's, it can climb out onto a shore
+ * within a step of the water it is floating in, and it is stopped by a quay wall above the surface like
+ * anybody else. No stroke, no stamina and no current: three more things to get wrong and none of them
+ * visible from the seat of a boat.
  */
 public final class HumanBody extends VehicleBody {
 
@@ -23,8 +31,24 @@ public final class HumanBody extends VehicleBody {
     public static final double JUMP_SPEED_MS = 3.1;
     /** The tallest step the body will walk up. */
     public static final double STEP_UP_M = 0.42;
-    /** Water deeper than this is not waded. */
+    /** Water deeper than this is not waded. Above it the body swims. */
     public static final double WADE_DEPTH_M = 1.2;
+    /**
+     * The speed a person swims at, in m/s.
+     *
+     * <p>A metre a second is a steady breaststroke and about two thirds of a walking pace: the point of
+     * the number is that crossing deep water is possible and slow, so that the sea is a way to get
+     * somewhere rather than a wall, and so that a swimmer is not a faster way to travel than a walker.
+     */
+    public static final double SWIM_SPEED_MS = 1.1;
+    /**
+     * How far a swimming person's feet trail below the water's surface, in metres.
+     *
+     * <p>The body's recorded height is its feet, the same as everywhere else in this engine, and the camera
+     * sits an eye height above it. A swimmer who is 1.5 m "tall" under the surface therefore holds their
+     * head about ten centimetres above it, which is what swimming looks like from the water.
+     */
+    public static final double SWIM_FEET_DEPTH_M = 1.5;
     /** Eye height above the feet, used by the camera rig. */
     public static final double EYE_HEIGHT_M = 1.62;
 
@@ -56,6 +80,10 @@ public final class HumanBody extends VehicleBody {
         double ground = surface.groundHeightM(x, z);
         double depth = surface.waterDepthM(x, z);
         state.wading = depth > 0.15 && depth <= WADE_DEPTH_M;
+        // Anything deeper than a person can wade is swum rather than refused. This is the flag the boat
+        // uses for "resting on water", which is exactly what a swimmer is doing.
+        boolean swimming = depth > WADE_DEPTH_M;
+        state.floating = swimming;
 
         // ---- where the player wants to go -------------------------------------------------------
         double forward = clamp(input.throttle, -1, 1);
@@ -71,9 +99,13 @@ public final class HumanBody extends VehicleBody {
             magnitude = 1;
         }
 
-        // Sand and shingle cost speed; the material registry already knows by how much.
-        double surfaceFactor = state.wading ? 0.45 : 1.0 - 0.55 * surface.materialAt(x, z).sinkage;
-        double nominal = (input.boost ? RUN_SPEED_MS : WALK_SPEED_MS) * surfaceFactor;
+        // Sand and shingle cost speed; the material registry already knows by how much. Water is not a
+        // material the body walks on: swimming has its own speed, and the bottom under a swimmer is
+        // several metres down and has no say in it.
+        double surfaceFactor = swimming ? 1.0
+                : state.wading ? 0.45 : 1.0 - 0.55 * surface.materialAt(x, z).sinkage;
+        double nominal = swimming ? SWIM_SPEED_MS
+                : (input.boost ? RUN_SPEED_MS : WALK_SPEED_MS) * surfaceFactor;
         // Side-stepping is slower than walking forward, and walking backwards slower still.
         double alongHeading = forward >= 0 ? magnitude : magnitude * 0.55;
         double signed = forward < 0 && side == 0 ? -1.0 : 1.0;
@@ -115,14 +147,18 @@ public final class HumanBody extends VehicleBody {
         // moves. Being inside something is not a wall to respect: it is somewhere to walk out of, so
         // the solid test is skipped while the feet themselves are in a solid.
         boolean insideSomething = surface.solidAt(x, z, Math.max(ground, state.heightM));
-        if (state.grounded && (moveE != 0 || moveN != 0)) {
+        if ((state.grounded || swimming) && (moveE != 0 || moveN != 0)) {
             double aheadGround = surface.groundHeightM(x + moveE, z + moveN);
-            double aheadDepth = surface.waterDepthM(x + moveE, z + moveN);
-            boolean tooTall = aheadGround - ground > STEP_UP_M;
-            boolean tooDeep = aheadDepth > WADE_DEPTH_M;
+            // The step the body may take is measured from whatever it is travelling on: the ground under
+            // its feet when it is walking or wading, and the water's own surface when it is swimming. So a
+            // swimmer can climb out onto a beach -- the sand is within a step of the surface they are
+            // floating in -- and cannot climb a quay wall, which is the same rule a walker has for a kerb.
+            // The old rule blocked on depth alone, which is what made the sea a wall.
+            double stepReference = swimming ? surface.waterSurfaceM(x, z) : ground;
+            boolean tooTall = aheadGround - stepReference > STEP_UP_M;
             boolean tooSolid = !insideSomething
                     && surface.solidAt(x + moveE, z + moveN, Math.max(aheadGround, state.heightM));
-            if (tooTall || tooDeep || tooSolid) {
+            if (tooTall || tooSolid) {
                 state.blocked = true;
                 state.speedMS = 0;
                 moveE = 0;
@@ -135,8 +171,18 @@ public final class HumanBody extends VehicleBody {
         state.northM += moveN;
         state.odometerM += Math.abs(stepDistance);
 
-        // ---- vertical: stand on the terrain, fall off it, jump off it ---------------------------
+        // ---- vertical: swim, or stand on the terrain, or fall off it ----------------------------
         double groundHere = surface.groundHeightM(state.eastM, state.northM);
+        double depthHere = surface.waterDepthM(state.eastM, state.northM);
+        if (depthHere > WADE_DEPTH_M) {
+            // Floating: the body neither stands on the seabed nor falls through the water, it rides the
+            // surface, and the jump button does nothing because a person in deep water has nothing to
+            // push off. Walking out of it is the same code as walking into it: the shallows end and the
+            // body is standing again on the next step.
+            state.grounded = false;
+            state.verticalMS = 0;
+            state.heightM = surface.waterSurfaceM(state.eastM, state.northM) - SWIM_FEET_DEPTH_M;
+        }
         if (state.grounded) {
             if (input.jump) {
                 state.grounded = false;
@@ -153,7 +199,7 @@ public final class HumanBody extends VehicleBody {
                 state.verticalMS = 0;
             }
         }
-        if (!state.grounded) {
+        if (!state.grounded && depthHere <= WADE_DEPTH_M) {
             state.verticalMS -= G * dt;
             state.heightM += state.verticalMS * dt;
             if (state.heightM <= groundHere && state.verticalMS <= 0) {
@@ -166,7 +212,7 @@ public final class HumanBody extends VehicleBody {
         state.pitchDegrees = state.grounded
                 ? approach(state.pitchDegrees, 0, 30 * dt)
                 : approach(state.pitchDegrees, clamp(-state.verticalMS * 1.5, -35, 35), 60 * dt);
-        state.slip = state.wading ? 0.3 : 0.0;
+        state.slip = swimming ? 0.25 : state.wading ? 0.3 : 0.0;
         state.sinkage = surface.materialAt(x, z).sinkage * 0.5;
         // The real acceleration, not a zero: it is what the walker's own lean and the panel's readout
         // are computed from, and a body that always reports 0 m/s^2 is a body that leans never and
@@ -174,15 +220,15 @@ public final class HumanBody extends VehicleBody {
         // blocking below rather than contradicting it.
         state.accelMS2 = dt > 1e-6 ? (state.speedMS - speedBefore) / dt : 0.0;
         state.stalled = false;
-        state.floating = false;
         state.rotorClimb = false;
     }
 
     @Override
     public String instrument(VehicleState state) {
-        String mode = state.grounded ? "ON FOOT" : "AIRBORNE";
-        // BLOCKED is on the readout because a walker that will not move has to say why: on a phone the
-        // status line is the only debugger there is.
+        // SWIMMING is its own word rather than a footnote on WADING: it is the difference between a body
+        // that is standing in water and one that is in the middle of the bay, and on a phone the status
+        // line is the only debugger there is.
+        String mode = state.floating ? "SWIMMING" : state.grounded ? "ON FOOT" : "AIRBORNE";
         return String.format(java.util.Locale.ROOT, "%s  %.1f m/s  %s%s%s", label(), state.speedMS,
                 mode, state.wading ? "  WADING" : "", state.blocked ? "  BLOCKED" : "");
     }

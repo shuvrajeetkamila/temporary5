@@ -26,6 +26,8 @@ public final class HudLayout {
         LOCO_PLANE,
         LOCO_HELI,
         LOCO_BOAT,
+        /** Calls the boat to the nearest water a boat can float in; see {@code BoatCall}. */
+        CALL_BOAT,
         MAP,           // open the big map
         ALT_UP,
         /** The walking jump: the only thing that gets a person over a kerb or off a wall. */
@@ -269,6 +271,10 @@ public final class HudLayout {
         add(Id.BRAKE, rightX - bw * 1.2f - gap - bw * 1.2f, pad, bw * 1.2f, bh, "BRAKE", "فرامل");
         // Above them: whose eyes the screen is looking through -- the driver's, or behind the body.
         add(Id.VIEW, rightX - bw * 1.2f, pad + bh + gap, bw * 1.2f, bh, "VIEW", "منظر");
+        // And above that, the boat call. It is not a locomotion button -- it does not change what the
+        // player is -- so it is not in the locomotion column: it is a request for a machine, and it lives
+        // with the other world requests, out of the way of the walking thumb.
+        add(Id.CALL_BOAT, rightX - bw * 1.2f, pad + (bh + gap) * 2f, bw * 1.2f, bh, "CALL", "استدعاء");
 
         // The movement stick. Its resting place is the lower left, clear of the locomotion column and
         // the MODE/RUN/JUMP row on one side, clear of the minimap corner and the map's tap target on the
