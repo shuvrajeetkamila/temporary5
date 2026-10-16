@@ -1,0 +1,57 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.7/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Task :core:compileJava FAILED
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:148: error: package HorizonMesh does not exist
+    private HorizonMesh.Horizon horizon;
+                       ^
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:255: error: cannot find symbol
+                    < HorizonMesh.REBUILD_MOVE_M * HorizonMesh.REBUILD_MOVE_M) {
+                      ^
+  symbol:   variable HorizonMesh
+  location: class GameWorldRenderer
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:255: error: cannot find symbol
+                    < HorizonMesh.REBUILD_MOVE_M * HorizonMesh.REBUILD_MOVE_M) {
+                                                   ^
+  symbol:   variable HorizonMesh
+  location: class GameWorldRenderer
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:260: error: package HorizonMesh does not exist
+            HorizonMesh.Horizon built = HorizonMesh.build(world, bundleEast, bundleNorth);
+                       ^
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:260: error: cannot find symbol
+            HorizonMesh.Horizon built = HorizonMesh.build(world, bundleEast, bundleNorth);
+                                        ^
+  symbol:   variable HorizonMesh
+  location: class GameWorldRenderer
+/home/runner/work/temporary5/temporary5/core/src/main/java/ai/arena/qatar/game/GameWorldRenderer.java:375: error: cannot find symbol
+        renderer.setFogRange(horizonUp ? (float) HorizonMesh.FAR_M : (float) drawRadiusM, horizonUp);
+                                                 ^
+  symbol:   variable HorizonMesh
+  location: class GameWorldRenderer
+6 errors
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1792149650204.json
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+--
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
+Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Compilation failed; see the compiler error output for details.
+	at org.gradle.api.internal.tasks.compile.JdkJavaCompiler.execute(JdkJavaCompiler.java:61)
+	at org.gradle.api.internal.tasks.compile.JdkJavaCompiler.execute(JdkJavaCompiler.java:41)
+	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.delegateAndHandleErrors(NormalizingJavaCompiler.java:98)
+	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.execute(NormalizingJavaCompiler.java:52)
+	at org.gradle.api.internal.tasks.compile.NormalizingJavaCompiler.execute(NormalizingJavaCompiler.java:38)
+	at org.gradle.api.internal.tasks.compile.AnnotationProcessorDiscoveringCompiler.execute(AnnotationProcessorDiscoveringCompiler.java:52)
+	at org.gradle.api.internal.tasks.compile.AnnotationProcessorDiscoveringCompiler.execute(AnnotationProcessorDiscoveringCompiler.java:38)
+	at org.gradle.api.internal.tasks.compile.ModuleApplicationNameWritingCompiler.execute(ModuleApplicationNameWritingCompiler.java:46)
+	at org.gradle.api.internal.tasks.compile.ModuleApplicationNameWritingCompiler.execute(ModuleApplicationNameWritingCompiler.java:36)
+	at org.gradle.jvm.toolchain.internal.DefaultToolchainJavaCompiler.execute(DefaultToolchainJavaCompiler.java:57)
+--
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:47)
+
+
+BUILD FAILED in 16s
+1 actionable task: 1 executed
