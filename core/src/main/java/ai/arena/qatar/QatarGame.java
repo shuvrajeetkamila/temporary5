@@ -44,7 +44,7 @@ public final class QatarGame extends ApplicationAdapter {
      * that the panel reported, and the person installing the next one needs to see at a glance that it
      * is the next one and not the same file installed twice.
      */
-    public static final String VERSION = "0.1.0-m0+diag10";
+    public static final String VERSION = "0.1.0-m0+diag11";
 
     /**
      * Map raster resolution. 2048 covers the country at 126 m per pixel and cost seconds of blocking
